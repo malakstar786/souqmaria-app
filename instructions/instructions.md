@@ -1212,7 +1212,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     - **Message:** "User Not Found!!!"
   - **Mobile Already Exists:** `StatusCode: 200`, `ResponseCode: -8`
     - **Message:** "Mobile no. all ready exists...!!!" (Note: Contradicts read-only nature of mobile for updates)
-  - **Something Went Wrong (User-related):** `StatusCode: 200`, `ResponseCode: -10`
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
     - **Message:** "Something went wrong...Please try again later!!!"
   - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -6`
     - **Message:** "Server side validation error...Please try again later!!!"
@@ -1221,5 +1221,358 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 - **Notes:**
   - The API documentation image specifies "Email id and mobile no. should be read only" in the context of updates. This means that while they are sent in the payload, the backend should not modify these fields. The values sent should be the user's current email and mobile.
   - The primary editable fields by the user should be `FullName` and `Password`.
+
+### Address Management APIs
+
+#### 1. Save Billing Address (`/CRUD_Billing_Manage_Address/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Saves a new billing address for the user. To update an existing address, a different `BillingAddressId` and potentially a different `Command` (e.g., "Update") would be used, though this specific flow covers adding a new address.
+- **Request Body:**
+  ```json
+  {
+    "BillingAddressId": 0, // Pass 0 for new address
+    "FullName": "string (100)",
+    "Email": "string (128)",
+    "Mobile": "string (50)",
+    "Address2": "string (500)", // Optional address line
+    "Country": "string (10)", // Country Code/Xcode
+    "State": "string (10)",   // State Code/Xcode
+    "City": "string (10)",    // City Code/Xcode
+    "Block": "string (200)",
+    "Street": "string (200)",
+    "House": "string (200)",
+    "Apartment": "string (200)", // Optional
+    "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
+    "Command": "Save", // Command to execute
+    "UserId": "string (10)", // User's ID
+    "CompanyId": "int (3044)", // Fixed Company ID
+    "IpAddress": "string (100)" // User's IP Address
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter        | Type    | Length | Description                     | Required |
+|---|------------------|---------|--------|---------------------------------|----------|
+| 1 | BillingAddressId | int     | -      | Address ID (0 for new)          | Yes      |
+| 2 | FullName         | String  | 100    | User's full name for the address| Yes      |
+| 3 | Email            | String  | 128    | User's email for the address    | Yes      |
+| 4 | Mobile           | String  | 50     | User's mobile for the address   | Yes      |
+| 5 | Address2         | String  | 500    | Optional address line 2         | No       |
+| 6 | Country          | String  | 10     | Country Code/Xcode              | Yes      |
+| 7 | State            | String  | 10     | State Code/Xcode                | Yes      |
+| 8 | City             | String  | 10     | City Code/Xcode                 | Yes      |
+| 9 | Block            | String  | 200    | Block number/name               | Yes      |
+| 10| Street           | String  | 200    | Street name                     | Yes      |
+| 11| House            | String  | 200    | House/Building number/name      | Yes      |
+| 12| Apartment        | String  | 200    | Apartment number (optional)     | No       |
+| 13| IsDefault        | Boolean | -      | Set as default (0 or 1)         | Yes      |
+| 14| Command          | String  | 50     | Command (e.g., "Save")          | Yes      |
+| 15| UserId           | String  | 10     | User's ID                       | Yes      |
+| 16| CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 17| IpAddress        | String  | 100    | User's IP Address               | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 2`
+    - **Message:** "Billing Address Save Successfully!!!"
+  - **Save Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Billing Address Not Save Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -12`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - The `BillingAddressId` should be `0` when creating a new address.
+  - `Command` should be `"Save"` for creating a new address.
+  - `Country`, `State`, and `City` are expected to be codes (Xcodes). The UI will need dropdowns populated with appropriate values that map display names to these codes.
+  - `IpAddress` should be dynamically obtained from the device.
+
+#### 2. Update Billing Address (`/CRUD_Billing_Manage_Address/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Updates an existing billing address for the user.
+- **Request Body:**
+  ```json
+  {
+    "BillingAddressId": "int", // Pass the existing address ID
+    "FullName": "string (100)",
+    "Email": "string (128)",
+    "Mobile": "string (50)",
+    "Address2": "string (500)", // Optional address line
+    "Country": "string (10)", // Country Code/Xcode
+    "State": "string (10)",   // State Code/Xcode
+    "City": "string (10)",    // City Code/Xcode
+    "Block": "string (200)",
+    "Street": "string (200)",
+    "House": "string (200)",
+    "Apartment": "string (200)", // Optional
+    "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
+    "Command": "Update", // Command to execute
+    "UserId": "string (10)", // User's ID
+    "CompanyId": "int (3044)", // Fixed Company ID
+    "IpAddress": "string (100)" // User's IP Address
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter        | Type    | Length | Description                     | Required |
+|---|------------------|---------|--------|---------------------------------|----------|
+| 1 | BillingAddressId | int     | -      | Existing Address ID             | Yes      |
+| 2 | FullName         | String  | 100    | User's full name for the address| Yes      |
+| 3 | Email            | String  | 128    | User's email for the address    | Yes      |
+| 4 | Mobile           | String  | 50     | User's mobile for the address   | Yes      |
+| 5 | Address2         | String  | 500    | Optional address line 2         | No       |
+| 6 | Country          | String  | 10     | Country Code/Xcode              | Yes      |
+| 7 | State            | String  | 10     | State Code/Xcode                | Yes      |
+| 8 | City             | String  | 10     | City Code/Xcode                 | Yes      |
+| 9 | Block            | String  | 200    | Block number/name               | Yes      |
+| 10| Street           | String  | 200    | Street name                     | Yes      |
+| 11| House            | String  | 200    | House/Building number/name      | Yes      |
+| 12| Apartment        | String  | 200    | Apartment number (optional)     | No       |
+| 13| IsDefault        | Boolean | -      | Set as default (0 or 1)         | Yes      |
+| 14| Command          | String  | 50     | Command (must be "Update")      | Yes      |
+| 15| UserId           | String  | 10     | User's ID                       | Yes      |
+| 16| CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 17| IpAddress        | String  | 100    | User's IP Address               | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 2`
+    - **Message:** "Billing Address Update Successfully!!!"
+  - **Update Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Billing Address Not Update Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -12`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - The `BillingAddressId` must be an existing address ID.
+  - `Command` must be set to `"Update"`.
+  - All fields are required to be sent in the request, even if only some are being updated.
+  - To preserve unchanged fields, you should first get the existing address data, modify only what needs to be changed, and then send the complete payload.
+
+#### 3. Delete Billing Address (`/CRUD_Billing_Manage_Address/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Deletes an existing billing address.
+- **Request Body:**
+  ```json
+  {
+    "BillingAddressId": "int", // Pass the existing address ID to delete
+    "UserId": "string (10)", // User's ID
+    "IpAddress": "string (100)", // User's IP Address
+    "CompanyId": "int (3044)", // Fixed Company ID
+    "Command": "Delete" // Command to execute
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter        | Type    | Length | Description                     | Required |
+|---|------------------|---------|--------|---------------------------------|----------|
+| 1 | BillingAddressId | int     | -      | Existing Address ID to delete   | Yes      |
+| 2 | UserId           | String  | 10     | User's ID                       | Yes      |
+| 3 | IpAddress        | String  | 100    | User's IP Address               | Yes      |
+| 4 | CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 5 | Command          | String  | 50     | Command (must be "Delete")      | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 6`
+    - **Message:** "Billing Address Delete Successfully!!!"
+  - **Delete Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Billing Address Not Delete Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -12`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - Only the address ID, user ID, company ID, IP address, and command are required for deletion.
+  - The `Command` must be set to `"Delete"`.
+  - A successful delete operation returns `ResponseCode: 6` rather than `2` as used for save/update operations.
+  - After deletion, you should update the UI to remove the deleted address from the list.
+
+### Shipping Address Management APIs
+
+#### 1. Save Shipping Address (`/CRUD_Shipping_Manage_Address/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Saves a new shipping address for the user.
+- **Request Body:**
+  ```json
+  {
+    "ShippingAddressId": 0, // Pass 0 for new address
+    "FullName": "string (100)",
+    "Email": "string (128)",
+    "Mobile": "string (50)",
+    "Address2": "string (500)", // Optional address line
+    "Country": "string (10)", // Country Code/Xcode
+    "State": "string (10)",   // State Code/Xcode
+    "City": "string (10)",    // City Code/Xcode
+    "Block": "string (200)",
+    "Street": "string (200)",
+    "House": "string (200)",
+    "Apartment": "string (200)", // Optional
+    "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
+    "Command": "Save", // Command to execute
+    "UserId": "string (10)", // User's ID
+    "CompanyId": "int (3044)", // Fixed Company ID
+    "IpAddress": "string (100)" // User's IP Address
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter         | Type    | Length | Description                     | Required |
+|---|--------------------|---------|--------|---------------------------------|----------|
+| 1 | ShippingAddressId | int     | -      | Address ID (0 for new)          | Yes      |
+| 2 | FullName          | String  | 100    | User's full name for the address| Yes      |
+| 3 | Email             | String  | 128    | User's email for the address    | Yes      |
+| 4 | Mobile            | String  | 50     | User's mobile for the address   | Yes      |
+| 5 | Address2          | String  | 500    | Optional address line 2         | No       |
+| 6 | Country           | String  | 10     | Country Code/Xcode              | Yes      |
+| 7 | State             | String  | 10     | State Code/Xcode                | Yes      |
+| 8 | City              | String  | 10     | City Code/Xcode                 | Yes      |
+| 9 | Block             | String  | 200    | Block number/name               | Yes      |
+| 10| Street            | String  | 200    | Street name                     | Yes      |
+| 11| House             | String  | 200    | House/Building number/name      | Yes      |
+| 12| Apartment         | String  | 200    | Apartment number (optional)     | No       |
+| 13| IsDefault         | Boolean | -      | Set as default (0 or 1)         | Yes      |
+| 14| Command           | String  | 50     | Command (e.g., "Save")          | Yes      |
+| 15| UserId            | String  | 10     | User's ID                       | Yes      |
+| 16| CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 17| IpAddress         | String  | 100    | User's IP Address               | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 2`
+    - **Message:** "Shipping Address Save Successfully!!!"
+  - **Save Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Shipping Address Not Save Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -12`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - The `ShippingAddressId` should be `0` when creating a new address.
+  - `Command` should be `"Save"` for creating a new address.
+  - `Country`, `State`, and `City` are expected to be codes (Xcodes). The UI will need dropdowns populated with appropriate values that map display names to these codes.
+  - `IpAddress` should be dynamically obtained from the device.
+
+#### 2. Update Shipping Address (`/CRUD_Shipping_Manage_Address/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Updates an existing shipping address for the user.
+- **Request Body:**
+  ```json
+  {
+    "ShippingAddressId": "int", // Pass the existing address ID
+    "FullName": "string (100)",
+    "Email": "string (128)",
+    "Mobile": "string (50)",
+    "Address2": "string (500)", // Optional address line
+    "Country": "string (10)", // Country Code/Xcode
+    "State": "string (10)",   // State Code/Xcode
+    "City": "string (10)",    // City Code/Xcode
+    "Block": "string (200)",
+    "Street": "string (200)",
+    "House": "string (200)",
+    "Apartment": "string (200)", // Optional
+    "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
+    "Command": "Update", // Command to execute
+    "UserId": "string (10)", // User's ID
+    "CompanyId": "int (3044)", // Fixed Company ID
+    "IpAddress": "string (100)" // User's IP Address
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter         | Type    | Length | Description                     | Required |
+|---|--------------------|---------|--------|---------------------------------|----------|
+| 1 | ShippingAddressId | int     | -      | Existing Address ID             | Yes      |
+| 2 | FullName          | String  | 100    | User's full name for the address| Yes      |
+| 3 | Email             | String  | 128    | User's email for the address    | Yes      |
+| 4 | Mobile            | String  | 50     | User's mobile for the address   | Yes      |
+| 5 | Address2          | String  | 500    | Optional address line 2         | No       |
+| 6 | Country           | String  | 10     | Country Code/Xcode              | Yes      |
+| 7 | State             | String  | 10     | State Code/Xcode                | Yes      |
+| 8 | City              | String  | 10     | City Code/Xcode                 | Yes      |
+| 9 | Block             | String  | 200    | Block number/name               | Yes      |
+| 10| Street            | String  | 200    | Street name                     | Yes      |
+| 11| House             | String  | 200    | House/Building number/name      | Yes      |
+| 12| Apartment         | String  | 200    | Apartment number (optional)     | No       |
+| 13| IsDefault         | Boolean | -      | Set as default (0 or 1)         | Yes      |
+| 14| Command           | String  | 50     | Command (must be "Update")      | Yes      |
+| 15| UserId            | String  | 10     | User's ID                       | Yes      |
+| 16| CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 17| IpAddress         | String  | 100    | User's IP Address               | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 4`
+    - **Message:** "Shipping Address Update Successfully!!!"
+  - **Update Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Shipping Address Not Update Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -12`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - The `ShippingAddressId` must be an existing address ID.
+  - `Command` must be set to `"Update"`.
+  - All fields are required to be sent in the request, even if only some are being updated.
+  - To preserve unchanged fields, you should first get the existing address data, modify only what needs to be changed, and then send the complete payload.
+  - Note that a successful update operation returns `ResponseCode: 4` for shipping addresses, which is different from the billing address update response code.
+
+#### 3. Delete Shipping Address (`/CRUD_Shipping_Manage_Address/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Deletes an existing shipping address.
+- **Request Body:**
+  ```json
+  {
+    "ShippingAddressId": "int", // Pass the existing address ID to delete
+    "UserId": "string (10)", // User's ID
+    "IpAddress": "string (100)", // User's IP Address
+    "CompanyId": "int (3044)", // Fixed Company ID
+    "Command": "Delete" // Command to execute
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter         | Type    | Length | Description                     | Required |
+|---|--------------------|---------|--------|---------------------------------|----------|
+| 1 | ShippingAddressId | int     | -      | Existing Address ID to delete   | Yes      |
+| 2 | UserId            | String  | 10     | User's ID                       | Yes      |
+| 3 | IpAddress         | String  | 100    | User's IP Address               | Yes      |
+| 4 | CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 5 | Command           | String  | 50     | Command (must be "Delete")      | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 6`
+    - **Message:** "Shipping Address Delete Successfully!!!"
+  - **Delete Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Shipping Address Not Delete Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -12`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (User/Data related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - Only the address ID, user ID, company ID, IP address, and command are required for deletion.
+  - The `Command` must be set to `"Delete"`.
+  - A successful delete operation returns `ResponseCode: 6` rather than `2` as used for save/update operations.
+  - After deletion, you should update the UI to remove the deleted address from the list.
 
 

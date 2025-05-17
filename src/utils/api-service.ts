@@ -42,6 +42,63 @@ interface UpdateUserDetailsPayload {
   CompanyId: number;
 }
 
+export interface SaveBillingAddressPayload {
+  BillingAddressId: number; // 0 for new
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  Address2: string;
+  Country: string;
+  State: string;
+  City: string;
+  Block: string;
+  Street: string;
+  House: string;
+  Apartment: string;
+  IsDefault: boolean | 0 | 1;
+  Command: string; // 'Save'
+  UserId: string;
+  CompanyId: number;
+  IpAddress: string;
+}
+
+export interface DeleteBillingAddressPayload {
+  BillingAddressId: number;
+  UserId: string;
+  IpAddress: string;
+  CompanyId: number;
+  Command: string; // 'Delete'
+}
+
+// Shipping Address Payloads
+export interface SaveShippingAddressPayload {
+  ShippingAddressId: number; // 0 for new
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  Address2: string;
+  Country: string;
+  State: string;
+  City: string;
+  Block: string;
+  Street: string;
+  House: string;
+  Apartment: string;
+  IsDefault: boolean | 0 | 1;
+  Command: string; // 'Save'
+  UserId: string;
+  CompanyId: number;
+  IpAddress: string;
+}
+
+export interface DeleteShippingAddressPayload {
+  ShippingAddressId: number;
+  UserId: string;
+  IpAddress: string;
+  CompanyId: number;
+  Command: string; // 'Delete'
+}
+
 /**
  * Get device IP address (simplified implementation)
  * In a real app, you would use a more robust method to get the IP
@@ -145,5 +202,49 @@ export const updateUserDetailsAPI = async (payload: UpdateUserDetailsPayload): P
   }
   return apiRequest(ENDPOINTS.UPDATE_USER_DETAILS, 'POST', payload);
 };
+
+/**
+ * Save a new billing address
+ */
+export async function saveBillingAddress(payload: SaveBillingAddressPayload): Promise<ApiResponse> {
+  return apiRequest('/CRUD_Billing_Manage_Address', 'POST', payload);
+}
+
+/**
+ * Update an existing billing address
+ */
+export async function updateBillingAddress(payload: SaveBillingAddressPayload): Promise<ApiResponse> {
+  // Same endpoint as save, but with Command: 'Update' and existing BillingAddressId
+  return apiRequest('/CRUD_Billing_Manage_Address', 'POST', payload);
+}
+
+/**
+ * Delete a billing address
+ */
+export async function deleteBillingAddress(payload: DeleteBillingAddressPayload): Promise<ApiResponse> {
+  return apiRequest('/CRUD_Billing_Manage_Address', 'POST', payload);
+}
+
+/**
+ * Save a new shipping address
+ */
+export async function saveShippingAddress(payload: SaveShippingAddressPayload): Promise<ApiResponse> {
+  return apiRequest('/CRUD_Shipping_Manage_Address', 'POST', payload);
+}
+
+/**
+ * Update an existing shipping address
+ */
+export async function updateShippingAddress(payload: SaveShippingAddressPayload): Promise<ApiResponse> {
+  // Same endpoint as save, but with Command: 'Update' and existing ShippingAddressId
+  return apiRequest('/CRUD_Shipping_Manage_Address', 'POST', payload);
+}
+
+/**
+ * Delete a shipping address
+ */
+export async function deleteShippingAddress(payload: DeleteShippingAddressPayload): Promise<ApiResponse> {
+  return apiRequest('/CRUD_Shipping_Manage_Address', 'POST', payload);
+}
 
 // Export other API functions here 
