@@ -37,8 +37,8 @@ yarn-error.*
 *.tsbuildinfo
 
 
-instructions/*
-!instructions/instructions.md
+# instructions/*
+# !instructions/instructions.md
 
 
 

@@ -851,4 +851,375 @@ mobile-app
 
 The above structure is a clear example of how the file structure and file names should look like. 
 
+# Current Structure
+
+mobile-app-sm
+├── app.json
+├── App.tsx
+├── assets
+│   ├── icon.png
+│   ├── logo.png
+│   ├── order_failed_image.png
+│   ├── order_succesful_image.png
+│   └── pre_login_account.png
+├── babel.config.js
+├── eas.json
+├── index.ts
+├── instructions
+│   ├── instructions.md
+│   ├── reference_instructions.md
+│   └── UI
+│       ├── account
+│       │   ├── account_pre_login.png
+│       │   ├── account_with_login.png
+│       │   ├── my_addresses
+│       │   │   ├── add_address.png
+│       │   │   ├── address_adding_screen.png
+│       │   │   └── edit_address.png
+│       │   ├── my_details
+│       │   │   ├── edit_details.png
+│       │   │   └── my_details.png
+│       │   ├── my_orders.png
+│       │   ├── policies
+│       │   │   └── company_details.png
+│       │   └── wishlist.png
+│       ├── cart
+│       │   ├── cart_delete_item.png
+│       │   ├── cart_with_products.png
+│       │   └── empty_cart.png
+│       ├── categories
+│       │   ├── all_categories_page.png
+│       │   ├── browse_drawer.png
+│       │   └── search_products.png
+│       ├── checkout
+│       │   ├── change_select_address.png
+│       │   ├── guest
+│       │   │   └── guest_checkout.png
+│       │   ├── login
+│       │   │   └── login.png
+│       │   ├── order_failure.png
+│       │   ├── order_success.png
+│       │   ├── post_login_checkout.png
+│       │   └── signup
+│       │       └── signup.png
+│       ├── homepage.png
+│       ├── product_pages
+│       │   ├── addtocart_success.png
+│       │   ├── all_products_page.png
+│       │   ├── brand_filter.png
+│       │   ├── category_filter.png
+│       │   ├── individual_product_page.png
+│       │   ├── price_filter.png
+│       │   └── sort_by.png
+│       └── splash.png
+├── package-lock.json
+├── package.json
+├── src
+│   ├── app
+│   │   ├── (shop)
+│   │   │   ├── _layout.tsx
+│   │   │   ├── account
+│   │   │   │   ├── _layout.tsx
+│   │   │   │   └── details
+│   │   │   ├── account.tsx
+│   │   │   ├── cart.tsx
+│   │   │   ├── index.tsx
+│   │   │   └── search.tsx
+│   │   ├── +not-found.tsx
+│   │   ├── auth.tsx
+│   │   └── signup.tsx
+│   ├── screens
+│   │   └── account
+│   │       └── AccountScreen.tsx
+│   ├── store
+│   │   └── auth-store.ts
+│   ├── theme.ts
+│   └── utils
+│       ├── api-config.ts
+│       ├── api-service.ts
+│       └── login-debug.js
+└── tsconfig.json
+
+
+
+# API Documentation
+
+## API Overview
+This section contains detailed documentation for all API endpoints used in the SouqMaria mobile application. It serves as the single source of truth for API integration, covering request formats, response structures, error handling, and implementation details.
+
+Test Creds: 
+email: hussain@test.com
+password: Test@786110
+
+### Base API Information
+
+| Item | Value | Description |
+|------|-------|-------------|
+| Base URL | `https://api.souqmaria.com/api/MerpecWebApi/` | The base URL for all API requests |
+| Company Id | `3044` | Fixed identifier used across all requests |
+| Culture Id | `1` for English, `2` for Arabic | Used to return localized content |
+| Location | `304401HO` | Fixed location identifier |
+| Salesman | `3044SMOL` | Fixed salesman identifier |
+
+All API requests should include these common parameters unless otherwise specified.
+
+### Authentication & User Management APIs
+
+#### User Registration
+
+This API endpoint allows new users to register with the SouqMaria application.
+
+**Endpoint:**
+```
+POST https://api.souqmaria.com/api/MerpecWebApi/SaveUserRegistration/
+```
+
+**Request Parameters:**
+
+| # | Parameter | Type | Length | Description | Required |
+|---|-----------|------|--------|-------------|----------|
+| 1 | FullName | String | 128 | User's full name | Yes |
+| 2 | Email | String | 72 | User's email address | Yes |
+| 3 | Mobile | String | 16 | User's mobile number | Yes |
+| 4 | Password | String | 48 | User's password | Yes |
+| 5 | IpAddress | String | 128 | User's IP address (obtained from device) | Yes |
+| 6 | Source | String | 10 | Device type ("Android"/"iOS") | Yes |
+| 7 | CompanyId | String | - | Company identifier (fixed: "3044") | Yes |
+
+**Response Structure:**
+
+```json
+{
+  "statusCode": 200,  // HTTP status code
+  "responseCode": 2,  // Application-specific response code
+  "message": "User registered successfully",  // Response message
+  "data": {}  // Optional additional data
+}
+```
+
+**Response Codes:**
+
+| StatusCode | ResponseCode | Meaning |
+|------------|--------------|---------|
+| 200 | 2 | User Registration Successful |
+| 200 | -2 | User Registration Not Successful |
+| 200 | -4 | User Already Registered (Email already exists) |
+| 200 | -6 | User Already Registered (Mobile already exists) |
+| 400 | -8 | Server side validation error |
+| 500 | -2 | Something went wrong (Server error) |
+
+**Implementation Details:**
+
+1. **When to use:** This endpoint is called when a user completes the sign-up form in the registration modal.
+
+2. **UI Connection:** 
+   - The form fields in the Sign Up modal directly map to the API parameters:
+     - Full Name → FullName
+     - Email → Email
+     - Mobile → Mobile
+     - Password → Password
+   - The IpAddress and Source parameters are obtained programmatically without user input.
+
+3. **Implementation Flow:**
+   - User taps "Login / Register" in the Account tab
+   - Sign Up modal appears
+   - User fills out form fields
+   - User taps "Sign up" button
+   - Application collects device information (IP address, platform type)
+   - API request is made with all parameters
+   - Based on response:
+     - Success: Display success message, store authentication token, close modal, refresh Account tab with logged-in view
+     - Email/Mobile already exists: Display appropriate error message
+     - Other errors: Display generic error message
+
+4. **Error Handling:**
+   - If statusCode is not 200 or responseCode is not 2, show appropriate error message
+   - For specific error codes (-4, -6), show specific messages about email or mobile already being registered
+   - For server errors, show a generic error and offer retry option
+
+5. **Implementation Notes:**
+   - The "Source" parameter should be programmatically determined based on the device platform
+   - IP address should be obtained using network information APIs
+   - Password should meet minimum requirements (8+ characters, mix of letters/numbers)
+
+**Code Reference:**
+This API is implemented in the following files:
+- `src/utils/api-service.ts`: Core API service function that handles the API request
+- `src/store/auth-store.ts`: Zustand store that manages authentication state
+- `src/app/signup.tsx`: UI component that implements the registration form
+- `src/app/auth.tsx`: Tabbed UI for switching between login and signup
+- `src/app/(shop)/account.tsx`: Account screen that shows different views based on login state
+
+**Implementation Example:**
+
+```typescript
+// API service implementation (src/utils/api-service.ts)
+export const registerUser = async (params: RegisterUserParams): Promise<ApiResponse> => {
+  const ipAddress = await getDeviceIpAddress();
+  const source = getPlatformSource();
+  
+  return apiRequest(ENDPOINTS.REGISTER_USER, 'POST', {
+    ...params,
+    IpAddress: params.IpAddress || ipAddress,
+    Source: source,
+    CultureId: params.CultureId || CULTURE_IDS.ENGLISH,
+  });
+};
+
+// Auth store implementation (src/store/auth-store.ts)
+register: async (fullName, email, mobile, password) => {
+  set({ isLoading: true, error: null });
+  
+  try {
+    const response = await registerUser({
+      FullName: fullName,
+      Email: email,
+      Mobile: mobile,
+      Password: password,
+      IpAddress: '', // Will be set by the API service
+    });
+    
+    if (response.statusCode === 200 && response.responseCode === RESPONSE_CODES.SUCCESS) {
+      // Successful registration
+      set({
+        isLoading: false,
+        isLoggedIn: true,
+        user: {
+          fullName,
+          email,
+          mobile,
+          id: response.data?.id,
+        },
+        error: null,
+      });
+      return true;
+    } else {
+      // Handle specific error codes
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (response.responseCode === RESPONSE_CODES.EMAIL_EXISTS) {
+        errorMessage = 'This email is already registered. Please try another.';
+      } else if (response.responseCode === RESPONSE_CODES.MOBILE_EXISTS) {
+        errorMessage = 'This mobile number is already registered. Please try another.';
+      }
+      
+      set({ isLoading: false, error: errorMessage });
+      return false;
+    }
+  } catch (error) {
+    set({ 
+      isLoading: false, 
+      error: 'Registration failed due to a network error. Please check your connection and try again.' 
+    });
+    return false;
+  }
+}
+```
+
+#### User Login
+
+This API endpoint allows existing users to log in to the SouqMaria application.
+
+**Endpoint:**
+```
+POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
+```
+
+**Request Parameters:**
+
+| # | Parameter | Type | Length | Description | Required |
+|---|-----------|------|--------|-------------|----------|
+| 1 | UserName | String | 72 | User's email address or mobile number | Yes |
+| 2 | Password | String | 48 | User's password | Yes |
+| 3 | CompanyId | int | - | Company identifier (fixed: 3044) | Yes |
+
+**Response Structure (Success Example):**
+
+```json
+{
+  "StatusCode": 200,
+  "ResponseCode": "2", // Or 2 (number)
+  "Message": "Logged In Successfully and get user details!!!",
+  "Data": {
+    "UserId": "12345",
+    "FullName": "Test User",
+    "Email": "hussain@test.com",
+    "Mobile": "1234567890"
+    // ... other user details like token, etc.
+  },
+  "TrackId": null
+}
+```
+
+**Response Structure (Error Example - Invalid Credentials):**
+
+```json
+{
+  "StatusCode": 200, // Or might be different for some errors
+  "ResponseCode": "-2",
+  "Message": "Invalid Username or Password!!!",
+  "Data": null,
+  "TrackId": null
+}
+```
+
+**Response Codes:**
+
+| StatusCode | ResponseCode | Meaning |
+|------------|--------------|---------|
+| 200 | 2 | Logged In Successfully and get user details!!! |
+| 200 | -2 | Invalid Username or Password!!! |
+| 400 | -6 | Server side validation error...Please try again later!!! |
+| 500 | -2 | Something went wrong...Please try again later!!! |
+
+**Implementation Details:**
+
+1. **When to use:** This endpoint is called when a user submits the login form.
+2. **UI Connection:** Form fields for username (email/mobile) and password map to API parameters.
+3. **Implementation Flow:**
+   - User enters credentials and taps "Login".
+   - API request is made.
+   - Success: Store user data (including any session tokens from `Data`), navigate to the main app or account screen, clear login form.
+   - Invalid Credentials: Display "Invalid Username or Password!!!" message.
+   - Other Errors: Display generic error or specific API message.
+
+**Code Reference:**
+- `src/utils/api-service.ts`: Will contain `loginUser` function.
+- `src/store/auth-store.ts`: Will contain `login` action.
+- `src/app/auth.tsx`: Will contain the login form UI.
+
+#### 3. Update Account Information (`/Update_Account_Info/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Updates user account details. Primarily for FullName and Password. Email and Mobile are noted as read-only for update purposes but are part of the payload.
+- **Request Body:**
+  ```json
+  {
+    "FullName": "string (128)",
+    "Email": "string (72)",
+    "Mobile": "string (16)",
+    "Password": "string (48)", // New password. Send empty string or omit if not changing, based on API behavior.
+    "UserId": "string (10)",
+    "IpAddress": "string (128)",
+    "CompanyId": "int (e.g., 3044)"
+  }
+  ```
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 2`
+    - **Message:** "Updated Successfully!!!"
+  - **Update Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Updated Not Successfully!!!"
+  - **User Not Found:** `StatusCode: 200`, `ResponseCode: -4`
+    - **Message:** "User Not Found!!!"
+  - **Mobile Already Exists:** `StatusCode: 200`, `ResponseCode: -8`
+    - **Message:** "Mobile no. all ready exists...!!!" (Note: Contradicts read-only nature of mobile for updates)
+  - **Something Went Wrong (User-related):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -6`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Notes:**
+  - The API documentation image specifies "Email id and mobile no. should be read only" in the context of updates. This means that while they are sent in the payload, the backend should not modify these fields. The values sent should be the user's current email and mobile.
+  - The primary editable fields by the user should be `FullName` and `Password`.
+
 

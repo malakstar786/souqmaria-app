@@ -73,6 +73,7 @@ You are an expert in TypeScript, React Native, Expo, and Mobile UI development.
   - Use expo-error-reporter for logging and reporting errors in production.
 
   Testing
+  - MOST IMPORTANT: do any api testing or any testing from cli ONLY.
   - Write unit tests using Jest and React Native Testing Library.
   - Implement integration tests for critical user flows using Detox.
   - Use Expo's testing tools for running tests in different environments.
