@@ -134,6 +134,26 @@ export interface LocationResponse {
   Message: string;
 }
 
+// Menu Category Interfaces
+export interface MenuCategory {
+  XCode: string;
+  XName: string;
+  // Add any other fields that come from the API for main categories
+}
+
+export interface MenuSubCategory {
+  XCode: string;
+  XName: string;
+  // Add any other fields that come from the API for subcategories
+}
+
+// Search Item Interface
+export interface SearchItem {
+  XName: string;
+  XCode: string;
+  // Add any other relevant fields from the search API response, e.g., image, price
+}
+
 /**
  * Get device IP address (simplified implementation)
  * In a real app, you would use a more robust method to get the IP
@@ -156,39 +176,60 @@ const getPlatformSource = (): string => {
  */
 const apiRequest = async <T>(
   endpoint: string,
-  method: 'POST', // Corrected method type
+  method: 'POST',
   params: Record<string, any> = {}
 ): Promise<ApiResponse<T>> => {
   const url = `${API_BASE_URL}${endpoint}`;
   
   try {
-    const response = await fetch(url, {
+    const httpResponse = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      // Only stringify params if it's a POST request and params exist
       body: method === 'POST' && Object.keys(params).length > 0 ? JSON.stringify(params) : undefined,
     });
     
-    const data = await response.json();
-    // Ensure ResponseCode is consistently a string or number for easier comparison later
-    if (data.ResponseCode && typeof data.ResponseCode !== 'number') {
-        data.ResponseCode = String(data.ResponseCode);
+    const responseData = await httpResponse.json();
+
+    if (!httpResponse.ok) {
+      // For HTTP errors (4xx, 5xx), try to use the message from the API if available
+      return {
+        StatusCode: httpResponse.status,
+        ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.GENERAL_ERROR),
+        Message: responseData.Message || `Request failed with status ${httpResponse.status}`,
+        Data: responseData.Data || responseData, // Include data if present, or the whole body
+      };
     }
-    // Add StatusCode to the response if it's not present but HTTP status is OK
-    if (!data.StatusCode && response.status) {
-      data.StatusCode = response.status;
+
+    // If endpoint is GET_DATA_JSON, the responseData is the actual T (i.e., {success, row, Message})
+    // We need to wrap it into an ApiResponse structure.
+    if (endpoint === ENDPOINTS.GET_DATA_JSON) {
+      return {
+        StatusCode: httpResponse.status,
+        ResponseCode: RESPONSE_CODES.SUCCESS, // Indicate HTTP success for SP call
+        Message: responseData.Message || 'Stored procedure executed.', // SP's message or a generic one
+        Data: responseData as T, // responseData is the {success, row, Message} object
+      };
     }
-    return data as ApiResponse<T>;
+
+    // For other endpoints that are expected to return the full ApiResponse structure
+    return {
+      StatusCode: httpResponse.status,
+      ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.SUCCESS),
+      Message: responseData.Message || 'Request successful',
+      Data: responseData.Data as T,
+    };
+
   } catch (error) {
     console.error('API request failed:', endpoint, error);
     return {
-      StatusCode: 503, // Service Unavailable for network/fetch errors
-      ResponseCode: String(RESPONSE_CODES.GENERAL_ERROR), // Ensure string for consistency
+      StatusCode: 503, 
+      ResponseCode: String(RESPONSE_CODES.GENERAL_ERROR), 
       Message: 'Network request failed. Please check your connection.',
-    } as ApiResponse<T>; // Cast to ensure type compatibility
+      // Data can be undefined or null here as per ApiResponse<T> structure
+    } as ApiResponse<T>; 
   }
 };
 
@@ -470,8 +511,32 @@ export const getOrderDetails = async (userId: string, orderNo: string, cultureId
  * @returns API response with categories data
  */
 export const getCategories = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+  // This also uses GET_DATA_JSON, so it will benefit from the apiRequest update
   try {
-    const query = SP_QUERIES.GET_CATEGORY_LIST(cultureId, userId);
+    const query = SP_QUERIES.GET_CATEGORY_LIST(cultureId, userId); // This is Get_HomePage_Category_List
+    // Use the updated apiRequest directly
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
+
+  } catch (error) {
+    console.error('Error getting categories (homepage):', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch homepage categories. Please try again.',
+      Data: null // Or { success: 0, row: [], Message: '...' }
+    };
+  }
+};
+
+/**
+ * Get list of promotional banners
+ * @param cultureId Culture ID (defaults to English)
+ * @param userId User ID (optional, pass empty string if not logged in)
+ * @returns API response with banner data
+ */
+export const getBanners = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+  try {
+    const query = SP_QUERIES.GET_BANNER_LIST(cultureId, userId);
     const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
       strQuery: query
     });
@@ -479,16 +544,184 @@ export const getCategories = async (cultureId: string = '1', userId: string = ''
     return {
       StatusCode: 200,
       ResponseCode: response.data.success === 1 ? '2' : '-2',
-      Message: response.data.Message || 'Categories retrieved successfully',
+      Message: response.data.Message || 'Banners retrieved successfully',
       Data: response.data
     };
   } catch (error) {
-    console.error('Error getting categories:', error);
+    console.error('Error getting banners:', error);
     return {
       StatusCode: 500,
       ResponseCode: '-2',
-      Message: 'Failed to fetch categories. Please try again.',
+      Message: 'Failed to fetch banners. Please try again.',
       Data: null
+    };
+  }
+};
+
+/**
+ * Get list of advertisements
+ * @param cultureId Culture ID (defaults to English)
+ * @param userId User ID (optional, pass empty string if not logged in)
+ * @returns API response with advertisement data
+ */
+export const getAdvertisements = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+  try {
+    const query = SP_QUERIES.GET_ADVERTISEMENT_LIST(cultureId, userId);
+    const axiosResponse = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+
+    // The data from axiosResponse.data IS the { success, row, Message } object from the SP call.
+    // This entire object should be passed as the .Data property of our standard ApiResponse.
+    // The ResponseCode of our ApiResponse should reflect the success of the HTTP call to getData_JSON itself.
+    return {
+      StatusCode: axiosResponse.status, // HTTP status from the getData_JSON endpoint call
+      ResponseCode: RESPONSE_CODES.SUCCESS, // If axios.post succeeded, this wrapper considers it a success at HTTP level
+      // Message for the ApiResponse can be generic or use the SP message if appropriate for overall status.
+      // Let's use the SP message as it's more specific to the data operation.
+      Message: axiosResponse.data.Message || (axiosResponse.data.success === 1 ? 'Advertisements retrieved' : 'No advertisements found'),
+      Data: axiosResponse.data // This is the direct payload: { success: number, row: Ad[], Message: string }
+    };
+  } catch (error) {
+    console.error('Error getting advertisements:', error);
+    let statusCode = 500;
+    let message = 'Failed to fetch advertisements due to a server or network error. Please try again.';
+    
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        statusCode = error.response.status;
+        // Try to get a message from the error response data if available
+        message = error.response.data?.Message || error.message || message;
+      } else {
+        // Network error or other non-response Axios error
+        message = error.message || message;
+      }
+    }
+    
+    return {
+      StatusCode: statusCode,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR, // Or a more specific error code if derivable
+      Message: message,
+      Data: null // No data in case of such an error
+    };
+  }
+};
+
+/**
+ * Get Menu Categories for Browse Drawer
+ */
+export const getMenuCategories = async (
+  cultureId: string = '1',
+  userId: string = '' 
+): Promise<ApiResponse<{ success: number; row: MenuCategory[]; Message: string }>> => {
+  const strQuery = SP_QUERIES.GET_MENU_CATEGORY_LIST(cultureId, userId);
+  const payload: GetDataJsonPayload = { strQuery };
+  
+  // apiRequest will now correctly wrap the SP result {success, row, Message} into its Data field.
+  return apiRequest<{ success: number; row: MenuCategory[]; Message: string }>(
+    ENDPOINTS.GET_DATA_JSON,
+    'POST',
+    payload
+  );
+};
+
+/**
+ * Get Menu SubCategories by Main Category for Browse Drawer
+ */
+export const getMenuSubCategories = async (
+  categoryXcode: string,
+  cultureId: string = '1',
+  userId: string = '' // Optional: Pass userId if available
+): Promise<ApiResponse<{ success: number; row: MenuSubCategory[]; Message: string }>> => {
+  if (!categoryXcode) {
+    // Handle this validation within the calling component or store if preferred,
+    // or return a specific error structure if the API layer must handle it.
+    return {
+      StatusCode: 400, // Bad Request
+      ResponseCode: RESPONSE_CODES.GENERAL_ERROR, // Or a more specific client-side error code if defined
+      Message: 'Category Xcode is required to fetch subcategories.',
+      Data: { success: 0, row: [], Message: 'Category Xcode is required.' },
+    };
+  }
+  
+  const strQuery = SP_QUERIES.GET_MENU_SUBCATEGORY_LIST(categoryXcode, cultureId, userId);
+  const payload: GetDataJsonPayload = { strQuery };
+
+  const response = await apiRequest<{ success: number; row: MenuSubCategory[]; Message: string }>(
+    ENDPOINTS.GET_DATA_JSON,
+    'POST',
+    payload
+  );
+
+  if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
+    return {
+      ...response,
+      Data: {
+        success: response.Data.success,
+        row: response.Data.row,
+        Message: response.Data.Message,
+      },
+    };
+  } else if (response.Data && response.Data.success === 0) {
+    return {
+      ...response,
+      Data: {
+        success: 0,
+        row: [],
+        Message: response.Data.Message || 'No subcategories found for this category.',
+      },
+    };
+  }
+  
+  return {
+    StatusCode: response.StatusCode || 500,
+    ResponseCode: response.ResponseCode || RESPONSE_CODES.GENERAL_ERROR,
+    Message: response.Message || 'Failed to fetch subcategories.',
+    Data: { success: 0, row: [], Message: response.Message || 'Failed to fetch subcategories.' },
+  };
+};
+
+/**
+ * Search for items by name.
+ */
+export const searchItems = async (
+  searchText: string,
+  cultureId: string = '1',
+  userId: string = '' // Optional: Pass userId if available for personalized search or history
+): Promise<ApiResponse<{ success: number; row: SearchItem[]; Message: string }>> => {
+  const strQuery = SP_QUERIES.GET_ITEM_NAME_LIST_BY_SEARCH(searchText, cultureId, userId);
+  const payload: GetDataJsonPayload = { strQuery };
+
+  try {
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.SEARCH_ITEMS}`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
+
+    // The getData_JSON endpoint returns the SP result directly in response.data
+    const spResponse = response.data;
+
+    return {
+      StatusCode: response.status,
+      ResponseCode: response.status === 200 ? RESPONSE_CODES.SUCCESS : String(response.status),
+      Message: spResponse.Message || (response.status === 200 ? 'Search successful' : 'Search failed'),
+      Data: spResponse, // This will be { success, row, Message }
+    };
+  } catch (error) {
+    console.error('API request failed for searchItems:', error);
+    let errorMessage = 'Network request failed. Please check your connection.';
+    let statusCode = 503; // Service Unavailable
+    if (axios.isAxiosError(error) && error.response) {
+      errorMessage = error.response.data?.Message || error.message;
+      statusCode = error.response.status;
+    }
+    return {
+      StatusCode: statusCode,
+      ResponseCode: RESPONSE_CODES.GENERAL_ERROR,
+      Message: errorMessage,
+      Data: { success: 0, row: [], Message: errorMessage },
     };
   }
 };

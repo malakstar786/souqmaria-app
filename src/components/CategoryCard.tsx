@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useRouter } from 'expo-router';
 import { colors, spacing, radii } from '@theme';
 
 // Map category names to FontAwesome icon names
@@ -18,87 +17,90 @@ const categoryIcons: Record<string, string> = {
 
 interface CategoryCardProps {
   name: string;
-  // code: string; // Assuming SrNo or another unique ID will be used for navigation if needed
-  imageUrl?: string;
-  onPress?: () => void; // Optional onPress for navigation
+  arabicName?: string; // Optional Arabic translation
+  imageUrl?: string; // Made imageUrl optional
+  onPress: () => void;
 }
 
-const CategoryCard = ({ name, imageUrl, onPress }: CategoryCardProps) => {
-  const router = useRouter();
-  
+const CategoryCard = ({ name, arabicName, imageUrl, onPress }: CategoryCardProps) => {
   // Get the appropriate icon for this category, or use default if not found
   const iconName = categoryIcons[name] || categoryIcons.default;
   
-  const handlePress = () => {
-    if (onPress) {
-      onPress();
-    } else {
-      // Default navigation if no specific onPress is provided
-      // This might need adjustment based on how you want to navigate from categories
-      // For now, let's assume categories on homepage don't navigate directly
-      // or the parent component will handle it.
-      console.log(`Category pressed: ${name}`);
-    }
-  };
-  
   return (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.imageContainer}>
-        {imageUrl ? (
-          <Image 
-            source={{ uri: imageUrl }}
-            style={styles.image}
-            resizeMode="contain"
-          />
-        ) : (
-          <View style={styles.imagePlaceholder} /> // Simple placeholder
-        )}
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.card}>
+        <View style={styles.imageContainer}>
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder} />
+          )}
+        </View>
+        <View style={styles.textContainer}>
+          <Text style={styles.name} numberOfLines={1}>{name}</Text>
+          {arabicName && <Text style={styles.arabicName} numberOfLines={1}>{arabicName}</Text>}
+        </View>
       </View>
-      <Text style={styles.name} numberOfLines={2}>{name}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    width: 80,
-    alignItems: 'center',
-    marginRight: spacing.md,
+  container: {
+    width: '100%',
+    aspectRatio: 1,
+    padding: 4,
   },
-  imageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30, // Circular
-    backgroundColor: colors.veryLightGray, // Placeholder background
+  card: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: radii.md,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden', // Ensures image respects border radius
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    marginBottom: spacing.xs,
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.sm,
+    width: '80%',
   },
   image: {
     width: '100%',
     height: '100%',
   },
   imagePlaceholder: {
-    width: 40,
-    height: 40,
-    backgroundColor: colors.lightGray, // Darker placeholder color
-    borderRadius: 20,
+    width: '70%',
+    height: '70%',
+    backgroundColor: colors.lightGray,
+    borderRadius: radii.sm,
+  },
+  textContainer: {
+    width: '100%',
+    padding: spacing.xs,
+    alignItems: 'center',
   },
   name: {
-    fontSize: 12,
-    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: 'bold',
     color: colors.black,
-    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
+  arabicName: {
+    fontSize: 12,
+    color: colors.textGray,
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
 

@@ -857,6 +857,7 @@ mobile-app-sm
 ├── app.json
 ├── App.tsx
 ├── assets
+│   ├── categories
 │   ├── icon.png
 │   ├── logo.png
 │   ├── order_failed_image.png
@@ -922,7 +923,8 @@ mobile-app-sm
 │   │   │   │   ├── _layout.tsx
 │   │   │   │   ├── address
 │   │   │   │   ├── details
-│   │   │   │   └── index.tsx
+│   │   │   │   ├── index.tsx
+│   │   │   │   └── orders
 │   │   │   ├── cart.tsx
 │   │   │   ├── index.tsx
 │   │   │   └── search.tsx
@@ -932,20 +934,145 @@ mobile-app-sm
 │   │   └── signup.tsx
 │   ├── components
 │   │   ├── add-edit-address.tsx
-│   │   └── AddressDropdown.tsx
+│   │   ├── AddressDropdown.tsx
+│   │   ├── browse-drawer.tsx
+│   │   └── CategoryCard.tsx
 │   ├── screens
 │   │   └── account
 │   │       └── AccountScreen.tsx
 │   ├── store
 │   │   ├── address-store.ts
+│   │   ├── advertisement-store.ts
 │   │   ├── auth-store.ts
-│   │   └── location-store.ts
+│   │   ├── banner-store.ts
+│   │   ├── category-store.ts
+│   │   ├── location-store.ts
+│   │   ├── menu-store.ts
+│   │   ├── order-store.ts
+│   │   └── search-store.ts
 │   ├── theme.ts
 │   └── utils
 │       ├── api-config.ts
 │       ├── api-service.ts
 │       ├── login-debug.js
-│       └── test-apis.js
+│       ├── test-apis.js
+│       ├── test-banner-api.js
+│       ├── test-category-api.js
+│       ├── test-order-details-api.js
+│       ├── test-orders-api.js
+│       └── test-user-login.js
+└── tsconfig.json
+
+28 directories, 81 files
+(base) hus3ain@Hussains-MacBook-Pro mobile-app-sm % tree -L 5 -I 'node_modules|.git'
+.
+├── app.json
+├── App.tsx
+├── assets
+│   ├── categories
+│   ├── icon.png
+│   ├── logo.png
+│   ├── order_failed_image.png
+│   ├── order_succesful_image.png
+│   └── pre_login_account.png
+├── babel.config.js
+├── eas.json
+├── index.ts
+├── instructions
+│   ├── instructions.md
+│   ├── reference_instructions.md
+│   └── UI
+│       ├── account
+│       │   ├── account_pre_login.png
+│       │   ├── account_with_login.png
+│       │   ├── my_addresses
+│       │   │   ├── add_address.png
+│       │   │   ├── address_adding_screen.png
+│       │   │   └── edit_address.png
+│       │   ├── my_details
+│       │   │   ├── edit_details.png
+│       │   │   └── my_details.png
+│       │   ├── my_orders.png
+│       │   ├── policies
+│       │   │   └── company_details.png
+│       │   └── wishlist.png
+│       ├── cart
+│       │   ├── cart_delete_item.png
+│       │   ├── cart_with_products.png
+│       │   └── empty_cart.png
+│       ├── categories
+│       │   ├── all_categories_page.png
+│       │   ├── browse_drawer.png
+│       │   └── search_products.png
+│       ├── checkout
+│       │   ├── change_select_address.png
+│       │   ├── guest
+│       │   │   └── guest_checkout.png
+│       │   ├── login
+│       │   │   └── login.png
+│       │   ├── order_failure.png
+│       │   ├── order_success.png
+│       │   ├── post_login_checkout.png
+│       │   └── signup
+│       │       └── signup.png
+│       ├── homepage.png
+│       ├── product_pages
+│       │   ├── addtocart_success.png
+│       │   ├── all_products_page.png
+│       │   ├── brand_filter.png
+│       │   ├── category_filter.png
+│       │   ├── individual_product_page.png
+│       │   ├── price_filter.png
+│       │   └── sort_by.png
+│       └── splash.png
+├── package-lock.json
+├── package.json
+├── src
+│   ├── app
+│   │   ├── (shop)
+│   │   │   ├── _layout.tsx
+│   │   │   ├── account
+│   │   │   │   ├── _layout.tsx
+│   │   │   │   ├── address
+│   │   │   │   ├── details
+│   │   │   │   ├── index.tsx
+│   │   │   │   └── orders
+│   │   │   ├── cart.tsx
+│   │   │   ├── categories.tsx
+│   │   │   └── index.tsx
+│   │   ├── +not-found.tsx
+│   │   ├── auth.tsx
+│   │   ├── forgot-password.tsx
+│   │   └── signup.tsx
+│   ├── components
+│   │   ├── add-edit-address.tsx
+│   │   ├── AddressDropdown.tsx
+│   │   ├── browse-drawer.tsx
+│   │   └── CategoryCard.tsx
+│   ├── screens
+│   │   └── account
+│   │       └── AccountScreen.tsx
+│   ├── store
+│   │   ├── address-store.ts
+│   │   ├── advertisement-store.ts
+│   │   ├── auth-store.ts
+│   │   ├── banner-store.ts
+│   │   ├── category-store.ts
+│   │   ├── location-store.ts
+│   │   ├── menu-store.ts
+│   │   ├── order-store.ts
+│   │   └── search-store.ts
+│   ├── theme.ts
+│   └── utils
+│       ├── api-config.ts
+│       ├── api-service.ts
+│       ├── login-debug.js
+│       ├── test-apis.js
+│       ├── test-banner-api.js
+│       ├── test-category-api.js
+│       ├── test-order-details-api.js
+│       ├── test-orders-api.js
+│       └── test-user-login.js
 └── tsconfig.json
 
 
@@ -1739,6 +1866,21 @@ Format: `[Schema].[StoredProcedureName] 'Parameter1','Parameter2',...,'Parameter
 
 This approach is used for all location data (countries, states, cities) and will be used for other data retrieval operations.
 
+**Response Handling for `getData_JSON`:**
+When using `getData_JSON`, the direct response from this endpoint will be an object like:
+```json
+{
+  "success": 1, // 1 for data found, 0 for no data found by the stored procedure
+  "row": [ /* array of data objects if success is 1, empty if 0 */ ],
+  "Message": "Data found." // Or "Data not found.", or other SP-specific messages
+}
+```
+- In the application's API service layer (e.g., `api-service.ts`), when wrapping calls to `getData_JSON`:
+  - The `ApiResponse.StatusCode` should reflect the HTTP status of the `getData_JSON` call itself (e.g., 200 for success).
+  - The `ApiResponse.ResponseCode` should indicate the success of the wrapper's HTTP operation (e.g., `RESPONSE_CODES.SUCCESS` if the HTTP call was okay).
+  - The entire object above (`{success, row, Message}`) from `getData_JSON` should be placed into the `ApiResponse.Data` field.
+- Client-side logic (e.g., in Zustand stores) should then check `ApiResponse.Data.success` to determine if the stored procedure found data, and `ApiResponse.Data.row` for the actual data. An `ApiResponse.Data.success === 0` signifies "no data found by the SP" and should typically not be treated as an application-level error unless the context dictates otherwise.
+
 ### Location Data Implementation
 
 We've implemented a comprehensive location management system:
@@ -1943,5 +2085,248 @@ Future improvements to consider:
 - **Description:** Retrieves the actual image for a category.
 - **Usage:** Append the `Image` filename (from the Get Home Page Category List response) to this base URL.
   - Example: `https://erp.merpec.com/Upload/HomePage_Category/3044/unnamed (1).png`
+
+### Banner Management APIs
+
+#### 1. Get Banner List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of banners for the homepage carousel.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Get_SM_Apps] 'Get_Banner_List','','','','','',1,3044,''"
+  }
+  ```
+- **Request Parameters Table (for `Sp_Get_SM_Apps`):**
+
+| # | Parameter  | Type   | Length | Description                           |
+|---|------------|--------|--------|---------------------------------------|
+| 1 | Type       | String | 50     | "Get_Banner_List"                     |
+| 2 | Value      | String | 50     | Pass empty string                     |
+| 3 | Value1     | String | 50     | Pass empty string                     |
+| 4 | Value2     | String | 50     | Pass empty string                     |
+| 5 | Value3     | String | 50     | Pass empty string                     |
+| 6 | Value4     | String | 50     | Pass empty string                     |
+| 7 | CultureId  | int    | -      | Culture ID (1-English, 2-Arabic)      |
+| 8 | Company    | String | 10     | Company ID (fixed: 3044)              |
+| 9 | UserId     | String | 10     | User ID (pass empty string if not logged in) |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "Banner_ImageName": "7520280867747960_ed37b308.png",
+        "TagUrl": null
+      },
+      // ... more banners
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - `Banner_ImageName` is the filename of the banner image.
+  - `TagUrl` can be used for navigation if a banner is pressed (currently `null` in the example).
+
+#### 2. Get Banner Image
+- **Base URL:** `https://erp.merpec.com/Upload/Banner/`
+- **Description:** Retrieves the actual image for a banner.
+- **Usage:** Append the `Banner_ImageName` (from the Get Banner List response) to this base URL.
+  - Example: `https://erp.merpec.com/Upload/Banner/7520280867747960_ed37b308.png`
+
+### Advertisement Management APIs
+
+#### 1. Get Advertisement List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of advertisements, typically for display on the homepage.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Get_SM_Apps] 'Get_Ads_List','','','','','','1','3044','USER_ID_OR_EMPTY'"
+  }
+  ```
+- **Request Parameters Table (for `Sp_Get_SM_Apps`):**
+
+| # | Parameter  | Type   | Length | Description                           | Notes / Example Value      |
+|---|------------|--------|--------|---------------------------------------|----------------------------|
+| 1 | Type       | String | 50     | Defines the action to perform         | "Get_Ads_List"             |
+| 2 | Value      | String | 50     | Generic parameter, context-dependent  | Pass empty string ""       |
+| 3 | Value1     | String | 50     | Generic parameter, context-dependent  | Pass empty string ""       |
+| 4 | Value2     | String | 50     | Generic parameter, context-dependent  | Pass empty string ""       |
+| 5 | Value3     | String | 50     | Generic parameter, context-dependent  | Pass empty string ""       |
+| 6 | Value4     | String | 50     | Generic parameter, context-dependent  | Pass empty string ""       |
+| 7 | CultureId  | int    | -      | Culture ID for localization           | "1" (English), "2" (Arabic)|
+| 8 | Company    | String | 10     | Company identifier                    | "3044"                     |
+| 9 | UserId     | String | 10     | User ID for personalized content      | Pass User ID or empty string "" if not logged in |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "Ads_ImageName": "ad_image_1.png", // Example field name
+        "TagUrl": "product/PROD123"      // Example field name for click-through URL
+      },
+      // ... more advertisements
+    ],
+    "Message": "Data found."
+  }
+  ```
+  *Note: The actual field names for image and URL (`Ads_ImageName`, `TagUrl`) need to be confirmed from an actual API response. Assuming similarity to Banner response.*
+
+- **Implementation Notes:**
+  - `Ads_ImageName` (or actual field name) is the filename of the advertisement image.
+  - `TagUrl` (or actual field name) can be used for navigation if an advertisement is pressed.
+
+#### 2. Get Advertisement Image
+- **Base URL:** `https://erp.merpec.com/Upload/ads/`
+- **Description:** Retrieves the actual image for an advertisement.
+- **Usage:** Append the image filename (from the Get Advertisement List response, e.g., `Ads_ImageName`) to this base URL.
+  - Example: `https://erp.merpec.com/Upload/ads/ad_image_1.png`
+
+### Browse Drawer / Menu Category APIs
+
+These APIs are used to populate the browse drawer menu with categories and their respective subcategories.
+
+#### 1. Get Main Menu Categories (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves the list of main categories to be displayed in the browse drawer.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery`:**
+  - `Type`: "Get_Menu_Category_List"
+  - `Value`, `Value1`, `Value2`, `Value3`, `Value4`: Empty strings `''`
+  - `CultureId`: e.g., `'1'` for English
+  - `CompanyId`: `'3044'`
+  - `UserId`: User ID or empty string `''`
+- **Example `strQuery`:** `[Web].[Sp_Get_SM_Apps] 'Get_Menu_Category_List','','','','','','1','3044',''`
+- **Response Structure (Success Example - `Data` field content):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": "MOB", // Example Main Category Code
+        "XName": "Mobile", // Example Main Category Name
+        // ... other fields if any
+      },
+      {
+        "XCode": "TAB",
+        "XName": "Tablet"
+      }
+      // ... more main categories
+    ],
+    "Message": "Data found."
+  }
+  ```
+- **Notes:** 
+  - `XCode` will be used to fetch subcategories.
+  - `XName` is the display name for the main category.
+
+#### 2. Get Subcategories by Main Category (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves the list of subcategories for a given main category Xcode.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery`:**
+  - `Type`: "Get_Menu_SubCategory_List_ByCategory"
+  - `Value`: Main Category `XCode` (e.g., `'MOB'`)
+  - `Value1`, `Value2`, `Value3`, `Value4`: Empty strings `''`
+  - `CultureId`: e.g., `'1'` for English
+  - `CompanyId`: `'3044'`
+  - `UserId`: User ID or empty string `''`
+- **Example `strQuery` (for main category with XCode 'MOB'):** `[Web].[Sp_Get_SM_Apps] 'Get_Menu_SubCategory_List_ByCategory','MOB','','','','','1','3044',''`
+- **Response Structure (Success Example - `Data` field content):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": "MOB_IPHONE", // Example Subcategory Code
+        "XName": "iPhone",     // Example Subcategory Name
+        // ... other fields if any
+      },
+      {
+        "XCode": "MOB_SAMSUNG",
+        "XName": "Samsung"
+      }
+      // ... more subcategories for the given main category
+    ],
+    "Message": "Data found."
+  }
+  ```
+- **Notes:** 
+  - `XName` is the display name for the subcategory, which should be touchable to navigate.
+
+### Product Search API
+
+This API is used to get a list of item names based on a search query, typically for a search suggestion dropdown.
+
+#### 1. Get Item Name List by Search (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of product names matching the search text.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery` (as per provided image and implementation):
+  - `Type`: "Get_ItemName_List_BySearch"
+  - `Value`: Search Text (the user's input query)
+  - `Value1`: Empty string `''`
+  - `Value2`: Empty string `''`
+  - `Value3`: Empty string `''`
+  - `Value4`: Empty string `''`
+  - `CultureId`: e.g., `'1'` for English
+  - `CompanyId`: `'3044'`
+  - `UserId`: User ID or empty string `''` (pass if available)
+- **Example `strQuery` (searching for "Mascara")**: `[Web].[Sp_Get_SM_Apps] 'Get_ItemName_List_BySearch','Mascara','','','','','1','3044',''`
+
+- **Request Parameters Table (for `Sp_Get_SM_Apps` with `Type = Get_ItemName_List_BySearch`):
+
+| # | Parameter  | Type   | Length | Description                           | Notes / Example Value      |
+|---|------------|--------|--------|---------------------------------------|----------------------------|
+| 1 | Type       | String | 50     | Defines the action to perform         | "Get_ItemName_List_BySearch"|
+| 2 | Value      | String | 50     | Pass Search Text                      | e.g., "Mascara"            |
+| 3 | Value1     | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 4 | Value2     | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 5 | Value3     | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 6 | Value4     | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 7 | CultureId  | int    | -      | Culture ID for localization           | "1" (English), "2" (Arabic)|
+| 8 | Company    | String | 10     | Company identifier                    | "3044"                     |
+| 9 | UserId     | String | 10     | User ID for personalized content      | Pass User ID or empty string `''` if not logged in |
+
+- **Response Structure (Success Example - `Data` field content from `getData_JSON`):
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ItemName": "Mascara 2 in 1",
+        "XCode": "PROD001" // Example: Product Code or Identifier
+        // Potentially other fields like ItemId, ImageUrlTiny, etc.
+      },
+      {
+        "ItemName": "Matte Blusher",
+        "XCode": "PROD002"
+      }
+      // ... more matching items
+    ],
+    "Message": "Data found."
+  }
+  ```
+- **Response Structure (No Results - `Data` field content):
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - `ItemName` is the display name of the product.
+  - `XCode` (or a similar field like `ItemId`) is the unique identifier for the product, used for navigation to the product details page.
+  - The API response structure should be confirmed with an actual API call if possible to ensure all relevant fields are captured (e.g., for displaying small images in suggestions if available).
+  - The UI should display these items in a dropdown list below the search bar.
+  - Tapping an item should typically navigate the user to the product details page for that item.
 
 // ... continue with the rest of the documentation ...

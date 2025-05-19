@@ -10,9 +10,11 @@ export default function ShopLayout() {
         tabBarActiveTintColor: colors.blue,
         tabBarInactiveTintColor: colors.black,
         tabBarStyle: { backgroundColor: colors.white },
-        headerStyle: { backgroundColor: colors.lightBlue },
-        headerTintColor: colors.black,
-        headerTitleStyle: { fontWeight: 'bold' },
+        tabBarLabelStyle: { 
+          textTransform: 'uppercase', 
+          fontSize: 10, // Small font as per PRD
+          // fontWeight: '500', // Adjust if needed for visual consistency
+        },
       }}
     >
       <Tabs.Screen
@@ -22,19 +24,17 @@ export default function ShopLayout() {
           tabBarIcon: ({ color, size }) => (
             <FontAwesome name="home" size={size} color={color} />
           ),
-          headerTitle: 'Souq Maria', // As per PRD for Homepage Top Bar
-          headerTitleAlign: 'center', // As per PRD for Homepage Logo centered
+          headerShown: false, // Hide default header for custom implementation
         }}
       />
       <Tabs.Screen
-        name="search" // This will be our "Categories" tab as per PRD structure discussion
+        name="categories" 
         options={{
           title: 'Categories',
           tabBarIcon: ({ color, size }) => (
             <FontAwesome name="th-large" size={size} color={color} />
           ),
-          headerTitle: 'Categories', // As per PRD for Categories Page Top Bar
-          headerTitleAlign: 'left',
+          headerShown: false, // Custom header is in categories.tsx (CategoriesScreen)
         }}
       />
       <Tabs.Screen
@@ -46,6 +46,9 @@ export default function ShopLayout() {
           ),
           headerTitle: 'My Cart', // As per PRD for Cart Page Top Bar
           headerTitleAlign: 'left',
+          headerStyle: { backgroundColor: colors.veryLightGray }, // Cart page has veryLightGray bg
+          headerTintColor: colors.blue, // Title text in blue
+          headerTitleStyle: { fontWeight: 'bold', color: colors.blue },
         }}
       />
       <Tabs.Screen

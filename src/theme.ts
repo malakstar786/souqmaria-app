@@ -4,19 +4,20 @@ export const colors = {
   green: '#8DC63F',
   blue: '#00AEEF',
   black: '#000000',
-  lightGray: '#D9D9D9',
-  veryLightGray: '#F1F1F1',
+  lightGray: '#D9D9D9', // Often used for borders or placeholders
+  veryLightGray: '#F1F1F1', // For backgrounds or subtle highlights
   red: '#FF0000',
   textGray: '#808080', // For placeholder text or secondary info
+  text: '#333333', // Primary text color
+  border: '#CCCCCC', // Standard border color
+  borderLight: '#EEEEEE', // Lighter border color for dividers
   // Add other colors from PRD as needed
 };
 
 export const typography = {
-  // Define font sizes, weights, families if specified, or use defaults
-  // For example:
-  // title: { fontSize: 20, fontWeight: 'bold' },
-  // body: { fontSize: 16 },
-  // caption: { fontSize: 12, color: colors.textGray },
+  title: { fontSize: 20, fontWeight: 'bold' },
+  body: { fontSize: 16 },
+  caption: { fontSize: 12, color: colors.textGray },
 };
 
 export const spacing = {

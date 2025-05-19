@@ -29,6 +29,8 @@ export const ENDPOINTS = {
   // Data fetching
   GET_DATA_JSON: '/getData_JSON/',
   // Add other endpoints here
+  GET_MENU_SUB_CATEGORIES: 'Get_Menu_SubCategory_List_ByCategory',
+  SEARCH_ITEMS: 'getData_JSON/',
 };
 
 // Response codes
@@ -84,4 +86,22 @@ export const SP_QUERIES = {
   // Category queries
   GET_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') => 
     `[Web].[Sp_Get_SM_Apps] 'Get_HomePage_Category_List','','','','','',${cultureId},3044,'${userId}'`,
+  
+  // Banner queries
+  GET_BANNER_LIST: (cultureId: string = '1', userId: string = '') =>
+    `[Web].[Sp_Get_SM_Apps] 'Get_Banner_List','','','','','',${cultureId},3044,'${userId}'`,
+  
+  // Advertisement queries
+  GET_ADVERTISEMENT_LIST: (cultureId: string = '1', userId: string = '') =>
+    `[Web].[Sp_Get_SM_Apps] 'Get_Ads_List','','','','','',${cultureId},3044,'${userId}'`,
+
+  // Menu / Browse Drawer queries
+  GET_MENU_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') =>
+    `[Web].[Sp_Get_SM_Apps] 'Get_Menu_Category_List','','','','','',${cultureId},3044,'${userId}'`,
+  GET_MENU_SUBCATEGORY_LIST: (categoryXcode: string, cultureId: string = '1', userId: string = '') =>
+    `[Web].[Sp_Get_SM_Apps] 'Get_Menu_SubCategory_List_ByCategory','${categoryXcode}','','','','','${cultureId}','3044','${userId}'`,
+
+  // Search query
+  GET_ITEM_NAME_LIST_BY_SEARCH: (searchText: string, cultureId: string = '1', userId: string = '') =>
+    `[Web].[Sp_Get_SM_Apps] 'Get_ItemName_List_BySearch','${searchText}','','','','',${cultureId},3044,'${userId}'`,
 }; 

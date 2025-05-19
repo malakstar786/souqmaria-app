@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,189 +11,416 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  Dimensions,
+  Keyboard,
+  // Linking, // Uncomment if using Linking for banner press
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii } from '@theme';
+import { colors, spacing, radii, typography } from '@theme';
 import CategoryCard from '../../components/CategoryCard';
-import useCategoryStore from '../../store/category-store';
+import useCategoryStore, { Category } from '../../store/category-store';
 import useAuthStore from '../../store/auth-store';
+import useBannerStore, { Banner } from '../../store/banner-store';
+import useAdvertisementStore, { Advertisement } from '../../store/advertisement-store';
+import BrowseDrawer from '../../components/browse-drawer';
+import useSearchStore from '../../store/search-store'; // Import search store
+import { SearchItem } from '../../utils/api-service'; // Correct import for SearchItem
 import { useRouter } from 'expo-router';
+import { debounce } from 'lodash'; // For debouncing search
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const BANNER_ASPECT_RATIO = 16 / 9; // Adjust as per your actual banner image aspect ratio
+                                  // From the image, it looks wider than tall, maybe 2:1 or 2.5:1
+                                  // Let's try a value that looks similar to homepage.png.
+                                  // The example image is roughly 390px wide, and banner is ~200px tall. So ~2:1.
+const BANNER_HEIGHT = screenWidth / 2.2; // Adjusted for a more visually appealing height
+const ADVERTISEMENT_HEIGHT = screenWidth / 3.5; // Example height for ads, adjust as needed
+const SEARCH_RESULT_ITEM_HEIGHT = 50;
+
+// Calculate header height for positioning search results
+// This is an approximation. For more accuracy, onLayout could be used, or a fixed header height defined.
+const HEADER_TOTAL_HEIGHT = 60; // Approximate height of headerTopBar (padding + logo/icon height)
+const SEARCH_BAR_AREA_HEIGHT = 70; // Approximate height of searchBarOuterContainer (padding + input height)
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { categories, isLoading, error, fetchCategories } = useCategoryStore();
+  const { categories, isLoading: isLoadingCategories, error: errorCategories, fetchCategories } = useCategoryStore();
+  const { banners, isLoading: isLoadingBanners, error: errorBanners, fetchBanners } = useBannerStore();
+  const { advertisements, isLoading: isLoadingAdvertisements, error: errorAdvertisements, fetchAdvertisements } = useAdvertisementStore();
   const { user } = useAuthStore();
+  const {
+    searchQuery,
+    searchResults,
+    isLoading: isLoadingSearch,
+    error: errorSearch,
+    setSearchQuery,
+    performSearch,
+    clearSearchResults,
+  } = useSearchStore();
+  
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const bannerFlatListRef = useRef<FlatList<Banner>>(null);
+  const [currentAdvertisementIndex, setCurrentAdvertisementIndex] = useState(0);
+  const advertisementFlatListRef = useRef<FlatList<Advertisement>>(null);
+  const [isBrowseDrawerVisible, setIsBrowseDrawerVisible] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Fetch categories when component mounts or user changes
   useEffect(() => {
     const userIdToFetch = user?.UserID || user?.id || '';
-    fetchCategories('1', String(userIdToFetch));
-  }, [user]);
+    const cultureId = '1'; // Assuming English for now
 
-  // Handle search press
-  const handleSearchPress = () => {
-    router.push('/search');
+    fetchCategories(cultureId, String(userIdToFetch));
+    fetchBanners(cultureId, String(userIdToFetch));
+    fetchAdvertisements(cultureId, String(userIdToFetch));
+  }, [user, fetchCategories, fetchBanners, fetchAdvertisements]);
+
+  useEffect(() => {
+    if (banners.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex(prevIndex => {
+          const nextIndex = (prevIndex + 1) % banners.length;
+          bannerFlatListRef.current?.scrollToIndex({ animated: true, index: nextIndex });
+          return nextIndex;
+        });
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [banners]);
+
+  useEffect(() => {
+    if (advertisements.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentAdvertisementIndex(prevIndex => {
+          const nextIndex = (prevIndex + 1) % advertisements.length;
+          advertisementFlatListRef.current?.scrollToIndex({ animated: true, index: nextIndex });
+          return nextIndex;
+        });
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [advertisements]);
+  
+  const onViewableItemsChangedBanners = useRef(({ viewableItems }: { viewableItems: Array<any> }) => {
+    if (viewableItems.length > 0 && viewableItems[0].isViewable) {
+      setCurrentBannerIndex(viewableItems[0].index);
+    }
+  }).current;
+
+  const onViewableItemsChangedAdvertisements = useRef(({ viewableItems }: { viewableItems: Array<any> }) => {
+    if (viewableItems.length > 0 && viewableItems[0].isViewable) {
+      setCurrentAdvertisementIndex(viewableItems[0].index);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((query: string) => {
+      if (query.trim().length > 1) { // Perform search if query is at least 2 chars
+        performSearch(query);
+      } else if (query.trim().length === 0) {
+        clearSearchResults();
+      }
+    }, 500), // 500ms debounce delay
+    [performSearch, clearSearchResults]
+  );
+
+  const handleSearchTextChange = (text: string) => {
+    setSearchQuery(text);
+    debouncedSearch(text);
   };
 
-  // Handle cart press
-  const handleCartPress = () => {
-    router.push('/cart');
+  const handleSearchSubmit = () => {
+    Keyboard.dismiss();
+    if (searchQuery.trim()) {
+      // For now, submitting search via enter key will also just use the suggestions logic
+      // Or navigate to a full search results page if that's the desired UX
+      // router.push({ pathname: '/search', params: { query: searchQuery } });
+      if (searchQuery.trim().length > 1) {
+        performSearch(searchQuery.trim());
+      }
+    }
   };
 
-  const handleCategoryPress = (categoryCode: string) => {
-    console.log("Category pressed, code:", categoryCode);
+  const handleSearchResultPress = (item: SearchItem) => {
+    console.log('Search result pressed:', item);
+    setSearchQuery(''); 
+    clearSearchResults(); 
+    Keyboard.dismiss(); 
+    router.push({ pathname: `/product/${item.XCode}`, params: { name: item.XName } });
   };
 
-  // Placeholder for featured banner items
-  const featuredItems = [
-    {
-      id: '1',
-      title: 'WIRED AND WIRELESS',
-      subtitle: 'HEADPHONES & SPEAKERS',
-      buttonText: 'SHOP NOW',
-      imageComponent: () => (
-        <View style={styles.bannerIconContainer}>
-          <FontAwesome name="headphones" size={60} color={colors.blue} />
-        </View>
-      ),
-      color: colors.lightBlue,
-      textColor: colors.black,
-    },
-    {
-      id: '2',
-      title: 'TABLET',
-      subtitle: 'APPLE iPADS',
-      buttonText: 'SHOP NOW',
-      imageComponent: () => (
-        <View style={styles.bannerIconContainer}>
-          <FontAwesome name="tablet" size={60} color={colors.blue} />
-        </View>
-      ),
-      color: colors.veryLightGray,
-      textColor: colors.black,
-    },
-  ];
+  const handleCartPress = () => router.push('/cart');
+  const handleCategoryPress = (category: any) => {
+    router.push({ pathname: `/categories/${category.SrNo}`, params: { name: category.CategoryName } });
+  };
+  const handleBannerPress = (tagUrl: string | null) => {
+    if (tagUrl) {
+      console.log("Banner pressed, TagUrl:", tagUrl);
+      // if (tagUrl.startsWith('http')) Linking.openURL(tagUrl);
+      // else router.push(tagUrl);
+    } else {
+      console.log("Banner pressed, no TagUrl.");
+    }
+  };
+  const handleAdvertisementPress = (tagUrl: string | null) => {
+    if (tagUrl) {
+      console.log("Advertisement pressed, TagUrl:", tagUrl);
+      // Logic to handle ad press, e.g., navigate to product or web page
+      // if (tagUrl.startsWith('http')) Linking.openURL(tagUrl);
+      // else router.push(tagUrl);
+    } else {
+      console.log("Advertisement pressed, no TagUrl.");
+    }
+  };
+  const handleDrawerOpen = () => {
+    setIsBrowseDrawerVisible(true);
+  };
 
-  // Render banner item
-  const renderBannerItem = ({ item }: { item: any }) => (
-    <View
-      style={[
-        styles.bannerItem,
-        { backgroundColor: item.color },
-      ]}
+  const handleDrawerClose = () => {
+    setIsBrowseDrawerVisible(false);
+  };
+
+
+  const renderBannerItem = ({ item }: { item: Banner }) => (
+    <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={() => handleBannerPress(item.TagUrl)}
+        style={styles.bannerItemContainer}
     >
-      <View style={styles.bannerContent}>
-        <View style={styles.bannerTextContainer}>
-          <Text style={[styles.bannerTitle, { color: item.textColor }]}>
-            {item.title}
-          </Text>
-          <Text style={[styles.bannerSubtitle, { color: item.textColor }]}>
-            {item.subtitle}
-          </Text>
-          <TouchableOpacity
-            style={styles.shopNowButton}
-            onPress={() => router.push('/categories')}
-          >
-            <Text style={styles.shopNowButtonText}>{item.buttonText}</Text>
-          </TouchableOpacity>
-        </View>
-        {item.imageComponent()}
-      </View>
-    </View>
+      <Image 
+        source={{ uri: item.imageUrl }} 
+        style={styles.bannerImage} 
+        resizeMode="cover" 
+      />
+    </TouchableOpacity>
+  );
+
+  const renderAdvertisementItem = ({ item }: { item: Advertisement }) => (
+    <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={() => handleAdvertisementPress(item.TagUrl)}
+        style={styles.advertisementItemContainer}
+    >
+      <Image 
+        source={{ uri: item.imageUrl }} 
+        style={styles.advertisementImage}
+        resizeMode="cover" 
+      />
+    </TouchableOpacity>
+  );
+
+  const renderSearchResultItem = ({ item }: { item: SearchItem }) => (
+    <TouchableOpacity 
+      style={styles.searchResultItem} 
+      onPress={() => handleSearchResultPress(item)}
+      activeOpacity={0.7}
+    >
+      <FontAwesome name="search" size={16} color={colors.blue} style={styles.searchResultIcon} />
+      <Text style={styles.searchResultText}>{item.XName}</Text>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightBlue} />
       
-      {/* Header with logo and cart */}
-      <View style={styles.header}>
-        <Image 
-          source={require('@assets/logo.png')} 
-          style={styles.logo} 
-          resizeMode="contain"
-        />
+      <View style={styles.headerTopBar}>
+        <TouchableOpacity onPress={handleDrawerOpen} style={styles.drawerButton}>
+          <FontAwesome name="bars" size={24} color={colors.black} />
+        </TouchableOpacity>
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../../assets/logo.png')}
+            style={styles.logo} 
+            resizeMode="contain"
+          />
+        </View>
         <TouchableOpacity style={styles.cartButton} onPress={handleCartPress}>
           <FontAwesome name="shopping-cart" size={24} color={colors.black} />
-          {/* Cart badge would go here */}
+          {/* <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>2</Text></View> */}
         </TouchableOpacity>
       </View>
       
-      {/* Search Bar */}
-      <TouchableOpacity 
-        style={styles.searchBarContainer}
-        onPress={handleSearchPress}
-        activeOpacity={0.8}
-      >
-        <View style={styles.searchBar}>
+      {/* Search Bar - remains visually below headerTopBar but is not inside ScrollView */}
+      <View style={styles.searchBarOuterContainer}>
+        <View style={styles.searchBarInnerContainer}>
           <FontAwesome name="search" size={18} color={colors.blue} style={styles.searchIcon} />
-          <Text style={styles.searchText}>Search Products</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search Products"
+            placeholderTextColor={colors.lightGray}
+            value={searchQuery}
+            onChangeText={handleSearchTextChange}
+            onSubmitEditing={handleSearchSubmit}
+            returnKeyType="search"
+            onFocus={() => setIsSearchFocused(true)}
+            // onBlur={() => setIsSearchFocused(false)} // Controlled by clearing search/pressing item
+          />
         </View>
-      </TouchableOpacity>
-
+      </View>
+      
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContentContainer}
+        keyboardShouldPersistTaps="handled" // Added to ScrollView for better tap handling with keyboard
       >
-        {/* Shop By Category Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Shop By Category</Text>
-          
-          {isLoading ? (
-            <ActivityIndicator size="large" color={colors.blue} style={styles.loader} />
-          ) : error ? (
-            <Text style={styles.errorText}>{error}</Text>
-          ) : categories.length > 0 ? (
-            <ScrollView 
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesListContainer}
-            >
-              {categories.map((category) => (
-                <CategoryCard 
-                  key={category.SrNo}
-                  name={category.CategoryName}
-                  imageUrl={category.imageUrl}
-                  onPress={() => handleCategoryPress(category.SrNo)}
+        {/* Content that scrolls */}
+        {(!isSearchFocused || (!isLoadingSearch && !errorSearch && searchResults.length === 0)) && (
+          <>
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Shop By Category</Text>
+              {isLoadingCategories ? (
+                <ActivityIndicator size="small" color={colors.blue} style={styles.loader} />
+              ) : errorCategories ? (
+                <Text style={styles.errorText}>{errorCategories}</Text>
+              ) : categories.length > 0 ? (
+                <FlatList
+                  data={categories}
+                  renderItem={({ item }) => (
+                    <View style={{ width: screenWidth / 3, padding: spacing.xs }}>
+                      <CategoryCard 
+                        name={item.CategoryName}
+                        imageUrl={item.imageUrl}
+                        onPress={() => handleCategoryPress(item)}
+                      />
+                    </View>
+                  )}
+                  keyExtractor={(item, index) => item.SrNo || item.id || String(index)}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesListContainer}
                 />
-              ))}
-            </ScrollView>
-          ) : (
-            <Text style={styles.noDataText}>No categories found.</Text>
-          )}
-        </View>
+              ) : (
+                <Text style={styles.noDataText}>No categories found.</Text>
+              )}
+            </View>
 
-        {/* Featured Banners Carousel */}
-        <View style={styles.sectionContainer}>
-          <FlatList
-            data={featuredItems}
-            renderItem={renderBannerItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            pagingEnabled
-            contentContainerStyle={styles.bannersContainer}
-          />
-          
-          {/* Carousel indicators */}
-          <View style={styles.indicators}>
-            {featuredItems.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.indicator,
-                  { backgroundColor: index === 0 ? colors.blue : colors.lightGray },
-                ]}
-              />
-            ))}
-          </View>
-        </View>
-        
-        {/* Spacer at the bottom if needed */}
-        <View style={{ height: spacing.lg }} />
-
+            <View style={styles.bannerSectionContainer}>
+              {isLoadingBanners ? (
+                <ActivityIndicator size="large" color={colors.blue} style={styles.loader} />
+              ) : errorBanners ? (
+                <Text style={styles.errorText}>{errorBanners}</Text>
+              ) : banners.length > 0 ? (
+                <>
+                  <FlatList
+                    ref={bannerFlatListRef}
+                    data={banners}
+                    renderItem={renderBannerItem}
+                    keyExtractor={(item) => item.Banner_ImageName}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    pagingEnabled
+                    onViewableItemsChanged={onViewableItemsChangedBanners}
+                    viewabilityConfig={viewabilityConfig}
+                    getItemLayout={(_data, index) => (
+                      { length: screenWidth, offset: screenWidth * index, index }
+                    )}
+                  />
+                  {banners.length > 1 && (
+                    <View style={styles.indicators}>
+                      {banners.map((_, index) => (
+                        <View
+                          key={index}
+                          style={[
+                            styles.indicator,
+                            { backgroundColor: index === currentBannerIndex ? colors.blue : colors.lightGray },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.noDataText}>No banners found.</Text>
+              )}
+            </View>
+            
+            <View style={styles.advertisementSectionContainer}>
+              {isLoadingAdvertisements ? (
+                <ActivityIndicator size="large" color={colors.blue} style={styles.loader} />
+              ) : errorAdvertisements ? (
+                <Text style={styles.errorText}>{errorAdvertisements}</Text>
+              ) : advertisements.length > 0 ? (
+                <>
+                  <FlatList
+                    ref={advertisementFlatListRef}
+                    data={advertisements}
+                    renderItem={renderAdvertisementItem}
+                    keyExtractor={(item) => item.id || item.Ads_ImageName}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    pagingEnabled
+                    onViewableItemsChanged={onViewableItemsChangedAdvertisements}
+                    viewabilityConfig={viewabilityConfig}
+                    getItemLayout={(_data, index) => (
+                      { length: screenWidth, offset: screenWidth * index, index }
+                    )}
+                  />
+                  {advertisements.length > 1 && (
+                    <View style={styles.indicators}>
+                      {advertisements.map((_, index) => (
+                        <View
+                          key={`ad-indicator-${index}`}
+                          style={[
+                            styles.indicator,
+                            { backgroundColor: index === currentAdvertisementIndex ? colors.blue : colors.lightGray },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : (
+                null 
+              )}
+            </View>
+            
+            <View style={{ height: spacing.lg }} />
+          </>
+        )}
       </ScrollView>
+
+      {/* Search Results Container - Positioned absolutely, outside ScrollView */}
+      {isSearchFocused && (isLoadingSearch || errorSearch || searchResults.length > 0 || searchQuery.trim().length >= 2) && (
+        <View style={styles.searchResultsContainer}>
+          {isLoadingSearch && (
+            <View style={styles.searchLoadingContainer}>
+              <ActivityIndicator color={colors.blue} size="small" />
+              <Text style={styles.searchLoadingText}>Searching...</Text>
+            </View>
+          )}
+          
+          {!isLoadingSearch && errorSearch && (
+            <View style={styles.searchErrorContainer}>
+              <Text style={styles.searchErrorText}>{errorSearch}</Text>
+            </View>
+          )}
+          
+          {!isLoadingSearch && !errorSearch && searchResults.length === 0 && searchQuery.trim().length >= 2 && (
+            <View style={styles.noResultsContainer}>
+              <Text style={styles.noResultsText}>No products found for "{searchQuery}"</Text>
+            </View>
+          )}
+          
+          {!isLoadingSearch && searchResults.length > 0 && (
+            <FlatList
+              data={searchResults}
+              renderItem={renderSearchResultItem}
+              keyExtractor={(item) => item.XCode + item.XName}
+              style={styles.searchResultsList}
+              keyboardShouldPersistTaps="handled"
+              getItemLayout={(data, index) => (
+                { length: SEARCH_RESULT_ITEM_HEIGHT, offset: SEARCH_RESULT_ITEM_HEIGHT * index, index }
+              )}
+            />
+          )}
+    </View>
+      )}
+
+      <BrowseDrawer isVisible={isBrowseDrawerVisible} onClose={handleDrawerClose} />
     </SafeAreaView>
   );
 }
@@ -203,144 +430,200 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-  header: {
+  headerTopBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.lightBlue,
+    // zIndex: 1, // Ensure header is below search results if they overlap, but search results will have higher zIndex
+  },
+  drawerButton: {
+    padding: spacing.sm, 
+  },
+  logoContainer: {
+    flex: 1, // Allows logo to be centered if drawer/cart buttons have defined or intrinsic width
+    alignItems: 'center', // Center logo horizontally in this container
   },
   logo: {
-    height: 40,
-    width: 120,
+    width: 150, 
+    height: 40, 
   },
   cartButton: {
-    padding: spacing.xs,
+    padding: spacing.sm,
   },
-  searchBarContainer: {
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
-    borderRadius: radii.lg,
-    shadowColor: colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    backgroundColor: colors.white,
+  searchBarOuterContainer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.lightBlue, 
+    // This View is no longer inside ScrollView, so its zIndex relative to siblings in SafeAreaView
+    zIndex: 5, // Higher than ScrollView content, lower than search results dropdown
   },
-  searchBar: {
+  searchBarInnerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: radii.lg, 
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: radii.lg,
+    paddingVertical: spacing.sm, 
+    shadowColor: colors.black, 
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
   },
   searchIcon: {
     marginRight: spacing.sm,
   },
-  searchText: {
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: typography.body.fontSize,
+    color: colors.black,
+    marginLeft: spacing.sm,
+  },
+  searchResultsContainer: {
+    position: 'absolute',
+    top: HEADER_TOTAL_HEIGHT + SEARCH_BAR_AREA_HEIGHT, // Position below header and search bar area
+    left: spacing.md,
+    right: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    maxHeight: screenHeight * 0.7, // Increased to show more results 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 50, // High elevation to ensure it's on top
+    zIndex: 50,    // High zIndex
+    overflow: 'hidden', // Ensure content doesn't overflow the container
+  },
+  searchResultsList: {
+    width: '100%',
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    height: SEARCH_RESULT_ITEM_HEIGHT,
+    backgroundColor: colors.white,
+  },
+  searchResultIcon: {
+    marginRight: spacing.md,
+    width: 16, // Fixed width for alignment
+  },
+  searchResultText: {
+    fontSize: typography.body.fontSize,
+    color: colors.blue, // Changed to blue to match reference image
+    flex: 1, // Take up remaining space
+  },
+  searchLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+  },
+  searchLoadingText: {
+    marginLeft: spacing.sm,
+    fontSize: typography.body.fontSize,
+    color: colors.blue,
+  },
+  searchErrorContainer: {
+    padding: spacing.md,
+  },
+  searchErrorText: {
+    padding: spacing.md,
+    color: colors.red,
+    textAlign: 'center',
+  },
+  noResultsContainer: {
+    padding: spacing.md,
+  },
+  noResultsText: {
+    padding: spacing.md,
     color: colors.textGray,
-    fontSize: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   scrollView: {
     flex: 1,
+    // zIndex: 0, // Ensure ScrollView is below absolutely positioned elements
   },
   scrollContentContainer: {
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.lg, 
   },
   sectionContainer: {
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  bannerSectionContainer: {
+    marginTop: spacing.lg,
+  },
+  advertisementSectionContainer: {
+    marginTop: spacing.lg,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.black,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    marginBottom: spacing.md, 
+    textAlign: 'left', 
   },
   categoriesListContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs, 
   },
-  bannersContainer: {
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.lg - spacing.md,
-  },
-  bannerItem: {
-    width: 300,
-    height: 180,
-    borderRadius: radii.lg,
-    marginRight: spacing.md,
+  bannerItemContainer: {
+    width: screenWidth,
+    height: BANNER_HEIGHT,
+    borderRadius: radii.lg, 
     overflow: 'hidden',
+    backgroundColor: colors.white,
   },
-  bannerContent: {
-    flex: 1,
-    flexDirection: 'row',
-    padding: spacing.md,
-    alignItems: 'center',
+  bannerImage: {
+    width: '100%',
+    height: '100%',
   },
-  bannerTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingRight: spacing.sm,
-  },
-  bannerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: spacing.xs,
-  },
-  bannerSubtitle: {
-    fontSize: 14,
-    marginBottom: spacing.md,
-  },
-  bannerIconContainer: {
-    width: 100,
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shopNowButton: {
-    backgroundColor: colors.green,
-    paddingVertical: spacing.sm - 2,
-    paddingHorizontal: spacing.md,
+  advertisementItemContainer: {
+    width: screenWidth,
+    height: ADVERTISEMENT_HEIGHT,
     borderRadius: radii.md,
-    alignSelf: 'flex-start',
+    overflow: 'hidden',
+    backgroundColor: colors.white,
   },
-  shopNowButtonText: {
-    color: colors.white,
-    fontWeight: 'bold',
-    fontSize: 12,
+  advertisementImage: {
+    width: '100%',
+    height: '100%',
   },
   indicators: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 4,
+    marginHorizontal: spacing.xs,
   },
   loader: {
     marginVertical: spacing.lg,
-    alignSelf: 'center',
   },
   errorText: {
-    color: colors.red,
     textAlign: 'center',
-    marginVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    color: colors.red,
+    marginVertical: spacing.md,
   },
   noDataText: {
-    color: colors.textGray,
     textAlign: 'center',
-    marginVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    color: colors.textGray,
+    marginVertical: spacing.md,
   },
 }); 
