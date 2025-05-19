@@ -80,4 +80,8 @@ export const SP_QUERIES = {
     `[Web].[Sp_Template1_Get_MyOrders_Apps] 'Get_MyOrders_Parent','${userId}','','','CurrencyXName','CurrencyXCode',3044,${cultureId}`,
   GET_ORDER_DETAILS: (userId: string, orderNo: string, cultureId: string = '1') => 
     `[Web].[Sp_Template1_Get_MyOrders_Apps] 'Get_MyOrders_Child','${userId}','${orderNo}','','CurrencyXName','CurrencyXCode',3044,${cultureId}`,
+    
+  // Category queries
+  GET_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') => 
+    `[Web].[Sp_Get_SM_Apps] 'Get_HomePage_Category_List','','','','','',${cultureId},3044,'${userId}'`,
 }; 

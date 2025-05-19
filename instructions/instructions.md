@@ -1890,4 +1890,58 @@ Future improvements to consider:
   - Each row in the response represents one item in the order.
   - If no details are found for the specified order, the `row` array will be empty and a message will be provided.
 
+### Category Management APIs
+
+#### 1. Get Home Page Category List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of product categories for display on the homepage, including image names.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Get_SM_Apps] 'Get_HomePage_Category_List','','','','','',1,3044,''"
+  }
+  ```
+- **Request Parameters Table (for `Sp_Get_SM_Apps`):**
+
+| # | Parameter  | Type   | Length | Description                           |
+|---|------------|--------|--------|---------------------------------------|
+| 1 | Type       | String | 50     | "Get_HomePage_Category_List"          |
+| 2 | Value      | String | 50     | Pass empty string                     |
+| 3 | Value1     | String | 50     | Pass empty string                     |
+| 4 | Value2     | String | 50     | Pass empty string                     |
+| 5 | Value3     | String | 50     | Pass empty string                     |
+| 6 | Value4     | String | 50     | Pass empty string                     |
+| 7 | CultureId  | int    | -      | Culture ID (1-English, 2-Arabic)      |
+| 8 | Company    | String | 10     | Company ID (fixed: 3044)              |
+| 9 | UserId     | String | 10     | User ID (pass empty string if not logged in) |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "SrNo": "HC31790001",
+        "CategoryName": "Mobile",
+        "Ordering": 1,
+        "Image": "unnamed (1).png",
+        "HPCType": "HPC2"
+      },
+      // ... more categories
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - `CategoryName` is the display name.
+  - `Image` contains the filename of the category image.
+  - `Ordering` determines the display order.
+
+#### 2. Get Category Image
+- **Base URL:** `https://erp.merpec.com/Upload/HomePage_Category/3044/`
+- **Description:** Retrieves the actual image for a category.
+- **Usage:** Append the `Image` filename (from the Get Home Page Category List response) to this base URL.
+  - Example: `https://erp.merpec.com/Upload/HomePage_Category/3044/unnamed (1).png`
+
 // ... continue with the rest of the documentation ...

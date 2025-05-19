@@ -463,4 +463,34 @@ export const getOrderDetails = async (userId: string, orderNo: string, cultureId
   }
 };
 
+/**
+ * Get list of product categories
+ * @param cultureId Culture ID (defaults to English)
+ * @param userId User ID (optional, pass empty string if not logged in)
+ * @returns API response with categories data
+ */
+export const getCategories = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+  try {
+    const query = SP_QUERIES.GET_CATEGORY_LIST(cultureId, userId);
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+    
+    return {
+      StatusCode: 200,
+      ResponseCode: response.data.success === 1 ? '2' : '-2',
+      Message: response.data.Message || 'Categories retrieved successfully',
+      Data: response.data
+    };
+  } catch (error) {
+    console.error('Error getting categories:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: 'Failed to fetch categories. Please try again.',
+      Data: null
+    };
+  }
+};
+
 // Export other API functions here 
