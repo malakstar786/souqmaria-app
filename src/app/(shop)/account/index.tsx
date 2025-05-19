@@ -82,7 +82,7 @@ export default function AccountScreen() {
         <AccountOption 
           icon="shopping-basket" 
           label="My Orders" 
-          onPress={() => handleOptionPress('/orders')} 
+          onPress={() => handleOptionPress('/account/orders')} 
         />
         <AccountOption 
           icon="heart" 

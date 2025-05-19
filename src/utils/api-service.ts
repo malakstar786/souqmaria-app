@@ -4,9 +4,11 @@ import {
   ENDPOINTS, 
   RESPONSE_CODES, 
   PLATFORM,
+  SP_QUERIES,
   // COMMON_PARAMS, // No longer needed for all requests here
   // CULTURE_IDS // No longer needed for registration here
 } from './api-config';
+import axios from 'axios';
 
 // Types for API requests and responses
 interface ApiResponse<T = any> {
@@ -15,6 +17,18 @@ interface ApiResponse<T = any> {
   Message: string;
   Data?: T;
   TrackId?: string | null; // As seen in the log
+}
+
+// Common type for address location data (country, state, city)
+export interface LocationItem {
+  Xcode: string;
+  NameE: string;
+  NameA?: string; // Optional Arabic name
+}
+
+// API response for location data
+export interface LocationDataResponse {
+  rows: LocationItem[];
 }
 
 interface RegisterUserParams {
@@ -97,6 +111,27 @@ export interface DeleteShippingAddressPayload {
   IpAddress: string;
   CompanyId: number;
   Command: string; // 'Delete'
+}
+
+// Forgot Password Payload
+interface ForgotPasswordPayload {
+  Email: string;
+  CompanyId: number;
+}
+
+// Get Data JSON Payload
+export interface GetDataJsonPayload {
+  strQuery: string;
+}
+
+// Add type definitions for location API responses
+export interface LocationResponse {
+  success: number;
+  row: Array<{
+    XCode: number;
+    XName: string;
+  }>;
+  Message: string;
 }
 
 /**
@@ -207,7 +242,7 @@ export const updateUserDetailsAPI = async (payload: UpdateUserDetailsPayload): P
  * Save a new billing address
  */
 export async function saveBillingAddress(payload: SaveBillingAddressPayload): Promise<ApiResponse> {
-  return apiRequest('/CRUD_Billing_Manage_Address', 'POST', payload);
+  return apiRequest(ENDPOINTS.CRUD_BILLING_ADDRESS, 'POST', payload);
 }
 
 /**
@@ -215,21 +250,21 @@ export async function saveBillingAddress(payload: SaveBillingAddressPayload): Pr
  */
 export async function updateBillingAddress(payload: SaveBillingAddressPayload): Promise<ApiResponse> {
   // Same endpoint as save, but with Command: 'Update' and existing BillingAddressId
-  return apiRequest('/CRUD_Billing_Manage_Address', 'POST', payload);
+  return apiRequest(ENDPOINTS.CRUD_BILLING_ADDRESS, 'POST', payload);
 }
 
 /**
  * Delete a billing address
  */
 export async function deleteBillingAddress(payload: DeleteBillingAddressPayload): Promise<ApiResponse> {
-  return apiRequest('/CRUD_Billing_Manage_Address', 'POST', payload);
+  return apiRequest(ENDPOINTS.CRUD_BILLING_ADDRESS, 'POST', payload);
 }
 
 /**
  * Save a new shipping address
  */
 export async function saveShippingAddress(payload: SaveShippingAddressPayload): Promise<ApiResponse> {
-  return apiRequest('/CRUD_Shipping_Manage_Address', 'POST', payload);
+  return apiRequest(ENDPOINTS.CRUD_SHIPPING_ADDRESS, 'POST', payload);
 }
 
 /**
@@ -237,14 +272,195 @@ export async function saveShippingAddress(payload: SaveShippingAddressPayload): 
  */
 export async function updateShippingAddress(payload: SaveShippingAddressPayload): Promise<ApiResponse> {
   // Same endpoint as save, but with Command: 'Update' and existing ShippingAddressId
-  return apiRequest('/CRUD_Shipping_Manage_Address', 'POST', payload);
+  return apiRequest(ENDPOINTS.CRUD_SHIPPING_ADDRESS, 'POST', payload);
 }
 
 /**
  * Delete a shipping address
  */
 export async function deleteShippingAddress(payload: DeleteShippingAddressPayload): Promise<ApiResponse> {
-  return apiRequest('/CRUD_Shipping_Manage_Address', 'POST', payload);
+  return apiRequest(ENDPOINTS.CRUD_SHIPPING_ADDRESS, 'POST', payload);
 }
+
+/**
+ * Request a password reset
+ */
+export async function forgotPassword(payload: ForgotPasswordPayload): Promise<ApiResponse> {
+  return apiRequest(ENDPOINTS.FORGOT_PASSWORD, 'POST', payload);
+}
+
+/**
+ * Get countries list for address forms
+ */
+export async function getCountries(): Promise<ApiResponse<LocationDataResponse>> {
+  const payload: GetDataJsonPayload = {
+    strQuery: SP_QUERIES.GET_COUNTRY_LIST
+  };
+  return apiRequest<LocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', payload);
+}
+
+/**
+ * Get states list for a specific country
+ */
+export async function getStates(countryXcode: string): Promise<ApiResponse<LocationDataResponse>> {
+  const payload: GetDataJsonPayload = {
+    strQuery: SP_QUERIES.GET_STATE_LIST(countryXcode)
+  };
+  return apiRequest<LocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', payload);
+}
+
+/**
+ * Get cities list for a specific state
+ */
+export async function getCities(stateXcode: string): Promise<ApiResponse<LocationDataResponse>> {
+  const payload: GetDataJsonPayload = {
+    strQuery: SP_QUERIES.GET_CITY_LIST(stateXcode)
+  };
+  return apiRequest<LocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', payload);
+}
+
+/**
+ * Get list of countries
+ */
+export const getCountryList = async (): Promise<LocationResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
+      strQuery: "[Web].[Sp_Manage_Address_Apps_SM] 'Get_Country_List','','','','','',1,3044"
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching country list:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get list of states for a specific country
+ * @param countryId - The XCode of the country
+ */
+export const getStateList = async (countryId: number): Promise<LocationResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM] 'Get_State_List','${countryId}','','','','',1,3044`
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching state list:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get list of cities for a specific state
+ * @param stateId - The XCode of the state
+ */
+export const getCityList = async (stateId: number): Promise<LocationResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM] 'Get_City_List','${stateId}','','','','',1,3044`
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching city list:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get list of billing addresses for a user
+ * @param userId - The user ID 
+ */
+export const getBillingAddresses = async (userId: string): Promise<ApiResponse<any>> => {
+  try {
+    const payload: GetDataJsonPayload = {
+      strQuery: SP_QUERIES.GET_BILLING_ADDRESSES(userId)
+    };
+    
+    console.log('Fetching billing addresses with query:', payload.strQuery);
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', payload);
+  } catch (error) {
+    console.error('Error fetching billing addresses:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get list of shipping addresses for a user
+ * @param userId - The user ID
+ */
+export const getShippingAddresses = async (userId: string): Promise<ApiResponse<any>> => {
+  try {
+    const payload: GetDataJsonPayload = {
+      strQuery: SP_QUERIES.GET_SHIPPING_ADDRESSES(userId)
+    };
+    
+    console.log('Fetching shipping addresses with query:', payload.strQuery);
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', payload);
+  } catch (error) {
+    console.error('Error fetching shipping addresses:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get the list of orders for a user
+ * @param userId User ID to get orders for
+ * @param cultureId Culture ID (defaults to English)
+ * @returns API response with orders data
+ */
+export const getMyOrders = async (userId: string, cultureId: string = '1'): Promise<ApiResponse<any>> => {
+  try {
+    const query = SP_QUERIES.GET_MY_ORDERS(userId, cultureId);
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+    
+    return {
+      StatusCode: 200,
+      ResponseCode: response.data.success === 1 ? '2' : '-2',
+      Message: response.data.Message || 'Orders retrieved successfully',
+      Data: response.data
+    };
+  } catch (error) {
+    console.error('Error getting orders:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: 'Failed to fetch orders. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Get details for a specific order
+ * @param userId User ID
+ * @param orderNo Order number to get details for
+ * @param cultureId Culture ID (defaults to English)
+ * @returns API response with order details data
+ */
+export const getOrderDetails = async (userId: string, orderNo: string, cultureId: string = '1'): Promise<ApiResponse<any>> => {
+  try {
+    const query = SP_QUERIES.GET_ORDER_DETAILS(userId, orderNo, cultureId);
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+    
+    return {
+      StatusCode: 200,
+      ResponseCode: response.data.success === 1 ? '2' : '-2',
+      Message: response.data.Message || 'Order details retrieved successfully',
+      Data: response.data
+    };
+  } catch (error) {
+    console.error('Error getting order details:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: 'Failed to fetch order details. Please try again.',
+      Data: null
+    };
+  }
+};
 
 // Export other API functions here 

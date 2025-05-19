@@ -920,24 +920,32 @@ mobile-app-sm
 │   │   │   ├── _layout.tsx
 │   │   │   ├── account
 │   │   │   │   ├── _layout.tsx
-│   │   │   │   └── details
-│   │   │   ├── account.tsx
+│   │   │   │   ├── address
+│   │   │   │   ├── details
+│   │   │   │   └── index.tsx
 │   │   │   ├── cart.tsx
 │   │   │   ├── index.tsx
 │   │   │   └── search.tsx
 │   │   ├── +not-found.tsx
 │   │   ├── auth.tsx
+│   │   ├── forgot-password.tsx
 │   │   └── signup.tsx
+│   ├── components
+│   │   ├── add-edit-address.tsx
+│   │   └── AddressDropdown.tsx
 │   ├── screens
 │   │   └── account
 │   │       └── AccountScreen.tsx
 │   ├── store
-│   │   └── auth-store.ts
+│   │   ├── address-store.ts
+│   │   ├── auth-store.ts
+│   │   └── location-store.ts
 │   ├── theme.ts
 │   └── utils
 │       ├── api-config.ts
 │       ├── api-service.ts
-│       └── login-debug.js
+│       ├── login-debug.js
+│       └── test-apis.js
 └── tsconfig.json
 
 
@@ -1188,7 +1196,39 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 - `src/store/auth-store.ts`: Will contain `login` action.
 - `src/app/auth.tsx`: Will contain the login form UI.
 
-#### 3. Update Account Information (`/Update_Account_Info/`)
+#### 3. Forgot Password (`/ForgetPassword/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Initiates the password reset process for a user by sending a password reset link or code to their registered email.
+- **Request Body:**
+  ```json
+  {
+    "Email": "string (72)",
+    "CompanyId": "int (3044)"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description             | Required |
+|---|-----------|--------|--------|-------------------------|----------|
+| 1 | Email     | String | 72     | User's registered email | Yes      |
+| 2 | CompanyId | int    | -      | Company ID (fixed: 3044)| Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success (Password Sent):** `StatusCode: 200`, `ResponseCode: 2`
+    - **Message:** "Password sent, check your Email!!!"
+  - **Email Not Matched:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Email is not match with your profile."
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -6` (Assuming -6 based on other validation errors, API sheet shows -8 for other endpoints, but this specific one shows -6 in the image)
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server-related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+- **Implementation Notes:**
+  - The user will provide their email address.
+  - The application will call this endpoint.
+  - Upon successful response (`ResponseCode: 2`), the UI should inform the user to check their email for a password reset link/instructions.
+  - If the email is not found (`ResponseCode: -2`), the UI should inform the user that the email is not registered or doesn't match.
+
+#### 4. Update Account Information (`/Update_Account_Info/`)
 - **Method:** `POST` (FromBody)
 - **Description:** Updates user account details. Primarily for FullName and Password. Email and Mobile are noted as read-only for update purposes but are part of the payload.
 - **Request Body:**
@@ -1575,4 +1615,279 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
   - A successful delete operation returns `ResponseCode: 6` rather than `2` as used for save/update operations.
   - After deletion, you should update the UI to remove the deleted address from the list.
 
+### Location Data APIs
 
+These APIs use the generic `getData_JSON` endpoint with specific stored procedure parameters.
+
+#### 1. Get Country List
+
+- **Method:** `POST`
+- **Endpoint:** `getData_JSON/`
+- **Description:** Retrieves a list of countries for address forms.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM] 'Get_Country_List','','','','','',1,3044"
+  }
+  ```
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": 69,
+        "XName": "Kuwait"
+      },
+      {
+        "XCode": 13,
+        "XName": "Bahrain"
+      },
+      {
+        "XCode": 81,
+        "XName": "Lebanon"
+      }
+    ]
+  }
+  ```
+
+#### 2. Get State List
+
+- **Method:** `POST`
+- **Endpoint:** `getData_JSON/`
+- **Description:** Retrieves a list of states/regions for a specific country.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM] 'Get_State_List','69','','','','',1,3044"
+  }
+  ```
+- **Request Parameters:**
+  - `'69'` - The XCode of the country to fetch states for
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": 1,
+        "XName": "Kuwait"
+      },
+      {
+        "XCode": 2,
+        "XName": "Al Ahmadi"
+      },
+      {
+        "XCode": 3,
+        "XName": "Al Farwaniyah"
+      }
+    ]
+  }
+  ```
+
+#### 3. Get City List
+
+- **Method:** `POST`
+- **Endpoint:** `getData_JSON/`
+- **Description:** Retrieves a list of cities for a specific state/region.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM] 'Get_City_List','2','','','','',1,3044"
+  }
+  ```
+- **Request Parameters:**
+  - `'2'` - The XCode of the state to fetch cities for
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": 3,
+        "XName": "Sabah Al Ahmad City"
+      },
+      {
+        "XCode": 19,
+        "XName": "Ali Sabah Al Salem"
+      },
+      {
+        "XCode": 29,
+        "XName": "Al Wafra"
+      }
+    ]
+  }
+  ```
+
+### Address Management APIs
+// ... continue with existing code ...
+
+
+
+## Implementation Notes for Location and Address Management
+
+### Generic getData_JSON Endpoint for Stored Procedures
+
+The `getData_JSON` endpoint is a generic API endpoint that calls stored procedures on the server. It takes a formatted SQL query string that specifies:
+
+1. The stored procedure to call
+2. The parameters to pass to the stored procedure
+
+Format: `[Schema].[StoredProcedureName] 'Parameter1','Parameter2',...,'ParameterN'`
+
+This approach is used for all location data (countries, states, cities) and will be used for other data retrieval operations.
+
+### Location Data Implementation
+
+We've implemented a comprehensive location management system:
+
+1. **Location APIs**
+   - Country list retrieval
+   - State/region list retrieval based on country selection
+   - City list retrieval based on state selection
+
+2. **Data Storage**
+   - `location-store.ts`: Zustand store for managing location data and selections
+   - Handles fetching, caching, and user selections for countries, states, and cities
+
+3. **User Interface Components**
+   - `AddressDropdown.tsx`: Reusable dropdown component for selecting locations
+   - `add-edit-address.tsx`: Form component for adding/editing addresses with location dropdowns
+   - Proper loading states, error handling, and validation
+
+4. **Address Management**
+   - `address-store.ts`: Zustand store for managing user billing and shipping addresses
+   - CRUD operations for addresses (Create, Read, Update, Delete)
+   - Proper validation and error handling
+
+### Next Steps
+
+Future improvements to consider:
+
+1. Implement address list retrieval API to show saved addresses
+2. Add default address selection functionality
+3. Expand address validation for required fields
+4. Improve error messaging for failed API calls
+5. Add confirmation messages for successful operations
+6. Implement address selection during checkout flow
+
+### Order Management APIs
+
+#### 1. Get My Orders List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of orders for the logged-in user.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Template1_Get_MyOrders_Apps] 'Get_MyOrders_Parent','USER_ID','','','CurrencyXName','CurrencyXCode',3044,1"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     |
+|---|-----------|--------|--------|---------------------------------|
+| 1 | Type      | String | 50     | "Get_MyOrders_Parent"           |
+| 2 | Value     | String | 50     | User ID                         |
+| 3 | Value1    | String | 50     | Pass empty string               |
+| 4 | Value2    | String | 50     | Pass empty string               |
+| 5 | Value3    | String | 50     | "CurrencyXName"                 |
+| 6 | Value4    | String | 50     | "CurrencyXCode"                 |
+| 7 | Company   | int    | -      | Company ID (fixed: 3044)        |
+| 8 | CultureId | int    | -      | Culture ID (1-English, 2-Arabic)|
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "OrderID": "123456",
+        "OrderNo": "SO-123456",
+        "OrderDate": "2023-06-15",
+        "TotalAmount": 125.50,
+        "Status": "Delivered",
+        "ItemCount": 3,
+        // Other order summary fields
+      },
+      // More orders...
+    ]
+  }
+  ```
+
+- **Response Structure (No Orders):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - This endpoint returns a list of all orders for the authenticated user.
+  - The response includes basic information about each order such as order number, date, total amount, and status.
+  - The `success` field indicates whether orders were found (1) or not (0).
+  - If no orders are found, the `row` array will be empty and a message will be provided.
+
+#### 2. Get Order Details (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves detailed information about a specific order.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Template1_Get_MyOrders_Apps] 'Get_MyOrders_Child','USER_ID','ORDER_NO','','CurrencyXName','CurrencyXCode',3044,1"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     |
+|---|-----------|--------|--------|---------------------------------|
+| 1 | Type      | String | 50     | "Get_MyOrders_Child"            |
+| 2 | Value     | String | 50     | User ID                         |
+| 3 | Value1    | String | 50     | Order Number                    |
+| 4 | Value2    | String | 50     | Pass empty string               |
+| 5 | Value3    | String | 50     | "CurrencyXName"                 |
+| 6 | Value4    | String | 50     | "CurrencyXCode"                 |
+| 7 | Company   | int    | -      | Company ID (fixed: 3044)        |
+| 8 | CultureId | int    | -      | Culture ID (1-English, 2-Arabic)|
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "OrderID": "123456",
+        "OrderNo": "SO-123456",
+        "OrderDate": "2023-06-15",
+        "ProductName": "iPhone 14 Pro",
+        "Quantity": 1,
+        "UnitPrice": 999.00,
+        "Discount": 0,
+        "TotalAmount": 999.00,
+        "ImageURL": "https://example.com/images/iphone14pro.jpg",
+        // Other detailed fields for the order item
+      },
+      // More items in this order...
+    ]
+  }
+  ```
+
+- **Response Structure (No Details Found):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - This endpoint returns detailed information about a specific order, including all items in the order.
+  - The `Value1` parameter should contain the order number retrieved from the parent orders list.
+  - Each row in the response represents one item in the order.
+  - If no details are found for the specified order, the `row` array will be empty and a message will be provided.
+
+// ... continue with the rest of the documentation ...

@@ -57,6 +57,7 @@ export default function ShopLayout() {
           ),
           headerTitle: 'Account', // As per PRD for Account Page Top Bar
           headerTitleAlign: 'left',
+          headerShown: false,
         }}
       />
     </Tabs>

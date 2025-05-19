@@ -11,8 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { useRouter, Stack } from 'expo-router';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../../../store/auth-store'; // Path relative to src/app/(shop)/account/details/
 import { colors, spacing, radii } from '@theme'; 
 
@@ -120,7 +120,15 @@ export default function AccountDetailsScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text>Loading user details or user not found...</Text>
+        <Stack.Screen options={{ 
+          title: "My Details",
+          headerStyle: { backgroundColor: '#D9F4FF' },
+          headerTintColor: '#00AEEF',
+          headerTitleStyle: { fontWeight: 'bold' }
+        }} />
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>Please login to view your details</Text>
+        </View>
       </View>
     );
   }
@@ -165,8 +173,26 @@ export default function AccountDetailsScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
+      <Stack.Screen options={{ 
+        title: "My Details",
+        headerStyle: { backgroundColor: '#D9F4FF' },
+        headerTintColor: '#00AEEF',
+        headerTitleStyle: { fontWeight: 'bold' }
+      }} />
+      
+      {isLoadingUpdate && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#00AEEF" />
+        </View>
+      )}
+      
+      {errorUpdate && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorUpdate}</Text>
+        </View>
+      )}
+      
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContentContainer}>
-        {/* Custom header is removed, to be handled by Stack.Screen options via _layout.tsx */}
         <View style={styles.contentContainer}>
           {!isEditing ? (
             <>
@@ -342,5 +368,27 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: colors.blue,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  errorContainer: {
+    backgroundColor: '#FFEEEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  messageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#666666',
   },
 }); 

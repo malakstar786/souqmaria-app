@@ -1,380 +1,440 @@
 import { create } from 'zustand';
-import { 
-  saveBillingAddress,
-  SaveBillingAddressPayload,
-  updateBillingAddress,
-  deleteBillingAddress,
-  saveShippingAddress,
-  SaveShippingAddressPayload,
-  updateShippingAddress,
-  deleteShippingAddress
-} from '../utils/api-service';
-import { useAuthStore } from './auth-store';
+import axios from 'axios';
+import { ENDPOINTS, API_BASE_URL, RESPONSE_CODES } from '../utils/api-config';
+import { getBillingAddresses, getShippingAddresses } from '../utils/api-service';
 
-// Address types
-export interface BillingAddress {
-  BillingAddressId: number;
-  FullName: string;
-  Email: string;
-  Mobile: string;
-  Address2?: string;
-  Country: string;
-  State: string;
-  City: string;
-  Block: string;
-  Street: string;
-  House: string;
-  Apartment?: string;
-  IsDefault: boolean;
+export interface Address {
+  id: number; // Maps to BillingAddressId or ShippingAddressId from API
+  fullName: string;
+  email: string;
+  mobile: string;
+  country: string;
+  countryName: string;
+  state: string;
+  stateName: string;
+  city: string;
+  cityName: string;
+  block: string;
+  street: string;
+  house: string;
+  apartment?: string;
+  address2?: string;
+  isDefault: boolean;
 }
 
-export interface ShippingAddress {
-  ShippingAddressId: number;
-  FullName: string;
-  Email: string;
-  Mobile: string;
-  Address2?: string;
-  Country: string;
-  State: string;
-  City: string;
-  Block: string;
-  Street: string;
-  House: string;
-  Apartment?: string;
-  IsDefault: boolean;
-}
-
-// Address state
 interface AddressState {
-  billingAddresses: BillingAddress[];
-  shippingAddresses: ShippingAddress[];
+  billingAddresses: Address[];
+  shippingAddresses: Address[];
   isLoading: boolean;
   error: string | null;
   
-  // Billing Address Actions
-  saveBillingAddress: (address: Omit<SaveBillingAddressPayload, 'Command' | 'UserId' | 'CompanyId' | 'IpAddress'>) => Promise<boolean>;
-  updateBillingAddress: (address: Omit<SaveBillingAddressPayload, 'Command' | 'UserId' | 'CompanyId' | 'IpAddress'>) => Promise<boolean>;
-  deleteBillingAddress: (addressId: number) => Promise<boolean>;
+  // Address CRUD operations
+  saveBillingAddress: (addressData: any) => Promise<boolean>;
+  updateBillingAddress: (addressData: any) => Promise<boolean>;
+  deleteBillingAddress: (addressId: number, userId: string) => Promise<boolean>;
+  saveShippingAddress: (addressData: any) => Promise<boolean>;
+  updateShippingAddress: (addressData: any) => Promise<boolean>;
+  deleteShippingAddress: (addressId: number, userId: string) => Promise<boolean>;
   
-  // Shipping Address Actions
-  saveShippingAddress: (address: Omit<SaveShippingAddressPayload, 'Command' | 'UserId' | 'CompanyId' | 'IpAddress'>) => Promise<boolean>;
-  updateShippingAddress: (address: Omit<SaveShippingAddressPayload, 'Command' | 'UserId' | 'CompanyId' | 'IpAddress'>) => Promise<boolean>;
-  deleteShippingAddress: (addressId: number) => Promise<boolean>;
+  // Fetch user addresses
+  fetchUserAddresses: (userId: string) => Promise<void>;
   
-  clearError: () => void;
+  // Reset store
+  reset: () => void;
 }
 
-// Create address store
-export const useAddressStore = create<AddressState>((set, get) => ({
+// Helper function for API requests
+const apiRequest = async (endpoint: string, method: string, data: any) => {
+  try {
+    const response = await axios({
+      method,
+      url: `${API_BASE_URL}${endpoint}`,
+      data
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Helper function to normalize response code for comparison
+const normalizeResponseCode = (code: any): string | number => {
+  if (code === undefined) return '';
+  // Convert to string or number as needed
+  return typeof code === 'string' ? code : Number(code);
+};
+
+// Helper function to check if a response code indicates success
+const isSuccessCode = (code: any): boolean => {
+  const normalizedCode = normalizeResponseCode(code);
+  return (
+    normalizedCode === RESPONSE_CODES.SUCCESS || 
+    normalizedCode === RESPONSE_CODES.SUCCESS_ALT ||
+    normalizedCode === RESPONSE_CODES.success || 
+    normalizedCode === RESPONSE_CODES.success_alt ||
+    normalizedCode === 2 // Fallback for numeric 2
+  );
+};
+
+// Transform API address data to our Address interface
+const transformBillingAddress = (apiAddress: any): Address => {
+  return {
+    id: apiAddress.BillingAddressId,
+    fullName: apiAddress.FullName || '',
+    email: apiAddress.Email || '',
+    mobile: apiAddress.Mobile || '',
+    country: apiAddress.Country || '',
+    countryName: apiAddress.CountryName || '',
+    state: apiAddress.State || '',
+    stateName: apiAddress.StateName || '',
+    city: apiAddress.City || '',
+    cityName: apiAddress.CityName || '',
+    block: apiAddress.Block || '',
+    street: apiAddress.Street || '',
+    house: apiAddress.House || '',
+    apartment: apiAddress.Apartment || '',
+    address2: apiAddress.Address2 || '',
+    isDefault: apiAddress.IsDefault === 1 || apiAddress.IsDefault === true,
+  };
+};
+
+const transformShippingAddress = (apiAddress: any): Address => {
+  return {
+    id: apiAddress.ShippingAddressId,
+    fullName: apiAddress.FullName || '',
+    email: apiAddress.Email || '',
+    mobile: apiAddress.Mobile || '',
+    country: apiAddress.Country || '',
+    countryName: apiAddress.CountryName || '',
+    state: apiAddress.State || '',
+    stateName: apiAddress.StateName || '',
+    city: apiAddress.City || '',
+    cityName: apiAddress.CityName || '',
+    block: apiAddress.Block || '',
+    street: apiAddress.Street || '',
+    house: apiAddress.House || '',
+    apartment: apiAddress.Apartment || '',
+    address2: apiAddress.Address2 || '',
+    isDefault: apiAddress.IsDefault === 1 || apiAddress.IsDefault === true,
+  };
+};
+
+const useAddressStore = create<AddressState>((set, get) => ({
   billingAddresses: [],
   shippingAddresses: [],
   isLoading: false,
   error: null,
   
-  // Save a new billing address
-  saveBillingAddress: async (address) => {
-    const user = useAuthStore.getState().user;
-    if (!user?.UserID) {
-      set({ error: 'User not found. Please log in again.' });
-      return false;
-    }
-    
+  // Save new billing address
+  saveBillingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
-    
     try {
-      const payload: SaveBillingAddressPayload = {
-        ...address,
-        Command: 'Save',
-        UserId: user.UserID,
-        CompanyId: 3044,
-        IpAddress: '127.0.0.1', // In a real app, get the actual IP
-        IsDefault: typeof address.IsDefault === 'boolean' ? (address.IsDefault ? 1 : 0) : address.IsDefault,
-      };
+      const response = await apiRequest(
+        ENDPOINTS.CRUD_BILLING_ADDRESS,
+        'POST',
+        addressData
+      );
       
-      const response = await saveBillingAddress(payload);
+      console.log('Billing address save response:', JSON.stringify(response, null, 2));
       
-      if (response.StatusCode === 200 && String(response.ResponseCode) === '2') {
-        // Add the new address to the state (with the ID if available from response)
-        const newAddress: BillingAddress = {
-          ...address,
-          BillingAddressId: response.Data?.BillingAddressId || address.BillingAddressId,
-          IsDefault: Boolean(address.IsDefault),
-        };
-        
-        set((state) => ({
-          billingAddresses: [...state.billingAddresses, newAddress],
-          isLoading: false,
-          error: null,
-        }));
-        
+      const statusCode = response?.StatusCode || response?.statusCode;
+      const responseCode = response?.ResponseCode || response?.responseCode;
+      
+      // Check for success with case-insensitive comparison
+      if (statusCode === 200 && isSuccessCode(responseCode)) {
+        set({ isLoading: false, error: null }); // clear error on success
+        // Refresh user addresses after saving
+        if (addressData.UserId) {
+          await get().fetchUserAddresses(addressData.UserId);
+        }
         return true;
       } else {
         set({ 
           isLoading: false, 
-          error: response.Message || 'Failed to save billing address.' 
+          error: response?.Message || response?.message || 'Failed to save billing address'
         });
         return false;
       }
     } catch (error) {
+      console.error('Error saving billing address:', error);
       set({ 
         isLoading: false, 
-        error: 'Failed to save billing address due to a network error.' 
+        error: error instanceof Error ? error.message : 'Error saving address'
       });
       return false;
     }
   },
   
-  // Update an existing billing address
-  updateBillingAddress: async (address) => {
-    const user = useAuthStore.getState().user;
-    if (!user?.UserID) {
-      set({ error: 'User not found. Please log in again.' });
-      return false;
-    }
-    
+  // Update existing billing address
+  updateBillingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
-    
     try {
-      const payload: SaveBillingAddressPayload = {
-        ...address,
-        Command: 'Update',
-        UserId: user.UserID,
-        CompanyId: 3044,
-        IpAddress: '127.0.0.1', // In a real app, get the actual IP
-        IsDefault: typeof address.IsDefault === 'boolean' ? (address.IsDefault ? 1 : 0) : address.IsDefault,
-      };
+      const response = await apiRequest(
+        ENDPOINTS.CRUD_BILLING_ADDRESS,
+        'POST',
+        addressData
+      );
       
-      const response = await updateBillingAddress(payload);
+      console.log('Billing address update response:', JSON.stringify(response, null, 2));
       
-      if (response.StatusCode === 200 && String(response.ResponseCode) === '2') {
-        // Update the address in the state
-        set((state) => ({
-          billingAddresses: state.billingAddresses.map((a) => 
-            a.BillingAddressId === address.BillingAddressId
-              ? { ...address, IsDefault: Boolean(address.IsDefault) }
-              : a
-          ),
-          isLoading: false,
-          error: null,
-        }));
-        
+      const statusCode = response?.StatusCode || response?.statusCode;
+      const responseCode = response?.ResponseCode || response?.responseCode;
+      
+      if (statusCode === 200 && isSuccessCode(responseCode)) {
+        set({ isLoading: false, error: null }); // clear error on success
+        // Refresh user addresses after updating
+        if (addressData.UserId) {
+          await get().fetchUserAddresses(addressData.UserId);
+        }
         return true;
       } else {
         set({ 
           isLoading: false, 
-          error: response.Message || 'Failed to update billing address.' 
+          error: response?.Message || response?.message || 'Failed to update billing address'
         });
         return false;
       }
     } catch (error) {
+      console.error('Error updating billing address:', error);
       set({ 
         isLoading: false, 
-        error: 'Failed to update billing address due to a network error.' 
+        error: error instanceof Error ? error.message : 'Error updating address'
       });
       return false;
     }
   },
   
-  // Delete a billing address
-  deleteBillingAddress: async (addressId) => {
-    const user = useAuthStore.getState().user;
-    if (!user?.UserID) {
-      set({ error: 'User not found. Please log in again.' });
-      return false;
-    }
-    
+  // Delete billing address
+  deleteBillingAddress: async (addressId, userId) => {
     set({ isLoading: true, error: null });
-    
     try {
-      const response = await deleteBillingAddress({
-        BillingAddressId: addressId,
-        UserId: user.UserID,
-        IpAddress: '127.0.0.1', // In a real app, get the actual IP
-        CompanyId: 3044,
-        Command: 'Delete'
-      });
+      const response = await apiRequest(
+        ENDPOINTS.CRUD_BILLING_ADDRESS,
+        'POST',
+        {
+          BillingAddressId: addressId,
+          UserId: userId,
+          CompanyId: 3044,
+          IpAddress: '127.0.0.1',
+          Command: 'Delete'
+        }
+      );
       
-      if (response.StatusCode === 200 && String(response.ResponseCode) === '6') {
-        // Remove the address from the state
-        set((state) => ({
-          billingAddresses: state.billingAddresses.filter(
-            (a) => a.BillingAddressId !== addressId
-          ),
-          isLoading: false,
-          error: null,
-        }));
-        
+      console.log('Billing address delete response:', JSON.stringify(response, null, 2));
+      
+      const statusCode = response?.StatusCode || response?.statusCode;
+      const responseCode = response?.ResponseCode || response?.responseCode;
+      
+      // For delete, the API returns response code 6
+      if (statusCode === 200 && 
+         (responseCode === 6 || responseCode === '6' || 
+          responseCode === RESPONSE_CODES.DELETED_SUCCESS)) {
+        set({ isLoading: false, error: null }); // clear error on success
+        // Refresh user addresses after deletion
+        await get().fetchUserAddresses(userId);
         return true;
       } else {
         set({ 
           isLoading: false, 
-          error: response.Message || 'Failed to delete billing address.' 
+          error: response?.Message || response?.message || 'Failed to delete billing address'
         });
         return false;
       }
     } catch (error) {
+      console.error('Error deleting billing address:', error);
       set({ 
         isLoading: false, 
-        error: 'Failed to delete billing address due to a network error.' 
-      });
-      return false;
-    }
-  },
-
-  // Save a new shipping address
-  saveShippingAddress: async (address) => {
-    const user = useAuthStore.getState().user;
-    if (!user?.UserID) {
-      set({ error: 'User not found. Please log in again.' });
-      return false;
-    }
-    
-    set({ isLoading: true, error: null });
-    
-    try {
-      const payload: SaveShippingAddressPayload = {
-        ...address,
-        Command: 'Save',
-        UserId: user.UserID,
-        CompanyId: 3044,
-        IpAddress: '127.0.0.1', // In a real app, get the actual IP
-        IsDefault: typeof address.IsDefault === 'boolean' ? (address.IsDefault ? 1 : 0) : address.IsDefault,
-      };
-      
-      const response = await saveShippingAddress(payload);
-      
-      if (response.StatusCode === 200 && String(response.ResponseCode) === '2') {
-        // Add the new address to the state (with the ID if available from response)
-        const newAddress: ShippingAddress = {
-          ...address,
-          ShippingAddressId: response.Data?.ShippingAddressId || address.ShippingAddressId,
-          IsDefault: Boolean(address.IsDefault),
-        };
-        
-        set((state) => ({
-          shippingAddresses: [...state.shippingAddresses, newAddress],
-          isLoading: false,
-          error: null,
-        }));
-        
-        return true;
-      } else {
-        set({ 
-          isLoading: false, 
-          error: response.Message || 'Failed to save shipping address.' 
-        });
-        return false;
-      }
-    } catch (error) {
-      set({ 
-        isLoading: false, 
-        error: 'Failed to save shipping address due to a network error.' 
+        error: error instanceof Error ? error.message : 'Error deleting address'
       });
       return false;
     }
   },
   
-  // Update an existing shipping address
-  updateShippingAddress: async (address) => {
-    const user = useAuthStore.getState().user;
-    if (!user?.UserID) {
-      set({ error: 'User not found. Please log in again.' });
-      return false;
-    }
-    
+  // Save new shipping address
+  saveShippingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
-    
     try {
-      const payload: SaveShippingAddressPayload = {
-        ...address,
-        Command: 'Update',
-        UserId: user.UserID,
-        CompanyId: 3044,
-        IpAddress: '127.0.0.1', // In a real app, get the actual IP
-        IsDefault: typeof address.IsDefault === 'boolean' ? (address.IsDefault ? 1 : 0) : address.IsDefault,
-      };
+      const response = await apiRequest(
+        ENDPOINTS.CRUD_SHIPPING_ADDRESS,
+        'POST',
+        addressData
+      );
       
-      const response = await updateShippingAddress(payload);
+      console.log('Shipping address save response:', JSON.stringify(response, null, 2));
       
-      if (response.StatusCode === 200 && String(response.ResponseCode) === '4') {
-        // Update the address in the state
-        set((state) => ({
-          shippingAddresses: state.shippingAddresses.map((a) => 
-            a.ShippingAddressId === address.ShippingAddressId
-              ? { ...address, IsDefault: Boolean(address.IsDefault) }
-              : a
-          ),
-          isLoading: false,
-          error: null,
-        }));
-        
+      const statusCode = response?.StatusCode || response?.statusCode;
+      const responseCode = response?.ResponseCode || response?.responseCode;
+      
+      if (statusCode === 200 && isSuccessCode(responseCode)) {
+        set({ isLoading: false, error: null }); // clear error on success
+        // Refresh user addresses after saving
+        if (addressData.UserId) {
+          await get().fetchUserAddresses(addressData.UserId);
+        }
         return true;
       } else {
         set({ 
           isLoading: false, 
-          error: response.Message || 'Failed to update shipping address.' 
+          error: response?.Message || response?.message || 'Failed to save shipping address'
         });
         return false;
       }
     } catch (error) {
+      console.error('Error saving shipping address:', error);
       set({ 
         isLoading: false, 
-        error: 'Failed to update shipping address due to a network error.' 
+        error: error instanceof Error ? error.message : 'Error saving address'
       });
       return false;
     }
   },
   
-  // Delete a shipping address
-  deleteShippingAddress: async (addressId) => {
-    const user = useAuthStore.getState().user;
-    if (!user?.UserID) {
-      set({ error: 'User not found. Please log in again.' });
-      return false;
-    }
-    
+  // Update existing shipping address
+  updateShippingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
-    
     try {
-      const response = await deleteShippingAddress({
-        ShippingAddressId: addressId,
-        UserId: user.UserID,
-        IpAddress: '127.0.0.1', // In a real app, get the actual IP
-        CompanyId: 3044,
-        Command: 'Delete'
-      });
+      const response = await apiRequest(
+        ENDPOINTS.CRUD_SHIPPING_ADDRESS,
+        'POST',
+        addressData
+      );
       
-      if (response.StatusCode === 200 && String(response.ResponseCode) === '6') {
-        // Remove the address from the state
-        set((state) => ({
-          shippingAddresses: state.shippingAddresses.filter(
-            (a) => a.ShippingAddressId !== addressId
-          ),
-          isLoading: false,
-          error: null,
-        }));
-        
+      console.log('Shipping address update response:', JSON.stringify(response, null, 2));
+      
+      const statusCode = response?.StatusCode || response?.statusCode;
+      const responseCode = response?.ResponseCode || response?.responseCode;
+      
+      // For shipping address update, the API accepts both response code 2 and 4
+      // but per documentation it should return 4
+      if (statusCode === 200 && 
+         (responseCode === 4 || responseCode === '4' || 
+          responseCode === RESPONSE_CODES.SHIPPING_ADDRESS_UPDATE_SUCCESS ||
+          isSuccessCode(responseCode))) {
+        set({ isLoading: false, error: null }); // clear error on success
+        // Refresh user addresses after updating
+        if (addressData.UserId) {
+          await get().fetchUserAddresses(addressData.UserId);
+        }
         return true;
       } else {
         set({ 
           isLoading: false, 
-          error: response.Message || 'Failed to delete shipping address.' 
+          error: response?.Message || response?.message || 'Failed to update shipping address'
         });
         return false;
       }
     } catch (error) {
+      console.error('Error updating shipping address:', error);
       set({ 
         isLoading: false, 
-        error: 'Failed to delete shipping address due to a network error.' 
+        error: error instanceof Error ? error.message : 'Error updating address'
       });
       return false;
     }
   },
   
-  // Clear error
-  clearError: () => {
-    set({ error: null });
+  // Delete shipping address
+  deleteShippingAddress: async (addressId, userId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiRequest(
+        ENDPOINTS.CRUD_SHIPPING_ADDRESS,
+        'POST',
+        {
+          ShippingAddressId: addressId,
+          UserId: userId,
+          CompanyId: 3044,
+          IpAddress: '127.0.0.1',
+          Command: 'Delete'
+        }
+      );
+      
+      console.log('Shipping address delete response:', JSON.stringify(response, null, 2));
+      
+      const statusCode = response?.StatusCode || response?.statusCode;
+      const responseCode = response?.ResponseCode || response?.responseCode;
+      
+      // For delete, the API returns response code 6
+      if (statusCode === 200 && 
+         (responseCode === 6 || responseCode === '6' || 
+          responseCode === RESPONSE_CODES.DELETED_SUCCESS)) {
+        set({ isLoading: false, error: null }); // clear error on success
+        // Refresh user addresses after deletion
+        await get().fetchUserAddresses(userId);
+        return true;
+      } else {
+        set({ 
+          isLoading: false, 
+          error: response?.Message || response?.message || 'Failed to delete shipping address'
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error deleting shipping address:', error);
+      set({ 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Error deleting address'
+      });
+      return false;
+    }
   },
+  
+  // Fetch user addresses (both billing and shipping)
+  fetchUserAddresses: async (userId) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Fetch billing addresses
+      const billingResponse = await getBillingAddresses(userId);
+      console.log('Billing addresses response:', JSON.stringify(billingResponse, null, 2));
+      
+      // Fetch shipping addresses
+      const shippingResponse = await getShippingAddresses(userId);
+      console.log('Shipping addresses response:', JSON.stringify(shippingResponse, null, 2));
+      
+      // Extract addresses from response - checking all possible locations where the data might be
+      const billingData = billingResponse.Data?.row || 
+                          (billingResponse as any).row || 
+                          [];
+      
+      const shippingData = shippingResponse.Data?.row || 
+                           (shippingResponse as any).row || 
+                           [];
+      
+      // Transform to our Address interface
+      const billingAddresses = Array.isArray(billingData) 
+        ? billingData.map(transformBillingAddress) 
+        : [];
+      
+      const shippingAddresses = Array.isArray(shippingData) 
+        ? shippingData.map(transformShippingAddress) 
+        : [];
+      
+      console.log(`Loaded ${billingAddresses.length} billing addresses and ${shippingAddresses.length} shipping addresses`);
+      
+      set({
+        billingAddresses,
+        shippingAddresses,
+        isLoading: false,
+        error: null // Clear any previous errors
+      });
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch addresses'
+      });
+    }
+  },
+  
+  // Reset the store state
+  reset: () => {
+    set({
+      billingAddresses: [],
+      shippingAddresses: [],
+      isLoading: false,
+      error: null
+    });
+  }
 }));
 
 export default useAddressStore; 

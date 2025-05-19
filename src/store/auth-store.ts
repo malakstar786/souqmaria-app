@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { registerUser, loginUser, updateUserDetailsAPI } from '../utils/api-service';
+import { registerUser, loginUser, updateUserDetailsAPI, forgotPassword } from '../utils/api-service';
 import { RESPONSE_CODES } from '../utils/api-config';
 
 // User types
@@ -55,12 +55,14 @@ interface AuthState {
   isLoadingUpdate: boolean;
   error: string | null;
   errorUpdate: string | null;
+  token: string | null;
   
   // Actions
   register: (fullName: string, email: string, mobile: string, password: string) => Promise<boolean>;
   login: (params: LoginParams) => Promise<boolean>;
   logout: () => void;
   updateUserAccount: (payload: UpdateUserPayload) => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   clearError: () => void;
   clearUpdateError: () => void;
 }
@@ -75,6 +77,7 @@ export const useAuthStore = create<AuthState>()(
       isLoadingUpdate: false,
       error: null,
       errorUpdate: null,
+      token: null,
       
       // Register a new user
       register: async (fullName, email, mobile, password) => {
@@ -218,6 +221,23 @@ export const useAuthStore = create<AuthState>()(
       // Clear update error
       clearUpdateError: () => {
         set({ errorUpdate: null });
+      },
+
+      forgotPassword: async (email: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await forgotPassword({ Email: email, CompanyId: 3044 });
+          if (response.StatusCode === 200 && String(response.ResponseCode) === RESPONSE_CODES.SUCCESS) {
+            set({ isLoading: false, error: null });
+            return { success: true, message: response.Message };
+          }
+          set({ isLoading: false, error: response.Message });
+          return { success: false, message: response.Message };
+        } catch (error) {
+          const errorMessage = 'Forgot password request failed due to a network error.';
+          set({ isLoading: false, error: errorMessage });
+          return { success: false, message: errorMessage };
+        }
       },
     }),
     {
