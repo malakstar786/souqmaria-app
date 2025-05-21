@@ -11,12 +11,20 @@ import {
 import axios from 'axios';
 
 // Types for API requests and responses
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
   StatusCode?: number; // Optional, as it might not always be present
   ResponseCode: string | number; // API seems to return as string sometimes, like "-4"
   Message: string;
   Data?: T;
   TrackId?: string | null; // As seen in the log
+  UserDetails?: {
+    UserID: string;
+    FullName: string;
+    Email: string;
+    Mobile: string;
+    UserName?: string | null;
+    Password?: string;
+  };
 }
 
 // Common type for address location data (country, state, city)
@@ -53,7 +61,7 @@ interface UpdateUserDetailsPayload {
   Password?: string; // Optional
   UserId: string;
   IpAddress: string;
-  Company: number;
+  CompanyId: number;
 }
 
 export interface SaveBillingAddressPayload {
@@ -72,7 +80,7 @@ export interface SaveBillingAddressPayload {
   IsDefault: boolean | 0 | 1;
   Command: string; // 'Save'
   UserId: string;
-  Company: number;
+  CompanyId: number;
   IpAddress: string;
 }
 
@@ -80,7 +88,7 @@ export interface DeleteBillingAddressPayload {
   BillingAddressId: number;
   UserId: string;
   IpAddress: string;
-  Company: number;
+  CompanyId: number;
   Command: string; // 'Delete'
 }
 
@@ -101,7 +109,7 @@ export interface SaveShippingAddressPayload {
   IsDefault: boolean | 0 | 1;
   Command: string; // 'Save'
   UserId: string;
-  Company: number;
+  CompanyId: number;
   IpAddress: string;
 }
 
@@ -109,14 +117,14 @@ export interface DeleteShippingAddressPayload {
   ShippingAddressId: number;
   UserId: string;
   IpAddress: string;
-  Company: number;
+  CompanyId: number;
   Command: string; // 'Delete'
 }
 
 // Forgot Password Payload
 interface ForgotPasswordPayload {
   Email: string;
-  Company: number;
+  CompanyId: number;
 }
 
 // Get Data JSON Payload
@@ -241,6 +249,7 @@ const apiRequest = async <T>(
         ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.GENERAL_ERROR),
         Message: responseData.Message || `Request failed with status ${httpResponse.status}`,
         Data: responseData.Data || responseData, // Include data if present, or the whole body
+        UserDetails: responseData.UserDetails,
       };
     }
 
@@ -261,6 +270,7 @@ const apiRequest = async <T>(
       ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.SUCCESS),
       Message: responseData.Message || 'Request successful',
       Data: responseData.Data as T,
+      UserDetails: responseData.UserDetails,
     };
 
   } catch (error) {
@@ -285,7 +295,7 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
     ...params,
     IpAddress: ipAddress,
     Source: source,
-    Company: 3044, // As per image, Company is an int and fixed
+    CompanyId: 3044, // Use CompanyId for registration
   };
   
   return apiRequest(ENDPOINTS.REGISTER_USER, 'POST', registrationPayload);
@@ -297,7 +307,7 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
 export const loginUser = async (params: LoginUserParams): Promise<ApiResponse> => {
   const loginPayload = {
     ...params,
-    Company: 3044, // As per image, Company is an int and fixed
+    CompanyId: 3044, // Use CompanyId as per API
   };
   
   return apiRequest(ENDPOINTS.LOGIN_USER, 'POST', loginPayload);
@@ -307,7 +317,7 @@ export const loginUser = async (params: LoginUserParams): Promise<ApiResponse> =
  * Update user account details
  */
 export const updateUserDetailsAPI = async (payload: UpdateUserDetailsPayload): Promise<ApiResponse> => {
-  // IpAddress and Company are already in the payload from the store
+  // IpAddress and CompanyId are already in the payload from the store
   // Ensure UserId is present as it's critical
   if (!payload.UserId) {
     console.error('UpdateUserDetailsAPI: UserId is missing in payload');
@@ -407,7 +417,7 @@ export async function getCities(stateXcode: string): Promise<ApiResponse<Locatio
 export const getCountryList = async (): Promise<LocationResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
-      strQuery: "[Web].[Sp_Manage_Address_Apps_SM] 'Get_Country_List','','','','','',1,3044"
+      strQuery: "[Web].[Sp_Manage_Address_Apps_SM]'Get_Country_List','','','','','',1,3044"
     });
     return response.data;
   } catch (error) {
@@ -423,7 +433,7 @@ export const getCountryList = async (): Promise<LocationResponse> => {
 export const getStateList = async (countryId: number): Promise<LocationResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
-      strQuery: `[Web].[Sp_Manage_Address_Apps_SM] 'Get_State_List','${countryId}','','','','',1,3044`
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_State_List','${countryId}','','','','',1,3044`
     });
     return response.data;
   } catch (error) {
@@ -439,7 +449,7 @@ export const getStateList = async (countryId: number): Promise<LocationResponse>
 export const getCityList = async (stateId: number): Promise<LocationResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
-      strQuery: `[Web].[Sp_Manage_Address_Apps_SM] 'Get_City_List','${stateId}','','','','',1,3044`
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_City_List','${stateId}','','','','',1,3044`
     });
     return response.data;
   } catch (error) {
@@ -897,39 +907,6 @@ export const getSpecialDescriptionListByItemCode = async (
   );
 };
 
-// Commented out or removed the old getProductList that used SP_QUERIES.GET_ALL_PRODUCT_LIST
-/*
-export const getProductList = async (
-  params: GetProductListParams
-): Promise<ApiResponse<{ success: number; row: ProductListItem[]; Message: string }>> => {
-  const { 
-    pageCode, 
-    category = '', 
-    subCategory = '', 
-    searchName = '', 
-    homePageCatSrNo = '', 
-    cultureId = '1', 
-    userId = '' 
-  } = params;
-
-  // This SP_QUERY might not exist anymore or was incorrectly named.
-  // const strQuery = SP_QUERIES.GET_ALL_PRODUCT_LIST(
-  //   pageCode,
-  //   category,
-  //   subCategory,
-  //   searchName,
-  //   homePageCatSrNo,
-  //   cultureId,
-  //   userId
-  // );
-  // const payload: GetDataJsonPayload = { strQuery };
-  // return apiRequest<{ success: number; row: ProductListItem[]; Message: string }>(
-  //   ENDPOINTS.GET_DATA_JSON,
-  //   'POST',
-  //   payload
-  // );
-};
-*/
 
 // Define interface for AddToCart request parameters
 export interface AddToCartParams {
@@ -955,6 +932,8 @@ export interface AddToCartResponse {
 
 // Implementation of the AddToCart API function
 export const addToCart = async (params: AddToCartParams): Promise<ApiResponse<AddToCartResponse | null>> => {
+  console.log('🛒 AddToCart - Request:', JSON.stringify(params, null, 2));
+  
   try {
     const url = `${API_BASE_URL}AddToCart`;
 
@@ -968,19 +947,344 @@ export const addToCart = async (params: AddToCartParams): Promise<ApiResponse<Ad
     });
 
     const responseData = await response.json();
-    return {
+    const apiResponse = {
       StatusCode: response.status,
       ResponseCode: responseData.ResponseCode || RESPONSE_CODES.GENERAL_ERROR,
       Message: responseData.Message || 'Unknown response from server',
       Data: responseData as AddToCartResponse,
     };
+    
+    console.log('🛒 AddToCart - Response:', JSON.stringify({
+      statusCode: apiResponse.StatusCode,
+      responseCode: apiResponse.ResponseCode,
+      message: apiResponse.Message,
+      success: apiResponse.StatusCode === 200 && 
+               (apiResponse.ResponseCode === RESPONSE_CODES.CART_ADDED || 
+                apiResponse.ResponseCode === RESPONSE_CODES.CART_UPDATED)
+    }, null, 2));
+    
+    return apiResponse;
   } catch (error: any) {
-    console.error('Error in addToCart:', error);
+    console.error('❌ Error in addToCart:', error);
     return {
       StatusCode: 500,
       ResponseCode: RESPONSE_CODES.SERVER_ERROR,
       Message: error.message || 'An error occurred while adding to cart',
       Data: null,
+    };
+  }
+};
+
+// Define interface for cart items response
+export interface CartItemsResponse {
+  success: number;
+  row: CartItem[];
+  Message: string;
+}
+
+// Define interface for cart item
+export interface CartItem {
+  CartId: number;
+  ItemCode: string;
+  ItemName: string;
+  Image: string;
+  Qty: number;
+  Price: number;
+  OldPrice: number;
+  Discount: number;
+  // Add any other fields returned by the API
+  [key: string]: any;
+}
+
+// Define interface for UpdateCartQty request parameters
+export interface UpdateCartQtyParams {
+  CartId: number;
+  Qty: number;
+  Company: string;
+  Location: string;
+}
+
+// Define interface for DeleteCartItem request parameters
+export interface DeleteCartItemParams {
+  CartId: number;
+  Company: string;
+}
+
+/**
+ * Get all items in user's cart
+ */
+export const getCartItems = async (
+  userId: string = '',
+  uniqueId: string,
+  cultureId: string = '1'
+): Promise<ApiResponse<CartItemsResponse | null>> => {
+  try {
+    const strQuery = SP_QUERIES.GET_CART_PRODUCTS(userId, uniqueId, cultureId);
+    console.log('🛒 GetCartItems - Request:', JSON.stringify({
+      endpoint: ENDPOINTS.GET_DATA_JSON,
+      method: 'POST',
+      userId: userId || 'Guest',
+      uniqueId,
+      strQuery
+    }, null, 2));
+    
+    // Make the API request to get cart items
+    const response = await apiRequest<CartItemsResponse>(
+      ENDPOINTS.GET_DATA_JSON,
+      'POST',
+      { strQuery }
+    );
+    
+    console.log('🛒 GetCartItems - Response:', JSON.stringify({
+      statusCode: response.StatusCode,
+      success: response.Data?.success === 1,
+      message: response.Message,
+      itemCount: response.Data?.row?.length || 0,
+      hasItems: response.Data?.row && response.Data.row.length > 0
+    }, null, 2));
+    
+    return response;
+  } catch (error) {
+    console.error('❌ Error getting cart items:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch cart items. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Update the quantity of an item in the cart
+ */
+export const updateCartQty = async (params: UpdateCartQtyParams): Promise<ApiResponse<any>> => {
+  console.log('🛒 UpdateCartQty - Request:', JSON.stringify(params, null, 2));
+  
+  try {
+    const url = `${API_BASE_URL}UpdateCartQty`;
+    
+    // Make the API request
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    
+    const responseData = await response.json();
+    const apiResponse = {
+      StatusCode: response.status,
+      ResponseCode: responseData.ResponseCode,
+      Message: responseData.Message || 'Cart item quantity updated',
+      Data: responseData
+    };
+    
+    console.log('🛒 UpdateCartQty - Response:', JSON.stringify({
+      statusCode: apiResponse.StatusCode,
+      responseCode: apiResponse.ResponseCode,
+      message: apiResponse.Message,
+      success: apiResponse.StatusCode === 200 && 
+              (String(apiResponse.ResponseCode) === '2' || 
+               apiResponse.ResponseCode === 2)
+    }, null, 2));
+    
+    return apiResponse;
+  } catch (error: any) {
+    console.error('❌ Error updating cart quantity:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: error.message || 'Failed to update cart. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Delete an item from the cart
+ */
+export const deleteCartItem = async (params: DeleteCartItemParams): Promise<ApiResponse<any>> => {
+  console.log('🛒 DeleteCartItem - Request:', JSON.stringify(params, null, 2));
+  
+  try {
+    const url = `${API_BASE_URL}DeleteCartItem`;
+    
+    // Make the API request
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    
+    const responseData = await response.json();
+    const apiResponse = {
+      StatusCode: response.status,
+      ResponseCode: responseData.ResponseCode,
+      Message: responseData.Message || 'Cart item removed',
+      Data: responseData
+    };
+    
+    console.log('🛒 DeleteCartItem - Response:', JSON.stringify({
+      statusCode: apiResponse.StatusCode,
+      responseCode: apiResponse.ResponseCode,
+      message: apiResponse.Message,
+      success: apiResponse.StatusCode === 200 && 
+              (String(apiResponse.ResponseCode) === '2' || 
+               apiResponse.ResponseCode === 2)
+    }, null, 2));
+    
+    return apiResponse;
+  } catch (error: any) {
+    console.error('❌ Error deleting cart item:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: error.message || 'Failed to remove item from cart. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Get the stored procedure query for getting wishlist items for a user
+ */
+export const getWishlistItems = async (userId: string): Promise<ApiResponse<any>> => {
+  try {
+    const strQuery = `[Web].[Sp_Templete1_Get_MyWishlist_Apps]'Get_MyWishlist','${userId}','','','','',1,3044`;
+    console.log('🧡 GetWishlistItems - Request:', JSON.stringify({ strQuery }, null, 2));
+    
+    const response = await apiRequest(
+      ENDPOINTS.GET_DATA_JSON,
+      'POST',
+      { strQuery }
+    );
+    
+    console.log('🧡 GetWishlistItems - Response:', JSON.stringify({
+      success: response.Data,
+      itemCount: response.Data,
+      message: response.Message
+    }, null, 2));
+    
+    return response;
+  } catch (error: any) {
+    console.error('❌ Error getting wishlist items:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: error.message || 'Failed to fetch wishlist items. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Add an item to the wishlist
+ */
+export const addWishlistItem = async (itemCode: string, userId: string): Promise<ApiResponse<any>> => {
+  try {
+    const params = {
+      ItemCode: itemCode,
+      UserId: userId,
+      IpAddress: '127.0.0.1', // Simplified for mobile app
+      CompanyId: 3044,
+      Command: 'Save'
+    };
+    
+    console.log('🧡 AddWishlistItem - Request:', JSON.stringify(params, null, 2));
+    
+    const url = `${API_BASE_URL}CRUD_Wishlist`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    
+    const responseData = await response.json();
+    const apiResponse = {
+      StatusCode: response.status,
+      ResponseCode: responseData.ResponseCode,
+      Message: responseData.Message || 'Unknown response from server',
+      Data: responseData
+    };
+    
+    console.log('🧡 AddWishlistItem - Response:', JSON.stringify({
+      statusCode: apiResponse.StatusCode,
+      responseCode: apiResponse.ResponseCode,
+      message: apiResponse.Message,
+      success: apiResponse.StatusCode === 200 && 
+              (String(apiResponse.ResponseCode) === '2' || apiResponse.ResponseCode === 2)
+    }, null, 2));
+    
+    return apiResponse;
+  } catch (error: any) {
+    console.error('❌ Error adding item to wishlist:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: error.message || 'Failed to add item to wishlist. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Delete an item from the wishlist
+ */
+export const deleteWishlistItem = async (itemCode: string, userId: string): Promise<ApiResponse<any>> => {
+  try {
+    const params = {
+      ItemCode: itemCode,
+      UserId: userId,
+      IpAddress: '127.0.0.1', // Simplified for mobile app
+      CompanyId: 3044,
+      Command: 'Delete'
+    };
+    
+    console.log('🧡 DeleteWishlistItem - Request:', JSON.stringify(params, null, 2));
+    
+    const url = `${API_BASE_URL}CRUD_Wishlist`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    
+    const responseData = await response.json();
+    const apiResponse = {
+      StatusCode: response.status,
+      ResponseCode: responseData.ResponseCode,
+      Message: responseData.Message || 'Unknown response from server',
+      Data: responseData
+    };
+    
+    console.log('🧡 DeleteWishlistItem - Response:', JSON.stringify({
+      statusCode: apiResponse.StatusCode,
+      responseCode: apiResponse.ResponseCode,
+      message: apiResponse.Message,
+      success: apiResponse.StatusCode === 200 && 
+              (String(apiResponse.ResponseCode) === '4' || apiResponse.ResponseCode === 4)
+    }, null, 2));
+    
+    return apiResponse;
+  } catch (error: any) {
+    console.error('❌ Error deleting item from wishlist:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: error.message || 'Failed to remove item from wishlist. Please try again.',
+      Data: null
     };
   }
 };

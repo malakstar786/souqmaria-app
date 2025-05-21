@@ -150,7 +150,7 @@ export default function ProductListScreen() {
       } else {
         const errorMsg = 'Missing required parameters for fetching products';
         console.log('API parameter error:', errorMsg, params);
-        setError(errorMsg);
+        setError(errorMsg); 
         setIsLoading(false);
         setAllProducts([]);
         setFilteredProducts([]);
@@ -170,7 +170,8 @@ export default function ProductListScreen() {
       });
 
       let productArray: any[] = [];
-      if (productListResponse.ResponseCode === RESPONSE_CODES.SUCCESS || String(productListResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
+      if (String(productListResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
+          String(productListResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
         if (productListResponse.List && Array.isArray(productListResponse.List)) {
           productArray = productListResponse.List;
         } else if (

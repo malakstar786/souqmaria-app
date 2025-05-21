@@ -135,12 +135,13 @@ export default function EditShippingAddressScreen() {
 
   async function handleUpdate() {
     if (!validate()) return;
-    if (!user?.UserID) {
+    if (!user?.UserID && !user?.id) {
       Alert.alert('Error', 'User not found. Please log in again.');
       return;
     }
 
     try {
+      const userId = user.UserID || user.id;
       const payload = {
         ShippingAddressId: addressId,
         FullName: fullName.trim(),
@@ -156,12 +157,12 @@ export default function EditShippingAddressScreen() {
         Apartment: apartment.trim(),
         IsDefault: isDefault ? 1 : 0,
         Command: 'Update', // Required parameter for update
-        UserId: user.UserID,
-        Company: 3044, // Fixed value as per API docs
+        UserId: userId,
+        CompanyId: 3044, // Fixed value as per API docs
         IpAddress: '127.0.0.1', // In a real app, get the actual IP
       };
 
-      console.log('Shipping address update payload:', JSON.stringify(payload, null, 2));
+      console.log('Shipping address update payload with userId:', userId);
       
       const success = await updateShippingAddress(payload);
 

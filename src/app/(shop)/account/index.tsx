@@ -87,7 +87,7 @@ export default function AccountScreen() {
         <AccountOption 
           icon="heart" 
           label="Wishlist" 
-          onPress={() => handleOptionPress('/wishlist')} 
+          onPress={() => handleOptionPress('/account/wishlist')} 
         />
         <AccountOption 
           icon="file-text" 

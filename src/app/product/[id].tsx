@@ -14,8 +14,9 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack, Link } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import HeaderCartIcon from '../../components/HeaderCartIcon';
 import { colors, spacing, radii, typography } from '../../theme';
 import {
   getProductDetailsByItemCode,
@@ -25,6 +26,7 @@ import {
 } from '../../utils/api-service';
 import { COMMON_PARAMS, CULTURE_IDS, RESPONSE_CODES } from '../../utils/api-config';
 import useAuthStore from '../../store/auth-store';
+import useCartStore from '../../store/cart-store';
 
 // Define a proper interface for our product
 interface ProductDetail {
@@ -77,6 +79,8 @@ export default function ProductDetailScreen() {
   
   const flatListRef = useRef<FlatList>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
+
+  const { uniqueId } = useCartStore();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -199,7 +203,6 @@ export default function ProductDetailScreen() {
     setIsAddingToCart(true);
     
     try {
-      const uniqueId = `web-${Date.now()}`;
       const params: AddToCartParams = {
         ItemCode: product.ItemCode,
         NewPrice: product.NewPrice || 0,
@@ -241,11 +244,52 @@ export default function ProductDetailScreen() {
     } finally {
       setIsAddingToCart(false);
     }
-  }, [product, quantity, user]);
+  }, [product, quantity, user, uniqueId]);
 
-  const handleBuyNow = () => {
-    // Implement buy now functionality (outside scope of this implementation)
-    Alert.alert('Buy Now', `Feature not yet implemented. Would purchase ${quantity} of ${product?.ItemName}`);
+  const handleBuyNow = async () => {
+    if (!product) return;
+    
+    try {
+      // First add the item to cart
+      const params: AddToCartParams = {
+        ItemCode: product.ItemCode,
+        NewPrice: product.NewPrice || 0,
+        OldPrice: product.OldPrice || 0,
+        Discount: product.Discount || 0,
+        UserId: user?.UserID || user?.id || '',
+        UniqueId: uniqueId,
+        IpAddress: '127.0.0.1', // Simplified for mobile app
+        Company: COMMON_PARAMS.Company,
+        Location: COMMON_PARAMS.Location,
+        Qty: quantity
+      };
+
+      console.log('Buy Now - Adding to cart with params:', params);
+      
+      const response = await addToCart(params);
+      
+      console.log('Buy Now - Add to cart response:', response);
+      
+      if (response.ResponseCode === RESPONSE_CODES.SUCCESS || 
+          response.ResponseCode === RESPONSE_CODES.SUCCESS_ALT ||
+          response.ResponseCode === '2' || 
+          response.ResponseCode === 2 ||
+          response.ResponseCode === 4 || 
+          response.ResponseCode === '4') {
+        // Success - refresh cart and navigate to checkout
+        await useCartStore.getState().fetchCartItems(user?.UserID || user?.id || '');
+        router.push('/checkout');
+      } else if (response.ResponseCode === -4 || response.ResponseCode === '-4') {
+        // No stock
+        Alert.alert('Stock Unavailable', 'Sorry, this product is currently out of stock.');
+      } else {
+        // Other error
+        Alert.alert('Error', response.Message || 'Failed to process your order. Please try again.');
+      }
+    } catch (e: any) {
+      console.error('Error in Buy Now flow:', e);
+      Alert.alert('Error', e.message || 'An unexpected error occurred');
+    }
   };
 
   const incrementQuantity = () => setQuantity(prev => prev + 1);
@@ -318,16 +362,14 @@ export default function ProductDetailScreen() {
             <FontAwesome name="arrow-left" size={20} color={colors.black} />
           </TouchableOpacity>
           
-          <Link href="/(shop)/cart" asChild>
-            <TouchableOpacity 
+          <TouchableOpacity 
               style={styles.cartButton}
               accessibilityRole="button"
               accessibilityLabel="View cart"
+              onPress={() => router.push('/(shop)/cart')}
             >
-              <FontAwesome name="shopping-cart" size={20} color={colors.black} />
-              {/* Can add cart badge here if needed */}
+              <HeaderCartIcon color={colors.black} />
             </TouchableOpacity>
-          </Link>
         </View>
         
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

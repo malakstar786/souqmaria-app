@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import TopBar from '../../components/common/TopBar';
-import colors from '../../constants/colors';
+import TopBar from '@src/components/common/TopBar';
+import colors from '@src/constants/colors';
 
 // This is a mock implementation of the Account Tab (Guest / Pre-Login) as described in instructions.md
 const AccountScreen: React.FC = () => {

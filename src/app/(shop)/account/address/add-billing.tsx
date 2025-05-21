@@ -85,14 +85,15 @@ export default function AddBillingAddressScreen() {
 
   async function handleSave() {
     if (!validate()) return;
-    if (!user?.UserID) {
+    if (!user?.UserID && !user?.id) {
       Alert.alert('Error', 'User not found. Please log in again.');
       return;
     }
 
     try {
-      const payload: SaveBillingAddressPayload = {
-        BillingAddressId: 0, // 0 for new address
+      const userId = user.UserID || user.id || '';
+      const payload = {
+        BillingAddressId: 0, // Zero for new address
         FullName: fullName.trim(),
         Email: email.trim(),
         Mobile: mobile.trim(),
@@ -106,12 +107,12 @@ export default function AddBillingAddressScreen() {
         Apartment: apartment.trim(),
         IsDefault: isDefault ? 1 : 0,
         Command: 'Save', // Required parameter as per API docs
-        UserId: user.UserID,
-        Company: 3044, // Fixed value as per API docs
+        UserId: userId,
+        CompanyId: 3044, // Fixed value as per API docs
         IpAddress: '127.0.0.1', // In a real app, get the actual IP
       };
 
-      console.log('Billing address payload:', JSON.stringify(payload, null, 2));
+      console.log('Billing address payload with userId:', userId);
       
       const success = await saveBillingAddress(payload);
       

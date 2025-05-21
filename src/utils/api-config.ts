@@ -2,6 +2,9 @@
 
 export const API_BASE_URL = 'https://api.souqmaria.com/api/MerpecWebApi/';
 
+// Product Image Base URL
+export const PRODUCT_IMAGE_BASE_URL = 'https://api.souqmaria.com/ProductImages/';
+
 // Common parameters used across all API requests
 export const COMMON_PARAMS = {
   Company: '3044',
@@ -51,6 +54,7 @@ export const RESPONSE_CODES = {
   VALIDATION_FAILED: '-3',
   COMMAND_NOT_PASSED: '-12',
   SERVER_VALIDATION_ERROR: '-8',
+  SERVER_VALIDATION_ERROR_ALT: '-6', // Alternative validation error code
   GENERAL_ERROR_STR: '-10',
   SERVER_ERROR_STR: '-2',
   EMAIL_NOT_MATCHED_PROFILE: '-2',
@@ -75,6 +79,19 @@ export const RESPONSE_CODES = {
   success: '2',
   success_alt: 2,
   SHIPPING_ADDRESS_UPDATE_SUCCESS: '4',
+
+  // Cart update response codes
+  CART_UPDATED_SUCCESS: 2,      // Item quantity updated successfully
+  CART_UPDATE_FAILED: -2,       // Item quantity update failed
+  CART_STOCK_UNAVAILABLE: -4,   // Stock not available for requested quantity
+  CART_UPDATE_ERROR: -10,       // Something went wrong during update
+  CART_SERVER_ERROR: -6,        // Server-side validation error
+  
+  // Cart delete response codes
+  CART_DELETED_SUCCESS: 2,      // Item deleted successfully
+  CART_DELETE_FAILED: -2,       // Item delete failed
+  CART_ITEM_NOT_FOUND: -4,      // Item not found in cart
+  CART_DELETE_ERROR: -10,       // Something went wrong during delete
 };
 
 // Platform identifiers for the Source parameter
@@ -92,40 +109,40 @@ export const SP_QUERIES = {
   
   // Address listing queries
   GET_BILLING_ADDRESSES: (userId: string) => 
-    `[Web].[Sp_Manage_Address_Apps_SM] 'Get_BillingAddress_List','${userId}','','','','',1,3044`,
+    `[Web].[Sp_Manage_Address_Apps_SM]'Get_BillingAddress_List','${userId}','','','','',1,3044`,
   GET_SHIPPING_ADDRESSES: (userId: string) => 
-    `[Web].[Sp_Manage_Address_Apps_SM] 'Get_ShippingAddress_List','${userId}','','','','',1,3044`,
+    `[Web].[Sp_Manage_Address_Apps_SM]'Get_ShippingAddress_List','${userId}','','','','',1,3044`,
   
   // Order queries
   GET_MY_ORDERS: (userId: string, cultureId: string = '1') => 
-    `[Web].[Sp_Template1_Get_MyOrders_Apps] 'Get_MyOrders_Parent','${userId}','','','CurrencyXName','CurrencyXCode',${COMMON_PARAMS.Company},${cultureId}`,
+    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Parent','${userId}','','','CurrencyXName','CurrencyXCode',${COMMON_PARAMS.Company},${cultureId}`,
   GET_ORDER_DETAILS: (userId: string, orderNo: string, cultureId: string = '1') => 
-    `[Web].[Sp_Template1_Get_MyOrders_Apps] 'Get_MyOrders_Child','${userId}','${orderNo}','','CurrencyXName','CurrencyXCode',${COMMON_PARAMS.Company},${cultureId}`,
+    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child','${userId}','${orderNo}','','CurrencyXName','CurrencyXCode',${COMMON_PARAMS.Company},${cultureId}`,
     
   // Category queries
   GET_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') => 
-    `[Web].[Sp_Get_SM_Apps] 'Get_HomePage_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_HomePage_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
   
   GET_ALL_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') => 
-    `[Web].[Sp_Get_SM_Apps] 'Get_All_HomePage_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_All_HomePage_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
   
   // Banner queries
   GET_BANNER_LIST: (cultureId: string = '1', userId: string = '') =>
-    `[Web].[Sp_Get_SM_Apps] 'Get_Banner_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_Banner_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
   
   // Advertisement queries
   GET_ADVERTISEMENT_LIST: (cultureId: string = '1', userId: string = '') =>
-    `[Web].[Sp_Get_SM_Apps] 'Get_Ads_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_Ads_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
 
   // Menu / Browse Drawer queries
   GET_MENU_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') =>
-    `[Web].[Sp_Get_SM_Apps] 'Get_Menu_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_Menu_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
   GET_MENU_SUBCATEGORY_LIST: (categoryXcode: string, cultureId: string = '1', userId: string = '') =>
-    `[Web].[Sp_Get_SM_Apps] 'Get_Menu_SubCategory_List_ByCategory','${categoryXcode}','','','','','${cultureId}','${COMMON_PARAMS.Company}','${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_Menu_SubCategory_List_ByCategory','${categoryXcode}','','','','','${cultureId}','${COMMON_PARAMS.Company}','${userId}'`,
 
   // Search query
   GET_ITEM_NAME_LIST_BY_SEARCH: (searchText: string, cultureId: string = '1', userId: string = '') =>
-    `[Web].[Sp_Get_SM_Apps] 'Get_ItemName_List_BySearch','${searchText}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_ItemName_List_BySearch','${searchText}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
 
   // Product Listing and Details (SP based, for details)
   GET_PRODUCT_DETAILS_BY_ITEM_CODE: (
@@ -134,7 +151,7 @@ export const SP_QUERIES = {
     cultureId: string = '1', 
     userId: string = ''
   ) => 
-    `[Web].[Sp_Get_SM_Apps] 'Get_ProductDetails_ByItemCode','${itemCode}','${location}','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_ProductDetails_ByItemCode','${itemCode}','${location}','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
     
   // Product Special Description
   GET_SPECIAL_DESCRIPTION_LIST_BY_ITEM_CODE: (
@@ -142,5 +159,9 @@ export const SP_QUERIES = {
     cultureId: string = '1',
     userId: string = ''
   ) =>
-    `[Web].[Sp_Get_SM_Apps] 'Get_Special_Description_List_ByItemCode','${itemCode}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+    `[Web].[Sp_Get_SM_Apps]'Get_Special_Description_List_ByItemCode','${itemCode}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+
+  // Cart queries
+  GET_CART_PRODUCTS: (userId: string = '', uniqueId: string, cultureId: string = '1') => 
+    `[Web].[SP_Template1_Get_CartProductsDetails_Apps]'${userId}','127.0.0.1','${uniqueId}',${COMMON_PARAMS.Company},${cultureId}`,
 }; 

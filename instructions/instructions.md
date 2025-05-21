@@ -710,16 +710,8 @@ When a user clicks the "Add to Cart" button on the individual product page, a su
 mobile-app-sm
 ├── app.json
 ├── App.tsx
-├── assets
-│   ├── categories
-│   ├── icon.png
-│   ├── logo.png
-│   ├── order_failed_image.png
-│   ├── order_succesful_image.png
-│   └── pre_login_account.png
 ├── babel.config.js
 ├── eas.json
-├── index.ts
 ├── instructions
 │   ├── instructions.md
 │   ├── reference_instructions.md
@@ -747,6 +739,8 @@ mobile-app-sm
 │       │   ├── browse_drawer.png
 │       │   └── search_products.png
 │       ├── checkout
+│       │   ├── add_billing_address_checkout.png
+│       │   ├── add_shipping_address.png
 │       │   ├── change_select_address.png
 │       │   ├── guest
 │       │   │   └── guest_checkout.png
@@ -778,47 +772,86 @@ mobile-app-sm
 │   │   │   │   ├── address
 │   │   │   │   ├── details
 │   │   │   │   ├── index.tsx
-│   │   │   │   └── orders
+│   │   │   │   ├── orders
+│   │   │   │   └── wishlist.tsx
 │   │   │   ├── cart.tsx
 │   │   │   ├── categories.tsx
 │   │   │   └── index.tsx
 │   │   ├── +not-found.tsx
 │   │   ├── auth.tsx
+│   │   ├── checkout.tsx
 │   │   ├── forgot-password.tsx
+│   │   ├── product
+│   │   │   └── [id].tsx
 │   │   ├── products
 │   │   │   ├── _layout.tsx
 │   │   │   └── list.tsx
 │   │   └── signup.tsx
+│   ├── assets
+│   │   ├── empty_wishlist.png
+│   │   ├── icon.png
+│   │   ├── logo.png
+│   │   ├── order_failed_image.png
+│   │   ├── order_succesful_image.png
+│   │   └── pre_login_account.png
 │   ├── components
 │   │   ├── add-edit-address.tsx
 │   │   ├── AddressDropdown.tsx
 │   │   ├── browse-drawer.tsx
+│   │   ├── CartIcon.tsx
 │   │   ├── CategoryCard.tsx
-│   │   └── ProductCard.tsx
+│   │   ├── CheckoutAddressFormModal.tsx
+│   │   ├── CheckoutAddressModal.tsx
+│   │   ├── common
+│   │   │   └── TopBar.tsx
+│   │   ├── CreateAddressModal.tsx
+│   │   ├── HeaderCartIcon.tsx
+│   │   ├── ProductCard.tsx
+│   │   └── SearchBarWithSuggestions.tsx
+│   ├── constants
+│   │   └── colors.ts
 │   ├── screens
 │   │   └── account
 │   │       └── AccountScreen.tsx
 │   ├── store
 │   │   ├── address-store.ts
 │   │   ├── advertisement-store.ts
+│   │   ├── all-category-store.ts
 │   │   ├── auth-store.ts
 │   │   ├── banner-store.ts
+│   │   ├── cart-store.ts
 │   │   ├── category-store.ts
 │   │   ├── location-store.ts
 │   │   ├── menu-store.ts
 │   │   ├── order-store.ts
-│   │   └── search-store.ts
+│   │   ├── search-store.ts
+│   │   └── wishlist-store.ts
 │   ├── theme.ts
 │   └── utils
 │       ├── api-config.ts
 │       ├── api-service.ts
+│       ├── api-test.js
+│       ├── check-cart-quantity.js
 │       ├── login-debug.js
+│       ├── login-direct-test.js
+│       ├── login-test.js
+│       ├── test-addtocart-api.js
 │       ├── test-apis.js
 │       ├── test-banner-api.js
+│       ├── test-cart-update-small.js
+│       ├── test-cart-update.js
 │       ├── test-category-api.js
 │       ├── test-order-details-api.js
 │       ├── test-orders-api.js
-│       └── test-user-login.js
+│       ├── test-product-api.js
+│       ├── test-product-details-api.js
+│       ├── test-product-ids.js
+│       ├── test-user-login.js
+│       ├── test-wishlist-apis.js
+│       └── test-wishlist-image.js
+├── test_addtocart.js
+├── test_cart.js
+├── test_product_api.js
 └── tsconfig.json
 
 
@@ -829,7 +862,7 @@ This section contains detailed documentation for all API endpoints used in the S
 
 Test Creds: 
 email: hussain@test.com
-password: Test@786110
+password: test@786110
 
 ### Base API Information
 
@@ -864,7 +897,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/SaveUserRegistration/
 | 4 | Password | String | 48 | User's password | Yes |
 | 5 | IpAddress | String | 128 | User's IP address (obtained from device) | Yes |
 | 6 | Source | String | 10 | Device type ("Android"/"iOS") | Yes |
-| 7 | Company | String | - | Company identifier (fixed: "3044") | Yes |
+| 7 | CompanyId | String | - | Company identifier (fixed: "3044") | Yes |
 
 **Response Structure:**
 
@@ -1011,7 +1044,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 |---|-----------|------|--------|-------------|----------|
 | 1 | UserName | String | 72 | User's email address or mobile number | Yes |
 | 2 | Password | String | 48 | User's password | Yes |
-| 3 | Company | int | - | Company identifier (fixed: 3044) | Yes |
+| 3 | CompanyId| int    | - | Company identifier (fixed: 3044) | Yes |
 
 **Response Structure (Success Example):**
 
@@ -1075,7 +1108,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
   ```json
   {
     "Email": "string (72)",
-    "Company": "int (3044)"
+    "CompanyId": "int (3044)"
   }
   ```
 - **Request Parameters Table:**
@@ -1083,7 +1116,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | # | Parameter | Type   | Length | Description             | Required |
 |---|-----------|--------|--------|-------------------------|----------|
 | 1 | Email     | String | 72     | User's registered email | Yes      |
-| 2 | Company | int    | -      | Company ID (fixed: 3044)| Yes      |
+| 2 | CompanyId | int    | -      | Company ID (fixed: 3044)| Yes      |
 
 - **Response Scenarios & Codes:**
   - **Success (Password Sent):** `StatusCode: 200`, `ResponseCode: 2`
@@ -1112,7 +1145,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "Password": "string (48)", // New password. Send empty string or omit if not changing, based on API behavior.
     "UserId": "string (10)",
     "IpAddress": "string (128)",
-    "Company": "int (e.g., 3044)"
+    "CompanyId": "int (e.g., 3044)"
   }
   ```
 - **Response Scenarios & Codes:**
@@ -1157,7 +1190,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Save", // Command to execute
     "UserId": "string (10)", // User's ID
-    "Company": "int (3044)", // Fixed Company
+    "CompanyId": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1180,7 +1213,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault        | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command          | String  | 50     | Command (e.g., "Save")          | Yes      |
 | 15| UserId           | String  | 10     | User's ID                       | Yes      |
-| 16| Company          | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress        | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1223,7 +1256,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Update", // Command to execute
     "UserId": "string (10)", // User's ID
-    "Company": "int (3044)", // Fixed Company
+    "CompanyId": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1246,7 +1279,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault        | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command          | String  | 50     | Command (must be "Update")      | Yes      |
 | 15| UserId           | String  | 10     | User's ID                       | Yes      |
-| 16| Company          | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| CompanyId          | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress        | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1277,7 +1310,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "BillingAddressId": "int", // Pass the existing address ID to delete
     "UserId": "string (10)", // User's ID
     "IpAddress": "string (100)", // User's IP Address
-    "Company": "int (3044)", // Fixed Company
+    "CompanyId": "int (3044)", // Fixed Company
     "Command": "Delete" // Command to execute
   }
   ```
@@ -1288,7 +1321,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 1 | BillingAddressId | int     | -      | Existing Address ID to delete   | Yes      |
 | 2 | UserId           | String  | 10     | User's ID                       | Yes      |
 | 3 | IpAddress        | String  | 100    | User's IP Address               | Yes      |
-| 4 | Company          | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 4 | CompanyId          | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 5 | Command          | String  | 50     | Command (must be "Delete")      | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1333,7 +1366,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Save", // Command to execute
     "UserId": "string (10)", // User's ID
-    "Company": "int (3044)", // Fixed Company
+    "CompanyId": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1356,7 +1389,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault         | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command           | String  | 50     | Command (e.g., "Save")          | Yes      |
 | 15| UserId            | String  | 10     | User's ID                       | Yes      |
-| 16| Company           | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| CompanyId           | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress         | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1399,7 +1432,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Update", // Command to execute
     "UserId": "string (10)", // User's ID
-    "Company": "int (3044)", // Fixed Company
+    "CompanyId": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1422,7 +1455,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault         | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command           | String  | 50     | Command (must be "Update")      | Yes      |
 | 15| UserId            | String  | 10     | User's ID                       | Yes      |
-| 16| Company         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress         | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1454,7 +1487,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "ShippingAddressId": "int", // Pass the existing address ID to delete
     "UserId": "string (10)", // User's ID
     "IpAddress": "string (100)", // User's IP Address
-    "Company": "int (3044)", // Fixed Company ID
+    "CompanyId": "int (3044)", // Fixed Company ID
     "Command": "Delete" // Command to execute
   }
   ```
@@ -1465,7 +1498,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 1 | ShippingAddressId | int     | -      | Existing Address ID to delete   | Yes      |
 | 2 | UserId            | String  | 10     | User's ID                       | Yes      |
 | 3 | IpAddress         | String  | 100    | User's IP Address               | Yes      |
-| 4 | Company         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 4 | CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 5 | Command           | String  | 50     | Command (must be "Delete")      | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -2258,8 +2291,73 @@ This API is used to get detailed information for a single product using its Item
   - `success: 1`: Product details found in `row[0]`.
   - `success: 0`: Product details not found, `row` is empty. `Message` indicates "Data not found."
 
-### Product Search API
-// ... existing content of Product Search API ...
+#### 2. Get Special Description List By ItemCode (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves detailed descriptive information for a specific product, organized by sections.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery`:**
+  - `Type`: "Get_Special_Description_List_ByItemCode"
+  - `Value (ItemCode)`: The `ItemCode` of the product.
+  - `Value1`: Empty string `''`
+  - `Value2`: Empty string `''`
+  - `Value3`: Empty string `''`
+  - `Value4`: Empty string `''`
+  - `CultureId`: e.g., `'1'` for English
+  - `Company`: `'3044'`
+  - `UserId`: User ID or empty string `''`
+- **Example `strQuery` (ItemCode 'IM31790673'):** 
+  `[Web].[Sp_Get_SM_Apps] 'Get_Special_Description_List_ByItemCode','IM31790673','','','','','1','3044',''`
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "Title": "Dimensions",
+        "Description": "Height: 6.1 inches, Width: 2.9 inches, Depth: 0.3 inches"
+      },
+      {
+        "Title": "Display",
+        "Description": "6.4-inch AMOLED, 90Hz refresh rate, 1080 x 2400 pixels"
+      },
+      // ... more description items
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Structure (No Data Found):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - This API provides detailed technical specifications and feature descriptions for products.
+  - Each row in the response represents a separate section of product details with a title and description.
+  - Sections are typically displayed in the product details page under the main product description.
+  - If no special descriptions are available for a product, the API will return with `success: 0` and an empty `row` array.
+  - The implementation should handle both success and no-data scenarios gracefully.
+
+**Request Parameters Table:**
+
+| # | Parameter  | Type   | Length | Description                           |
+|---|------------|--------|--------|---------------------------------------|
+| 1 | Type       | String | 50     | "Get_Special_Description_List_ByItemCode" |
+| 2 | Value      | String | 50     | Product ItemCode                      |
+| 3 | Value1     | String | 50     | Pass empty string                     |
+| 4 | Value2     | String | 50     | Pass empty string                     |
+| 5 | Value3     | String | 50     | Pass empty string                     |
+| 6 | Value4     | String | 50     | Pass empty string                     |
+| 7 | CultureId  | int    | -      | Culture ID (1-English, 2-Arabic)      |
+| 8 | Company    | String | 10     | Company ID (fixed: 3044)              |
+| 9 | UserId     | String | 10     | User ID (pass empty string if not logged in) |
+
+
 
 ### Product Listing & Details APIs
 
@@ -2388,43 +2486,48 @@ This should be used for rendering product images in the grid/list as per the UI 
 - In mobile apps, `IpAddress` can be set to a default value like "127.0.0.1" since getting the actual device IP may not be straightforward.
 - Response should be handled based on the `ResponseCode` value, showing appropriate UI feedback to the user.
 
-#### 2. Get Special Description List By ItemCode (`getData_JSON/`)
-- **Method:** `POST` (FromBody)
-- **Description:** Retrieves detailed descriptive information for a specific product, organized by sections.
-- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
-- **Request Body Parameters for `strQuery`:**
-  - `Type`: "Get_Special_Description_List_ByItemCode"
-  - `Value (ItemCode)`: The `ItemCode` of the product.
-  - `Value1`: Empty string `''`
-  - `Value2`: Empty string `''`
-  - `Value3`: Empty string `''`
-  - `Value4`: Empty string `''`
-  - `CultureId`: e.g., `'1'` for English
-  - `Company`: `'3044'`
-  - `UserId`: User ID or empty string `''`
-- **Example `strQuery` (ItemCode 'IM31790673'):** 
-  `[Web].[Sp_Get_SM_Apps] 'Get_Special_Description_List_ByItemCode','IM31790673','','','','','1','3044',''`
+### Cart Management APIs
 
-- **Response Structure (Success Example):**
+#### 1. Get Cart Products (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of products in the user's cart
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[SP_Template1_Get_CartProductsDetails_Apps] '','127.0.0.1','unique-id-string',3044,1"
+  }
+  ```
+- **Request Parameters Table (for the SP):**
+
+| # | Parameter  | Type   | Description                           |
+|---|------------|--------|---------------------------------------|
+| 1 | UserId     | string | User ID for logged in users, or empty string for guest users |
+| 2 | IpAddress  | string | Client's IP address                   |
+| 3 | UniqueId   | string | Cart's unique identifier              |
+| 4 | Company    | int    | Company code (3044)                   |
+| 5 | CultureId  | int    | Culture ID (1 for English)            |
+
+- **Success Response:**
   ```json
   {
     "success": 1,
     "row": [
       {
-        "Title": "Dimensions",
-        "Description": "Height: 6.1 inches, Width: 2.9 inches, Depth: 0.3 inches"
-      },
-      {
-        "Title": "Display",
-        "Description": "6.4-inch AMOLED, 90Hz refresh rate, 1080 x 2400 pixels"
-      },
-      // ... more description items
+        "CartID": 28427,
+        "ProductCode": "IM31790673",
+        "ProductName": "IPhone 6 Mobile 64 GB Model A1586",
+        "Image1": "7587878907130228_cff50d95.png",
+        "Price": 20,
+        "Quantity": 1,
+        "SubTotal": 20,
+        "NetAmount": 20
+      }
     ],
     "Message": "Data found."
   }
   ```
 
-- **Response Structure (No Data Found):**
+- **Error Response:**
   ```json
   {
     "success": 0,
@@ -2433,24 +2536,207 @@ This should be used for rendering product images in the grid/list as per the UI 
   }
   ```
 
+#### 2. Update Cart Quantity (`UpdateCartQty`)
+- **Method:** `POST` (FromBody)
+- **Description:** Updates the quantity of an item in the cart
+- **Request Body:**
+  ```json
+  {
+    "CartId": 28427,
+    "Qty": 2,
+    "Company": "3044",
+    "Location": "304401HO"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter  | Type   | Description                           |
+|---|------------|--------|---------------------------------------|
+| 1 | CartId     | int    | ID of the cart item to update         |
+| 2 | Qty        | int    | New quantity for the item             |
+| 3 | Company    | string | Company code ("3044")                 |
+| 4 | Location   | string | Location code ("304401HO")            |
+
+- **Success Response:**
+  ```json
+  {
+    "ResponseCode": "2",
+    "Message": "Updated Successfully!!!",
+    "TrackId": null
+  }
+  ```
+
+- **Response Codes:**
+
+| Code | Description                                      |
+|------|--------------------------------------------------|
+| 2    | Success - Item quantity updated successfully     |
+| -2   | Error - Failed to update item quantity           |
+| -4   | Error - Stock not available for requested quantity |
+| -10  | Error - Something went wrong                     |
+| -6   | Error - Server side validation error             |
+
+#### 3. Delete Cart Item (`DeleteCartItem`)
+- **Method:** `POST` (FromBody)
+- **Description:** Removes an item from the cart
+- **Request Body:**
+  ```json
+  {
+    "CartId": 28427,
+    "Company": "3044"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter  | Type   | Description                           |
+|---|------------|--------|---------------------------------------|
+| 1 | CartId     | int    | ID of the cart item to delete         |
+| 2 | Company    | string | Company code ("3044")                 |
+
+- **Success Response:**
+  ```json
+  {
+    "ResponseCode": "2",
+    "Message": "Item deleted from your Cart.",
+    "TrackId": null
+  }
+  ```
+
+- **Response Codes:**
+
+| Code | Description                                      |
+|------|--------------------------------------------------|
+| 2    | Success - Item deleted successfully              |
+| -2   | Error - Failed to delete item                    |
+| -4   | Error - Item not found in cart                   |
+| -10  | Error - Something went wrong                     |
+| -6   | Error - Server side validation error             |
+
+### Wishlist APIs
+
+#### 1. Add to Wishlist (`/CRUD_Wishlist/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Adds an item to the wishlist
+- **Request Body:**
+  ```json
+  {
+    "ItemCode": "string", 
+    "UserId": "string", 
+    "IpAddress": "string", 
+    "CompanyId": 3044, 
+    "Command": "Save"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter  | Type   | Length | Description                     | Required |
+|---|------------|--------|--------|---------------------------------|----------|
+| 1 | ItemCode   | String | 10     | Product code to add to wishlist | Yes      |
+| 2 | UserId     | String | 10     | User's ID                       | Yes      |
+| 3 | IpAddress  | String | 100    | User's IP Address               | Yes      |
+| 4 | CompanyId  | int    | -      | Company ID (fixed: 3044)        | Yes      |
+| 5 | Command    | String | 50     | Command (must be "Save")        | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 2`
+    - **Message:** "Added Successfully!!!"
+  - **Save Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Added Not Successfully!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: 6`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (General):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+
+#### 2. Delete from Wishlist (`/CRUD_Wishlist/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Removes an item from the wishlist
+- **Request Body:**
+  ```json
+  {
+    "ItemCode": "string", 
+    "UserId": "string", 
+    "IpAddress": "string", 
+    "CompanyId": 3044, 
+    "Command": "Delete"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter  | Type   | Length | Description                     | Required |
+|---|------------|--------|--------|---------------------------------|----------|
+| 1 | ItemCode   | String | 10     | Product code to delete          | Yes      |
+| 2 | UserId     | String | 10     | User's ID                       | Yes      |
+| 3 | IpAddress  | String | 100    | User's IP Address               | Yes      |
+| 4 | CompanyId  | int    | -      | Company ID (fixed: 3044)        | Yes      |
+| 5 | Command    | String | 50     | Command (must be "Delete")      | Yes      |
+
+- **Response Scenarios & Codes:**
+  - **Success:** `StatusCode: 200`, `ResponseCode: 4`
+    - **Message:** "Deleted Successfully!!!"
+  - **Delete Not Successful:** `StatusCode: 200`, `ResponseCode: -2`
+    - **Message:** "Deleted Not Successfully!!!"
+  - **Data Not Found:** `StatusCode: 200`, `ResponseCode: -4`
+    - **Message:** "Data Not Found!!!"
+  - **Command Not Passed:** `StatusCode: 200`, `ResponseCode: -6`
+    - **Message:** "Command Not Passed!!!"
+  - **Something Went Wrong (General):** `StatusCode: 200`, `ResponseCode: -10`
+    - **Message:** "Something went wrong...Please try again later!!!"
+  - **Server Side Validation Error:** `StatusCode: 400`, `ResponseCode: -8`
+    - **Message:** "Server side validation error...Please try again later!!!"
+  - **Something Went Wrong (Server related):** `StatusCode: 500`, `ResponseCode: -2`
+    - **Message:** "Something went wrong...Please try again later!!!"
+
+#### 3. Get Wishlist Items (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of items in the user's wishlist
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Templete1_Get_MyWishlist_Apps] 'Get_MyWishlist','userId','','','','',1,3044"
+  }
+  ```
+- **Request Parameters Table (for the SP):**
+
+| # | Parameter  | Type    | Length | Description              | Required |
+|---|------------|---------|--------|--------------------------|----------|
+| 1 | Type       | string  | 50     | Pass "Get_MyWishlist"    | Yes      |
+| 2 | Value      | string  | 50     | Pass User Id             | Yes      |
+| 3 | Value1     | string  | 50     | Pass Empty string        | No       |
+| 4 | Value2     | string  | 50     | Pass Empty string        | No       |
+| 5 | Value3     | string  | 50     | Pass Empty string        | No       |
+| 6 | Value4     | string  | 50     | Pass Empty string        | No       |
+| 7 | CultureId  | int     | -      | Pass Culture Id (1 or 2) | Yes      |
+| 8 | Company    | string  | 10     | Pass Company Id - 3044   | Yes      |
+
+- **Response Structure:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ItemCode": "string",
+        "ItemImage": "string",
+        "ItemName": "string",
+        "OnlineActualPrice": number
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Scenarios:**
+  - **Success (Data Found):** `success: 1`, with populated `row` array
+    - **Message:** "Data found."
+  - **Success (No Data):** `success: 0`, with empty `row` array
+    - **Message:** "Data not found."
+
 - **Implementation Notes:**
-  - This API provides detailed technical specifications and feature descriptions for products.
-  - Each row in the response represents a separate section of product details with a title and description.
-  - Sections are typically displayed in the product details page under the main product description.
-  - If no special descriptions are available for a product, the API will return with `success: 0` and an empty `row` array.
-  - The implementation should handle both success and no-data scenarios gracefully.
+  - Ensure the API returns properly-formatted image URLs with the base path: "https://api.souqmaria.com/ProductImages/".
+  - Handle empty responses by showing a proper "Empty Wishlist" UI.
+  - Use appropriate UI indicators (loading spinners, error messages) during data fetching.
 
-**Request Parameters Table:**
-
-| # | Parameter  | Type   | Length | Description                           |
-|---|------------|--------|--------|---------------------------------------|
-| 1 | Type       | String | 50     | "Get_Special_Description_List_ByItemCode" |
-| 2 | Value      | String | 50     | Product ItemCode                      |
-| 3 | Value1     | String | 50     | Pass empty string                     |
-| 4 | Value2     | String | 50     | Pass empty string                     |
-| 5 | Value3     | String | 50     | Pass empty string                     |
-| 6 | Value4     | String | 50     | Pass empty string                     |
-| 7 | CultureId  | int    | -      | Culture ID (1-English, 2-Arabic)      |
-| 8 | Company    | String | 10     | Company ID (fixed: 3044)              |
-| 9 | UserId     | String | 10     | User ID (pass empty string if not logged in) |
 

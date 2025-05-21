@@ -93,10 +93,10 @@ export default function AccountDetailsScreen() {
       FullName: editableFullName.trim(),
       Email: user.email, 
       Mobile: user.mobile || '', 
-      Password: newPassword || '', // Only send if provided
+      Password: newPassword,
       UserId: user.UserID, 
       IpAddress: '127.0.0.1', // This should be properly obtained in production
-      Company: 3044, 
+      CompanyId: 3044, 
     };
 
     console.log('Sending update payload:', payload); // Debug log

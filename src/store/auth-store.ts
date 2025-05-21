@@ -26,7 +26,7 @@ interface UpdateUserPayload {
   Password?: string;
   UserId: string;
   IpAddress: string;
-  Company: number;
+  CompanyId: number;
 }
 
 // Types for API requests and responses
@@ -96,6 +96,18 @@ export const useAuthStore = create<AuthState>()(
           const responseCodeStr = String(response.ResponseCode);
 
           if (responseCodeStr === String(RESPONSE_CODES.SUCCESS)) {
+            // Extract the user ID from the response
+            let userId = '';
+            if (response.Data?.UserId) {
+              userId = response.Data.UserId;
+            } else if (response.Data?.UserID) {
+              userId = response.Data.UserID;
+            } else if (response.UserDetails?.UserID) {
+              userId = response.UserDetails.UserID;
+            }
+            
+            console.log(`Registration successful, user ID: ${userId || 'Not provided by API'}`);
+            
             set({
               isLoading: false,
               isLoggedIn: true,
@@ -103,8 +115,8 @@ export const useAuthStore = create<AuthState>()(
                 fullName,
                 email,
                 mobile,
-                UserID: response.Data?.UserId || undefined,
-                id: response.Data?.UserId || undefined,
+                UserID: userId,
+                id: userId,
               },
               error: null,
             });
@@ -137,14 +149,27 @@ export const useAuthStore = create<AuthState>()(
       login: async ({ userName, password }) => {
         set({ isLoading: true, error: null });
         try {
+          console.log('Attempting login with credentials:', { userName, password: '***' });
+          // Attempt to login using the API
           const response: ApiResponse<any> = await loginUser({
             UserName: userName,
             Password: password,
           });
 
-          // Use UserDetails instead of Data
+          console.log('Full Login Response:', JSON.stringify(response, null, 2));
+
+          // Check for server validation error
+          if (String(response.ResponseCode) === String(RESPONSE_CODES.SERVER_VALIDATION_ERROR_ALT)) {
+            set({ 
+              isLoading: false, 
+              error: 'The login service is currently experiencing difficulties. Please try again later.' 
+            });
+            return false;
+          }
+
+          // Normal flow for successful API response
           const userDetails = response.UserDetails;
-          if (String(response.ResponseCode) === String(RESPONSE_CODES.SUCCESS) && userDetails) {
+          if (String(response.ResponseCode) === String(RESPONSE_CODES.CREATED) && userDetails && userDetails.UserID) {
             set({
               isLoading: false,
               isLoggedIn: true,
@@ -163,6 +188,7 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
         } catch (error) {
+          console.error('Login error:', error);
           set({ isLoading: false, error: 'Login failed due to a network error.' });
           return false;
         }
@@ -173,6 +199,18 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoadingUpdate: true, errorUpdate: null });
         try {
           const response = await updateUserDetailsAPI(payload);
+          
+          console.log('Update user account response:', JSON.stringify(response, null, 2));
+          
+          // Check for the server validation error code (-6)
+          if (String(response.ResponseCode) === String(RESPONSE_CODES.SERVER_VALIDATION_ERROR_ALT)) {
+            set({ 
+              isLoadingUpdate: false, 
+              errorUpdate: 'The server is currently experiencing difficulties. Please try again later.' 
+            });
+            return false;
+          }
+          
           if (response.StatusCode === 200 && String(response.ResponseCode) === '2') {
             // Update user in store with new details
             set((state) => ({
@@ -193,6 +231,7 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
         } catch (error) {
+          console.error('Account update error:', error);
           set({
             isLoadingUpdate: false,
             errorUpdate: 'Account update failed due to a network error.',
@@ -214,7 +253,7 @@ export const useAuthStore = create<AuthState>()(
       },
       
       // Clear login/register error
-      clearError: () => {
+      clearError: () => { 
         set({ error: null });
       },
 
@@ -226,8 +265,8 @@ export const useAuthStore = create<AuthState>()(
       forgotPassword: async (email: string) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await forgotPassword({ Email: email, Company: 3044 });
-          if (response.StatusCode === 200 && String(response.ResponseCode) === RESPONSE_CODES.SUCCESS) {
+          const response = await forgotPassword({ Email: email, CompanyId: 3044 });
+          if (response.StatusCode === 200 && String(response.ResponseCode) === RESPONSE_CODES.CREATED) {
             set({ isLoading: false, error: null });
             return { success: true, message: response.Message };
           }

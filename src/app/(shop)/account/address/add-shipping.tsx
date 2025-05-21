@@ -93,12 +93,13 @@ export default function AddShippingAddressScreen() {
 
   async function handleSave() {
     if (!validate()) return;
-    if (!user?.UserID) {
+    if (!user?.UserID && !user?.id) {
       Alert.alert('Error', 'User not found. Please log in again.');
       return;
     }
 
     try {
+      const userId = user.UserID || user.id || '';
       const payload: SaveShippingAddressPayload = {
         ShippingAddressId: 0, // 0 for new address
         FullName: fullName.trim(),
@@ -114,12 +115,12 @@ export default function AddShippingAddressScreen() {
         Apartment: apartment.trim(),
         IsDefault: isDefault ? 1 : 0,
         Command: 'Save', // Required parameter as per API docs
-        UserId: user.UserID,
-        Company: 3044, // Fixed value as per API docs
+        UserId: userId,
+        CompanyId: 3044, // Fixed value as per API docs
         IpAddress: '127.0.0.1', // In a real app, get the actual IP
       };
 
-      console.log('Shipping address payload:', JSON.stringify(payload, null, 2));
+      console.log('Shipping address payload with userId:', userId);
       
       const success = await saveShippingAddress(payload);
 

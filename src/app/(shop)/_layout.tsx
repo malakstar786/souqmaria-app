@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons'; // Or any other icon library you prefer
 import { colors } from '@theme';
+import CartIcon from '../../components/CartIcon';
 
 export default function ShopLayout() {
   return (
@@ -42,13 +43,14 @@ export default function ShopLayout() {
         options={{
           title: 'Cart',
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="shopping-cart" size={size} color={color} />
+            <CartIcon size={size} color={color} />
           ),
           headerTitle: 'My Cart', // As per PRD for Cart Page Top Bar
           headerTitleAlign: 'left',
           headerStyle: { backgroundColor: colors.veryLightGray }, // Cart page has veryLightGray bg
           headerTintColor: colors.blue, // Title text in blue
           headerTitleStyle: { fontWeight: 'bold', color: colors.blue },
+          headerShown: false,
         }}
       />
       <Tabs.Screen

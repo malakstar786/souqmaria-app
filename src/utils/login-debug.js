@@ -8,7 +8,7 @@ async function testLogin() {
   const loginPayload = {
     UserName: 'hussain@test.com', // Use test credentials from instructions
     Password: 'Test@786110',
-    Company: 3044,
+    CompanyId: 3044,
   };
 
   try {

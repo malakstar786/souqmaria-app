@@ -379,49 +379,62 @@ const useAddressStore = create<AddressState>((set, get) => ({
     }
   },
   
-  // Fetch user addresses (both billing and shipping)
-  fetchUserAddresses: async (userId) => {
+  // Fetch both billing and shipping addresses for a user
+  fetchUserAddresses: async (userId?: string) => {
+    if (!userId) {
+      console.error('🏠 fetchUserAddresses: No userId provided!');
+      set({ error: 'User ID is required to fetch addresses' });
+      return;
+    }
+    
+    console.log('🏠 Fetching addresses for user:', userId);
     set({ isLoading: true, error: null });
+    
     try {
       // Fetch billing addresses
       const billingResponse = await getBillingAddresses(userId);
-      console.log('Billing addresses response:', JSON.stringify(billingResponse, null, 2));
+      console.log('🏠 Billing addresses response:', JSON.stringify({
+        statusCode: billingResponse.StatusCode,
+        responseCode: billingResponse.ResponseCode,
+        message: billingResponse.Message,
+        hasData: billingResponse.Data?.success === 1 && Array.isArray(billingResponse.Data.row)
+      }, null, 2));
+      
+      if (billingResponse.Data?.success === 1 && Array.isArray(billingResponse.Data.row)) {
+        const mappedBillingAddresses = billingResponse.Data.row.map(transformBillingAddress);
+        set({ billingAddresses: mappedBillingAddresses });
+        console.log(`🏠 Found ${mappedBillingAddresses.length} billing addresses`);
+      } else {
+        set({ billingAddresses: [] });
+        console.log('🏠 No billing addresses found');
+      }
       
       // Fetch shipping addresses
       const shippingResponse = await getShippingAddresses(userId);
-      console.log('Shipping addresses response:', JSON.stringify(shippingResponse, null, 2));
+      console.log('🏠 Shipping addresses response:', JSON.stringify({
+        statusCode: shippingResponse.StatusCode,
+        responseCode: shippingResponse.ResponseCode,
+        message: shippingResponse.Message,
+        hasData: shippingResponse.Data?.success === 1 && Array.isArray(shippingResponse.Data.row)
+      }, null, 2));
       
-      // Extract addresses from response - checking all possible locations where the data might be
-      const billingData = billingResponse.Data?.row || 
-                          (billingResponse as any).row || 
-                          [];
+      if (shippingResponse.Data?.success === 1 && Array.isArray(shippingResponse.Data.row)) {
+        const mappedShippingAddresses = shippingResponse.Data.row.map(transformShippingAddress);
+        set({ shippingAddresses: mappedShippingAddresses });
+        console.log(`🏠 Found ${mappedShippingAddresses.length} shipping addresses`);
+      } else {
+        set({ shippingAddresses: [] });
+        console.log('🏠 No shipping addresses found');
+      }
       
-      const shippingData = shippingResponse.Data?.row || 
-                           (shippingResponse as any).row || 
-                           [];
-      
-      // Transform to our Address interface
-      const billingAddresses = Array.isArray(billingData) 
-        ? billingData.map(transformBillingAddress) 
-        : [];
-      
-      const shippingAddresses = Array.isArray(shippingData) 
-        ? shippingData.map(transformShippingAddress) 
-        : [];
-      
-      console.log(`Loaded ${billingAddresses.length} billing addresses and ${shippingAddresses.length} shipping addresses`);
-      
-      set({
-        billingAddresses,
-        shippingAddresses,
-        isLoading: false,
-        error: null // Clear any previous errors
-      });
+      set({ isLoading: false, error: null });
     } catch (error) {
-      console.error('Error fetching addresses:', error);
-      set({
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch addresses'
+      console.error('🏠 Error fetching addresses:', error);
+      set({ 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch addresses',
+        billingAddresses: [],
+        shippingAddresses: []
       });
     }
   },

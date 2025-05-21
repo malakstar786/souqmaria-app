@@ -20,8 +20,9 @@ export default function AddressScreen() {
   
   // Load addresses on mount
   useEffect(() => {
-    if (user?.UserID) {
-      fetchUserAddresses(user.UserID);
+    if (user?.UserID || user?.id) {
+      const userId = user.UserID || user.id || '';
+      fetchUserAddresses(userId);
     }
   }, [user]);
   
@@ -58,15 +59,17 @@ export default function AddressScreen() {
           text: "Delete", 
           style: "destructive",
           onPress: async () => {
-            if (!user?.UserID) return;
+            if (!user?.UserID && !user?.id) return;
+            
+            const userId = user.UserID || user.id || '';
             
             try {
               if (isShipping) {
-                await deleteShippingAddress(addressId, user.UserID);
+                await deleteShippingAddress(addressId, userId);
                 // The address store is already refreshing the list after deletion
                 // so we don't need to show a success alert or manually refresh
               } else {
-                await deleteBillingAddress(addressId, user.UserID);
+                await deleteBillingAddress(addressId, userId);
                 // Same here, the store handles the refresh
               }
             } catch (error) {
@@ -144,7 +147,12 @@ export default function AddressScreen() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity 
               style={styles.retryButton} 
-              onPress={() => user?.UserID && fetchUserAddresses(user.UserID)}
+              onPress={() => {
+                if (user?.UserID || user?.id) {
+                  const userId = user.UserID || user.id || '';
+                  fetchUserAddresses(userId);
+                }
+              }}
             >
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
