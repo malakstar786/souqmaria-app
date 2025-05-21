@@ -92,7 +92,7 @@ export default function AccountScreen() {
         <AccountOption 
           icon="file-text" 
           label="Policies" 
-          onPress={() => handleOptionPress('/policies')} 
+          onPress={() => handleOptionPress('/account/policies')} 
         />
       </View>
 

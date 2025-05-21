@@ -11,7 +11,7 @@ import useLocationStore, { LocationItem } from '../../../../store/location-store
 export default function AddBillingAddressScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { saveBillingAddress, isLoading, error } = useAddressStore();
+  const { saveBillingAddress, isLoading, error, clearError } = useAddressStore();
   const { fetchCountries, fetchStates, fetchCities, countries, states, cities, isLoading: isLoadingLocations } = useLocationStore();
 
   // Form state
@@ -38,6 +38,9 @@ export default function AddBillingAddressScreen() {
   // Fetch countries on mount
   useEffect(() => {
     fetchCountries();
+    return () => {
+      clearError();
+    };
   }, []);
 
   // Fetch states when country changes
@@ -118,6 +121,7 @@ export default function AddBillingAddressScreen() {
       
       if (success) {
         setDebugResponse(null); // clear debug error
+        clearError();
         // Show success and go to account main screen
         Alert.alert('Success', 'Billing address saved successfully!', [
           { text: 'OK', onPress: () => router.replace('/account') },

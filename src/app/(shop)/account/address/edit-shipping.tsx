@@ -13,7 +13,7 @@ export default function EditShippingAddressScreen() {
   const addressId = Number(params.id);
   
   const { user } = useAuthStore();
-  const { shippingAddresses, updateShippingAddress, isLoading, error } = useAddressStore();
+  const { shippingAddresses, updateShippingAddress, isLoading, error, clearError } = useAddressStore();
   const { 
     fetchCountries, 
     fetchStates, 
@@ -168,6 +168,7 @@ export default function EditShippingAddressScreen() {
 
       if (success) {
         setDebugResponse(null); // clear debug error
+        clearError();
         // Show success and go to address list screen
         Alert.alert('Success', 'Shipping address updated successfully!', [
           { text: 'OK', onPress: () => router.replace('/account/address') },

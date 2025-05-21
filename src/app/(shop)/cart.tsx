@@ -31,7 +31,8 @@ export default function CartScreen() {
     error, 
     fetchCartItems,
     removeCartItem,
-    updateCartItemQty
+    updateCartItemQty,
+    clearError
   } = useCartStore();
 
   // State for delete confirmation modal
@@ -47,7 +48,17 @@ export default function CartScreen() {
   const handleUpdateQuantity = async (cartId: number, newQty: number) => {
     if (newQty < 1) return; // Don't allow quantities below 1
     
-    await updateCartItemQty(cartId, newQty);
+    const result = await updateCartItemQty(cartId, newQty);
+    
+    // Check for stock availability error
+    if (!result && error === 'Stock not available for requested quantity') {
+      Alert.alert('Stock Not Available', 'The requested quantity is not available in stock.');
+      clearError(); // Clear error after showing alert
+    } else if (!result && error) {
+      // Handle other errors
+      Alert.alert('Error', error || 'Failed to update quantity');
+      clearError(); // Clear error after showing alert
+    }
   };
 
   // Handle item removal

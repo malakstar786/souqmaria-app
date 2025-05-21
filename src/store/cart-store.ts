@@ -66,11 +66,14 @@ const generateStoreUniqueId = () => `app-${Date.now()}`;
 
 // Update the totalAmount and totalItems based on cart items
 const recalculateTotals = (items: CartItem[]) => {
-  const itemCount = items.length;
-  const totalPrice = items.reduce((total, item) => total + (item.Price * item.Quantity), 0);
+  // Calculate total quantity across all items
+  const totalQuantity = items.reduce((total, item) => total + (parseInt(String(item.Quantity), 10) || 0), 0);
+  
+  // Calculate total price
+  const totalPrice = items.reduce((total, item) => total + (item.Price * (parseInt(String(item.Quantity), 10) || 0)), 0);
   
   return {
-    totalItems: itemCount,
+    totalItems: totalQuantity, // Update to show total quantity not just count of distinct items
     totalAmount: totalPrice
   };
 };
@@ -171,7 +174,13 @@ const useCartStore = create<CartState>((set, get) => ({
       };
       const response: ApiResponse<any> = await updateCartQty(params);
       
-      if (String(response.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || String(response.ResponseCode) === '2') {
+      console.log('Update cart quantity response:', JSON.stringify(response, null, 2));
+      
+      // Convert response code to string for consistent comparison
+      const responseCodeStr = String(response.ResponseCode);
+      
+      // Success (ResponseCode === '2') - Quantity updated successfully
+      if (responseCodeStr === '2') {
         const authStore = (await import('./auth-store')).default;
         const currentUserId = authStore.getState().user?.UserID || authStore.getState().user?.id || '';
         
@@ -180,9 +189,16 @@ const useCartStore = create<CartState>((set, get) => ({
         set({ isLoading: false });
         return true;
       }
-      
-      set({ error: response.Message || 'Failed to update quantity', isLoading: false });
-      return false;
+      // Stock not available (ResponseCode === '-4')
+      else if (responseCodeStr === '-4') {
+        set({ error: 'Stock not available for requested quantity', isLoading: false });
+        return false;
+      }
+      // Any other error
+      else {
+        set({ error: response.Message || 'Failed to update quantity', isLoading: false });
+        return false;
+      }
     } catch (error) {
       console.error('Error updating cart quantity:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to update cart', isLoading: false });

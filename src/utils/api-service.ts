@@ -80,7 +80,7 @@ export interface SaveBillingAddressPayload {
   IsDefault: boolean | 0 | 1;
   Command: string; // 'Save'
   UserId: string;
-  CompanyId: number;
+  CompanyId: number; // Not changing CompanyId here since address endpoints expect CompanyId
   IpAddress: string;
 }
 
@@ -295,7 +295,7 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
     ...params,
     IpAddress: ipAddress,
     Source: source,
-    CompanyId: 3044, // Use CompanyId for registration
+    CompanyId: 3044, // Registration endpoint expects CompanyId
   };
   
   return apiRequest(ENDPOINTS.REGISTER_USER, 'POST', registrationPayload);
@@ -307,7 +307,7 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
 export const loginUser = async (params: LoginUserParams): Promise<ApiResponse> => {
   const loginPayload = {
     ...params,
-    CompanyId: 3044, // Use CompanyId as per API
+    CompanyId: 3044, // Login endpoint expects CompanyId
   };
   
   return apiRequest(ENDPOINTS.LOGIN_USER, 'POST', loginPayload);
@@ -917,7 +917,7 @@ export interface AddToCartParams {
   UserId: string;
   UniqueId: string;
   IpAddress: string;
-  Company: string;
+  Company: string; // Cart endpoints expect Company, not CompanyId
   Location: string;
   Qty: number;
 }
@@ -1000,14 +1000,14 @@ export interface CartItem {
 export interface UpdateCartQtyParams {
   CartId: number;
   Qty: number;
-  Company: string;
+  Company: string; // Cart endpoints expect Company, not CompanyId
   Location: string;
 }
 
 // Define interface for DeleteCartItem request parameters
 export interface DeleteCartItemParams {
   CartId: number;
-  Company: string;
+  Company: string; // Cart endpoints expect Company, not CompanyId
 }
 
 /**
@@ -1187,106 +1187,46 @@ export const getWishlistItems = async (userId: string): Promise<ApiResponse<any>
  * Add an item to the wishlist
  */
 export const addWishlistItem = async (itemCode: string, userId: string): Promise<ApiResponse<any>> => {
-  try {
-    const params = {
-      ItemCode: itemCode,
-      UserId: userId,
-      IpAddress: '127.0.0.1', // Simplified for mobile app
-      CompanyId: 3044,
-      Command: 'Save'
-    };
-    
-    console.log('🧡 AddWishlistItem - Request:', JSON.stringify(params, null, 2));
-    
-    const url = `${API_BASE_URL}CRUD_Wishlist`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(params),
-    });
-    
-    const responseData = await response.json();
-    const apiResponse = {
-      StatusCode: response.status,
-      ResponseCode: responseData.ResponseCode,
-      Message: responseData.Message || 'Unknown response from server',
-      Data: responseData
-    };
-    
-    console.log('🧡 AddWishlistItem - Response:', JSON.stringify({
-      statusCode: apiResponse.StatusCode,
-      responseCode: apiResponse.ResponseCode,
-      message: apiResponse.Message,
-      success: apiResponse.StatusCode === 200 && 
-              (String(apiResponse.ResponseCode) === '2' || apiResponse.ResponseCode === 2)
-    }, null, 2));
-    
-    return apiResponse;
-  } catch (error: any) {
-    console.error('❌ Error adding item to wishlist:', error);
+  if (!userId) {
     return {
-      StatusCode: 500,
-      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-      Message: error.message || 'Failed to add item to wishlist. Please try again.',
-      Data: null
+      StatusCode: 400,
+      ResponseCode: '-1',
+      Message: 'User ID is required to add item to wishlist'
     };
   }
+
+  const payload = {
+    ItemCode: itemCode,
+    UserId: userId,
+    IpAddress: '127.0.0.1', // Simplified for mobile
+    CompanyId: 3044, // Wishlist endpoints expect CompanyId
+    Command: 'Save'
+  };
+
+  return apiRequest(ENDPOINTS.CRUD_WISHLIST, 'POST', payload);
 };
 
 /**
  * Delete an item from the wishlist
  */
 export const deleteWishlistItem = async (itemCode: string, userId: string): Promise<ApiResponse<any>> => {
-  try {
-    const params = {
-      ItemCode: itemCode,
-      UserId: userId,
-      IpAddress: '127.0.0.1', // Simplified for mobile app
-      CompanyId: 3044,
-      Command: 'Delete'
-    };
-    
-    console.log('🧡 DeleteWishlistItem - Request:', JSON.stringify(params, null, 2));
-    
-    const url = `${API_BASE_URL}CRUD_Wishlist`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(params),
-    });
-    
-    const responseData = await response.json();
-    const apiResponse = {
-      StatusCode: response.status,
-      ResponseCode: responseData.ResponseCode,
-      Message: responseData.Message || 'Unknown response from server',
-      Data: responseData
-    };
-    
-    console.log('🧡 DeleteWishlistItem - Response:', JSON.stringify({
-      statusCode: apiResponse.StatusCode,
-      responseCode: apiResponse.ResponseCode,
-      message: apiResponse.Message,
-      success: apiResponse.StatusCode === 200 && 
-              (String(apiResponse.ResponseCode) === '4' || apiResponse.ResponseCode === 4)
-    }, null, 2));
-    
-    return apiResponse;
-  } catch (error: any) {
-    console.error('❌ Error deleting item from wishlist:', error);
+  if (!userId) {
     return {
-      StatusCode: 500,
-      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-      Message: error.message || 'Failed to remove item from wishlist. Please try again.',
-      Data: null
+      StatusCode: 400,
+      ResponseCode: '-1',
+      Message: 'User ID is required to remove item from wishlist'
     };
   }
+
+  const payload = {
+    ItemCode: itemCode,
+    UserId: userId,
+    IpAddress: '127.0.0.1', // Simplified for mobile
+    CompanyId: 3044, // Wishlist endpoints expect CompanyId
+    Command: 'Delete'
+  };
+
+  return apiRequest(ENDPOINTS.CRUD_WISHLIST, 'POST', payload);
 };
 
 // Export other API functions here 

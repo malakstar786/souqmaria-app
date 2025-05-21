@@ -9,17 +9,15 @@ interface CartIconProps {
 }
 
 const CartIcon = ({ size, color }: CartIconProps) => {
-  const { cartItems } = useCartStore();
-  // Calculate total quantity with explicit Number conversion
-  const totalQuantity = cartItems.reduce((total, item) => total + (Number(item.Quantity) || 0), 0);
+  const { totalItems } = useCartStore();
 
   return (
     <View style={styles.container}>
       <FontAwesome name="shopping-cart" size={size} color={color} />
-      {totalQuantity > 0 && (
+      {totalItems > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {totalQuantity > 99 ? '99+' : totalQuantity}
+            {totalItems > 99 ? '99+' : totalItems}
           </Text>
         </View>
       )}

@@ -15,7 +15,8 @@ export default function AddressScreen() {
     error, 
     deleteBillingAddress,
     deleteShippingAddress,
-    fetchUserAddresses
+    fetchUserAddresses,
+    clearError
   } = useAddressStore();
   
   // Load addresses on mount
@@ -24,6 +25,7 @@ export default function AddressScreen() {
       const userId = user.UserID || user.id || '';
       fetchUserAddresses(userId);
     }
+    clearError(); // Always clear error on mount/navigation
   }, [user]);
   
   const handleAddAddress = (isShipping: boolean) => {
@@ -64,13 +66,15 @@ export default function AddressScreen() {
             const userId = user.UserID || user.id || '';
             
             try {
+              let success = false;
               if (isShipping) {
-                await deleteShippingAddress(addressId, userId);
-                // The address store is already refreshing the list after deletion
-                // so we don't need to show a success alert or manually refresh
+                success = await deleteShippingAddress(addressId, userId);
               } else {
-                await deleteBillingAddress(addressId, userId);
-                // Same here, the store handles the refresh
+                success = await deleteBillingAddress(addressId, userId);
+              }
+              if (success) {
+                clearError();
+                Alert.alert('Success', 'Address deleted successfully!');
               }
             } catch (error) {
               Alert.alert('Error', 'Failed to delete address. Please try again.');
@@ -152,6 +156,7 @@ export default function AddressScreen() {
                   const userId = user.UserID || user.id || '';
                   fetchUserAddresses(userId);
                 }
+                clearError();
               }}
             >
               <Text style={styles.retryButtonText}>Retry</Text>

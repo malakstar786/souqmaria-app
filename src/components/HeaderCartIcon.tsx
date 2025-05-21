@@ -10,15 +10,15 @@ interface HeaderCartIconProps {
 
 const HeaderCartIcon = ({ color = '#000000' }: HeaderCartIconProps) => {
   const router = useRouter();
-  const { cartItems, fetchCartItems } = useCartStore();
+  const { cartItems, totalItems, fetchCartItems } = useCartStore();
   
   // Ensure we have the latest cart data
   useEffect(() => {
     fetchCartItems();
   }, []);
   
-  // Calculate total quantity correctly
-  const totalQuantity = cartItems.reduce((total, item) => total + (Number(item.Quantity) || 0), 0);
+  // Use the totalItems from the store instead of calculating it here
+  // This ensures consistency with the cart display
 
   const handleCartPress = () => {
     router.push('/(shop)/cart');
@@ -32,10 +32,10 @@ const HeaderCartIcon = ({ color = '#000000' }: HeaderCartIconProps) => {
       accessibilityRole="button"
     >
       <FontAwesome name="shopping-cart" size={22} color={color} />
-      {totalQuantity > 0 && (
+      {totalItems > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {totalQuantity > 99 ? '99+' : totalQuantity}
+            {totalItems > 99 ? '99+' : totalItems}
           </Text>
         </View>
       )}

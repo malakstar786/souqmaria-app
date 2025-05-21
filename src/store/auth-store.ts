@@ -11,6 +11,7 @@ interface User {
   fullName?: string;
   email: string;
   mobile?: string;
+  password?: string; // Store password in memory only
 }
 
 interface LoginParams {
@@ -117,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
                 mobile,
                 UserID: userId,
                 id: userId,
+                password, // Store password in memory
               },
               error: null,
             });
@@ -169,16 +171,20 @@ export const useAuthStore = create<AuthState>()(
 
           // Normal flow for successful API response
           const userDetails = response.UserDetails;
-          if (String(response.ResponseCode) === String(RESPONSE_CODES.CREATED) && userDetails && userDetails.UserID) {
+          if (String(response.ResponseCode) === String(RESPONSE_CODES.CREATED) && userDetails) {
+            // Ensure we have a UserID
+            const userId = userDetails.UserID || '';
+            
             set({
               isLoading: false,
               isLoggedIn: true,
               user: {
-                UserID: userDetails.UserID,
-                id: userDetails.UserID,
-                fullName: userDetails.FullName,
-                email: userDetails.Email,
-                mobile: userDetails.Mobile,
+                UserID: userId,        // Store UserID property consistently
+                id: userId,            // Store id property for backwards compatibility
+                fullName: userDetails.FullName || '',
+                email: userDetails.Email || '',
+                mobile: userDetails.Mobile || '',
+                password, // Store password in memory
               },
               error: null,
             });
@@ -221,6 +227,9 @@ export const useAuthStore = create<AuthState>()(
                     fullName: payload.FullName,
                     email: payload.Email,
                     mobile: payload.Mobile,
+                    // Ensure UserID is preserved
+                    UserID: state.user.UserID || state.user.id || '',
+                    id: state.user.id || state.user.UserID || '',
                   }
                 : null,
               errorUpdate: null,
@@ -282,6 +291,12 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Exclude password from persisted state
+      partialize: (state) => {
+        if (!state.user) return { ...state, user: null };
+        const { password, ...userWithoutPassword } = state.user;
+        return { ...state, user: userWithoutPassword };
+      },
     }
   )
 );

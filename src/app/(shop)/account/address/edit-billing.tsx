@@ -13,7 +13,7 @@ export default function EditBillingAddressScreen() {
   const addressId = Number(params.id);
   
   const { user } = useAuthStore();
-  const { billingAddresses, updateBillingAddress, isLoading, error } = useAddressStore();
+  const { billingAddresses, updateBillingAddress, isLoading, error, clearError } = useAddressStore();
   const { 
     fetchCountries, 
     fetchStates, 
@@ -168,6 +168,7 @@ export default function EditBillingAddressScreen() {
 
       if (success) {
         setDebugResponse(null); // clear debug error
+        clearError();
         // Show success and go to address list screen
         Alert.alert('Success', 'Billing address updated successfully!', [
           { text: 'OK', onPress: () => router.replace('/account/address') },

@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,9 @@ export default function AccountDetailsScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editableFullName, setEditableFullName] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [promptPasswordModal, setPromptPasswordModal] = useState(false);
+  const [promptedPassword, setPromptedPassword] = useState('');
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
   
   const [formErrors, setFormErrors] = useState({
     fullName: '',
@@ -88,18 +92,56 @@ export default function AccountDetailsScreen() {
       router.replace('/auth');
       return;
     }
-    
+
+    // Determine which password to use
+    let passwordToSend = newPassword || user.password;
+    if (!passwordToSend) {
+      // Prompt user for their current password
+      setPendingPayload({
+        FullName: editableFullName.trim(),
+        Email: user.email,
+        Mobile: user.mobile || '',
+        UserId: user.UserID,
+        IpAddress: '127.0.0.1',
+        CompanyId: 3044,
+      });
+      setPromptPasswordModal(true);
+      return;
+    }
+
     const payload = {
       FullName: editableFullName.trim(),
       Email: user.email, 
       Mobile: user.mobile || '', 
-      Password: newPassword,
+      Password: passwordToSend,
       UserId: user.UserID, 
-      IpAddress: '127.0.0.1', // This should be properly obtained in production
+      IpAddress: '127.0.0.1',
       CompanyId: 3044, 
     };
 
     console.log('Sending update payload:', payload); // Debug log
+    const success = await updateUserAccount(payload);
+    if (success) {
+      Alert.alert('Success', 'Your details have been updated successfully!');
+      setIsEditing(false);
+      setNewPassword('');
+    }
+  };
+
+  // Handle password prompt modal submission
+  const handlePromptPasswordSubmit = async () => {
+    if (!pendingPayload) return;
+    if (!promptedPassword) {
+      Alert.alert('Password Required', 'Please enter your current password.');
+      return;
+    }
+    const payload = {
+      ...pendingPayload,
+      Password: promptedPassword,
+    };
+    setPromptPasswordModal(false);
+    setPromptedPassword('');
+    setPendingPayload(null);
     const success = await updateUserAccount(payload);
     if (success) {
       Alert.alert('Success', 'Your details have been updated successfully!');
@@ -251,6 +293,37 @@ export default function AccountDetailsScreen() {
           )}
         </View>
       </ScrollView>
+      {/* Password Prompt Modal */}
+      {promptPasswordModal && (
+        <Modal
+          visible={promptPasswordModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPromptPasswordModal(false)}
+        >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, width: '80%' }}>
+              <Text style={{ fontSize: 16, marginBottom: 12 }}>Enter your current password to update your details:</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 16 }}
+                value={promptedPassword}
+                onChangeText={setPromptedPassword}
+                placeholder="Current Password"
+                secureTextEntry
+                autoFocus
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <TouchableOpacity onPress={() => setPromptPasswordModal(false)} style={{ marginRight: 16 }}>
+                  <Text style={{ color: '#00AEEF', fontWeight: 'bold' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handlePromptPasswordSubmit}>
+                  <Text style={{ color: '#00AEEF', fontWeight: 'bold' }}>Submit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }

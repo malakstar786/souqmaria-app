@@ -11,7 +11,7 @@ import useLocationStore, { LocationItem } from '../../../../store/location-store
 export default function AddShippingAddressScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { saveShippingAddress, isLoading, error } = useAddressStore();
+  const { saveShippingAddress, isLoading, error, clearError } = useAddressStore();
   const { 
     fetchCountries, 
     fetchStates, 
@@ -46,6 +46,9 @@ export default function AddShippingAddressScreen() {
   // Fetch countries on mount
   useEffect(() => {
     fetchCountries();
+    return () => {
+      clearError();
+    };
   }, []);
 
   // Fetch states when country changes
@@ -126,6 +129,7 @@ export default function AddShippingAddressScreen() {
 
       if (success) {
         setDebugResponse(null); // clear debug error
+        clearError();
         // Show success and go to account main screen
         Alert.alert('Success', 'Shipping address saved successfully!', [
           { text: 'OK', onPress: () => router.replace('/account') },

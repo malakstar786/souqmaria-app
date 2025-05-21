@@ -41,6 +41,9 @@ interface AddressState {
   
   // Reset store
   reset: () => void;
+  
+  // Helper to clear error state
+  clearError: () => void;
 }
 
 // Helper function for API requests
@@ -57,23 +60,26 @@ const apiRequest = async (endpoint: string, method: string, data: any) => {
   }
 };
 
-// Helper function to normalize response code for comparison
-const normalizeResponseCode = (code: any): string | number => {
-  if (code === undefined) return '';
-  // Convert to string or number as needed
-  return typeof code === 'string' ? code : Number(code);
-};
-
-// Helper function to check if a response code indicates success
-const isSuccessCode = (code: any): boolean => {
-  const normalizedCode = normalizeResponseCode(code);
-  return (
-    normalizedCode === RESPONSE_CODES.SUCCESS || 
-    normalizedCode === RESPONSE_CODES.SUCCESS_ALT ||
-    normalizedCode === RESPONSE_CODES.success || 
-    normalizedCode === RESPONSE_CODES.success_alt ||
-    normalizedCode === 2 // Fallback for numeric 2
-  );
+// Helper to check if a response code indicates success
+const isSuccessCode = (code: string | number | undefined): boolean => {
+  if (!code) return false;
+  
+  // Convert to string for consistent comparison
+  const codeStr = String(code);
+  
+  // Define endpoint-specific success codes
+  const successCodes = {
+    general: ['2', '200'],
+    billingAddressSave: ['2'],
+    billingAddressUpdate: ['2'],
+    billingAddressDelete: ['6'],
+    shippingAddressSave: ['2'],
+    shippingAddressUpdate: ['4'],
+    shippingAddressDelete: ['6']
+  };
+  
+  // Check if code is in any of the success code arrays
+  return Object.values(successCodes).some(codes => codes.includes(codeStr));
 };
 
 // Transform API address data to our Address interface
@@ -129,6 +135,16 @@ const useAddressStore = create<AddressState>((set, get) => ({
   saveBillingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
     try {
+      // Make sure addressData has all the required fields
+      if (!addressData.UserId) {
+        set({ 
+          isLoading: false, 
+          error: 'User ID is required. Please login again.'
+        });
+        return false;
+      }
+      
+      // Ensure it uses CompanyId as required by this endpoint
       const response = await apiRequest(
         ENDPOINTS.CRUD_BILLING_ADDRESS,
         'POST',
@@ -139,9 +155,10 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       const statusCode = response?.StatusCode || response?.statusCode;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const codeStr = String(responseCode);
       
-      // Check for success with case-insensitive comparison
-      if (statusCode === 200 && isSuccessCode(responseCode)) {
+      // Check specifically for billing address save success code (2)
+      if (statusCode === 200 && codeStr === '2') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after saving
         if (addressData.UserId) {
@@ -169,6 +186,16 @@ const useAddressStore = create<AddressState>((set, get) => ({
   updateBillingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
     try {
+      // Make sure addressData has all the required fields
+      if (!addressData.UserId) {
+        set({ 
+          isLoading: false, 
+          error: 'User ID is required. Please login again.'
+        });
+        return false;
+      }
+      
+      // Ensure it uses CompanyId as required by this endpoint
       const response = await apiRequest(
         ENDPOINTS.CRUD_BILLING_ADDRESS,
         'POST',
@@ -179,8 +206,10 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       const statusCode = response?.StatusCode || response?.statusCode;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const codeStr = String(responseCode);
       
-      if (statusCode === 200 && isSuccessCode(responseCode)) {
+      // Check specifically for billing address update success code (2)
+      if (statusCode === 200 && codeStr === '2') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after updating
         if (addressData.UserId) {
@@ -208,27 +237,36 @@ const useAddressStore = create<AddressState>((set, get) => ({
   deleteBillingAddress: async (addressId, userId) => {
     set({ isLoading: true, error: null });
     try {
+      if (!userId) {
+        set({ 
+          isLoading: false, 
+          error: 'User ID is required. Please login again.'
+        });
+        return false;
+      }
+      
+      const payload = {
+        BillingAddressId: addressId,
+        UserId: userId,
+        CompanyId: 3044, // This endpoint requires CompanyId
+        IpAddress: '127.0.0.1',
+        Command: 'Delete'
+      };
+      
       const response = await apiRequest(
         ENDPOINTS.CRUD_BILLING_ADDRESS,
         'POST',
-        {
-          BillingAddressId: addressId,
-          UserId: userId,
-          Company: 3044,
-          IpAddress: '127.0.0.1',
-          Command: 'Delete'
-        }
+        payload
       );
       
       console.log('Billing address delete response:', JSON.stringify(response, null, 2));
       
       const statusCode = response?.StatusCode || response?.statusCode;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const codeStr = String(responseCode);
       
       // For delete, the API returns response code 6
-      if (statusCode === 200 && 
-         (responseCode === 6 || responseCode === '6' || 
-          responseCode === RESPONSE_CODES.DELETED_SUCCESS)) {
+      if (statusCode === 200 && codeStr === '6') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after deletion
         await get().fetchUserAddresses(userId);
@@ -254,6 +292,16 @@ const useAddressStore = create<AddressState>((set, get) => ({
   saveShippingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
     try {
+      // Make sure addressData has all the required fields
+      if (!addressData.UserId) {
+        set({ 
+          isLoading: false, 
+          error: 'User ID is required. Please login again.'
+        });
+        return false;
+      }
+      
+      // Ensure it uses CompanyId as required by this endpoint
       const response = await apiRequest(
         ENDPOINTS.CRUD_SHIPPING_ADDRESS,
         'POST',
@@ -264,8 +312,10 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       const statusCode = response?.StatusCode || response?.statusCode;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const codeStr = String(responseCode);
       
-      if (statusCode === 200 && isSuccessCode(responseCode)) {
+      // Check specifically for shipping address save success code (2)
+      if (statusCode === 200 && codeStr === '2') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after saving
         if (addressData.UserId) {
@@ -293,6 +343,16 @@ const useAddressStore = create<AddressState>((set, get) => ({
   updateShippingAddress: async (addressData) => {
     set({ isLoading: true, error: null });
     try {
+      // Make sure addressData has all the required fields
+      if (!addressData.UserId) {
+        set({ 
+          isLoading: false, 
+          error: 'User ID is required. Please login again.'
+        });
+        return false;
+      }
+      
+      // Ensure it uses CompanyId as required by this endpoint
       const response = await apiRequest(
         ENDPOINTS.CRUD_SHIPPING_ADDRESS,
         'POST',
@@ -303,13 +363,10 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       const statusCode = response?.StatusCode || response?.statusCode;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const codeStr = String(responseCode);
       
-      // For shipping address update, the API accepts both response code 2 and 4
-      // but per documentation it should return 4
-      if (statusCode === 200 && 
-         (responseCode === 4 || responseCode === '4' || 
-          responseCode === RESPONSE_CODES.SHIPPING_ADDRESS_UPDATE_SUCCESS ||
-          isSuccessCode(responseCode))) {
+      // For shipping address update, the API returns response code 4
+      if (statusCode === 200 && codeStr === '4') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after updating
         if (addressData.UserId) {
@@ -337,27 +394,36 @@ const useAddressStore = create<AddressState>((set, get) => ({
   deleteShippingAddress: async (addressId, userId) => {
     set({ isLoading: true, error: null });
     try {
+      if (!userId) {
+        set({ 
+          isLoading: false, 
+          error: 'User ID is required. Please login again.'
+        });
+        return false;
+      }
+      
+      const payload = {
+        ShippingAddressId: addressId,
+        UserId: userId,
+        CompanyId: 3044, // This endpoint requires CompanyId
+        IpAddress: '127.0.0.1',
+        Command: 'Delete'
+      };
+      
       const response = await apiRequest(
         ENDPOINTS.CRUD_SHIPPING_ADDRESS,
         'POST',
-        {
-          ShippingAddressId: addressId,
-          UserId: userId,
-          Company: 3044,
-          IpAddress: '127.0.0.1',
-          Command: 'Delete'
-        }
+        payload
       );
       
       console.log('Shipping address delete response:', JSON.stringify(response, null, 2));
       
       const statusCode = response?.StatusCode || response?.statusCode;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const codeStr = String(responseCode);
       
-      // For delete, the API returns response code 6
-      if (statusCode === 200 && 
-         (responseCode === 6 || responseCode === '6' || 
-          responseCode === RESPONSE_CODES.DELETED_SUCCESS)) {
+      // For shipping address delete, the API returns response code 6
+      if (statusCode === 200 && codeStr === '6') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after deletion
         await get().fetchUserAddresses(userId);
@@ -447,7 +513,10 @@ const useAddressStore = create<AddressState>((set, get) => ({
       isLoading: false,
       error: null
     });
-  }
+  },
+  
+  // Helper to clear error state
+  clearError: () => set({ error: null }),
 }));
 
 export default useAddressStore; 

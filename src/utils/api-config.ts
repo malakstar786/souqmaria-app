@@ -3,7 +3,7 @@
 export const API_BASE_URL = 'https://api.souqmaria.com/api/MerpecWebApi/';
 
 // Product Image Base URL
-export const PRODUCT_IMAGE_BASE_URL = 'https://api.souqmaria.com/ProductImages/';
+export const PRODUCT_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/CompanyLogo/3044/';
 
 // Common parameters used across all API requests
 export const COMMON_PARAMS = {
@@ -29,6 +29,8 @@ export const ENDPOINTS = {
   CRUD_BILLING_ADDRESS: '/CRUD_Billing_Manage_Address/',
   // Shipping Address
   CRUD_SHIPPING_ADDRESS: '/CRUD_Shipping_Manage_Address/',
+  // Wishlist
+  CRUD_WISHLIST: '/CRUD_Wishlist/',
   // Data fetching
   GET_DATA_JSON: '/getData_JSON/',
   GET_ALL_PRODUCT_LIST_DIRECT: 'Get_AllProduct_List',
