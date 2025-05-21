@@ -10,7 +10,7 @@ const ENDPOINTS = {
 const CREDENTIALS = {
   UserName: 'hussain@test.com',
   Password: 'Test@786110',
-  CompanyId: 3044
+  Company: 3044
 };
 
 async function testLogin() {

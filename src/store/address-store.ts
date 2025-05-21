@@ -214,7 +214,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
         {
           BillingAddressId: addressId,
           UserId: userId,
-          CompanyId: 3044,
+          Company: 3044,
           IpAddress: '127.0.0.1',
           Command: 'Delete'
         }
@@ -343,7 +343,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
         {
           ShippingAddressId: addressId,
           UserId: userId,
-          CompanyId: 3044,
+          Company: 3044,
           IpAddress: '127.0.0.1',
           Command: 'Delete'
         }

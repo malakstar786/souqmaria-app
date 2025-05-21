@@ -5,8 +5,8 @@ import {
   RESPONSE_CODES, 
   PLATFORM,
   SP_QUERIES,
-  // COMMON_PARAMS, // No longer needed for all requests here
-  // CULTURE_IDS // No longer needed for registration here
+  COMMON_PARAMS,
+  CULTURE_IDS,
 } from './api-config';
 import axios from 'axios';
 
@@ -53,7 +53,7 @@ interface UpdateUserDetailsPayload {
   Password?: string; // Optional
   UserId: string;
   IpAddress: string;
-  CompanyId: number;
+  Company: number;
 }
 
 export interface SaveBillingAddressPayload {
@@ -72,7 +72,7 @@ export interface SaveBillingAddressPayload {
   IsDefault: boolean | 0 | 1;
   Command: string; // 'Save'
   UserId: string;
-  CompanyId: number;
+  Company: number;
   IpAddress: string;
 }
 
@@ -80,7 +80,7 @@ export interface DeleteBillingAddressPayload {
   BillingAddressId: number;
   UserId: string;
   IpAddress: string;
-  CompanyId: number;
+  Company: number;
   Command: string; // 'Delete'
 }
 
@@ -101,7 +101,7 @@ export interface SaveShippingAddressPayload {
   IsDefault: boolean | 0 | 1;
   Command: string; // 'Save'
   UserId: string;
-  CompanyId: number;
+  Company: number;
   IpAddress: string;
 }
 
@@ -109,14 +109,14 @@ export interface DeleteShippingAddressPayload {
   ShippingAddressId: number;
   UserId: string;
   IpAddress: string;
-  CompanyId: number;
+  Company: number;
   Command: string; // 'Delete'
 }
 
 // Forgot Password Payload
 interface ForgotPasswordPayload {
   Email: string;
-  CompanyId: number;
+  Company: number;
 }
 
 // Get Data JSON Payload
@@ -152,6 +152,47 @@ export interface SearchItem {
   XName: string;
   XCode: string;
   // Add any other relevant fields from the search API response, e.g., image, price
+}
+
+// Product List Item Interface (from Get_AllProduct_List)
+export interface ProductListItem {
+  ItemCode: string; // Assuming this is the key field returned
+  // Potentially other minimal details if provided by Get_AllProduct_List
+  [key: string]: any; // Allow other properties as we don't know the full structure
+}
+
+// Product List Item Interface (from Get_AllProduct_List direct HTTP call)
+export interface DirectProductListItem {
+  ItemCode: string;
+  // Add any other fields directly returned by Get_AllProduct_List endpoint
+  [key: string]: any;
+}
+
+// API response for the direct Get_AllProduct_List HTTP call
+export interface AllProductsDirectResponse {
+  List: DirectProductListItem[] | null;
+  ResponseCode: string; // e.g., "2" for success, "-4" for not found
+  Message: string;
+  // Include other fields if the direct API returns them at the top level
+}
+
+// Product Detail Interface (from Get_ProductDetails_ByItemCode SP)
+export interface ProductDetail {
+  ItemCode: string;
+  ItemName: string;
+  Description: string;
+  Image1: string;
+  Image2: string;
+  Image3: string;
+  ProductBrand: string;
+  Barcode: string;
+  IsWishListItem: boolean;
+  StockQty: number;
+  OldPrice: number;
+  Discount: number;
+  NewPrice: number;
+  // Add any additional fields or computed properties
+  [key: string]: any;
 }
 
 /**
@@ -244,7 +285,7 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
     ...params,
     IpAddress: ipAddress,
     Source: source,
-    CompanyId: 3044, // As per image, CompanyId is an int and fixed
+    Company: 3044, // As per image, Company is an int and fixed
   };
   
   return apiRequest(ENDPOINTS.REGISTER_USER, 'POST', registrationPayload);
@@ -256,7 +297,7 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
 export const loginUser = async (params: LoginUserParams): Promise<ApiResponse> => {
   const loginPayload = {
     ...params,
-    CompanyId: 3044, // As per image, CompanyId is an int and fixed
+    Company: 3044, // As per image, Company is an int and fixed
   };
   
   return apiRequest(ENDPOINTS.LOGIN_USER, 'POST', loginPayload);
@@ -266,7 +307,7 @@ export const loginUser = async (params: LoginUserParams): Promise<ApiResponse> =
  * Update user account details
  */
 export const updateUserDetailsAPI = async (payload: UpdateUserDetailsPayload): Promise<ApiResponse> => {
-  // IpAddress and CompanyId are already in the payload from the store
+  // IpAddress and Company are already in the payload from the store
   // Ensure UserId is present as it's critical
   if (!payload.UserId) {
     console.error('UpdateUserDetailsAPI: UserId is missing in payload');
@@ -529,6 +570,30 @@ export const getCategories = async (cultureId: string = '1', userId: string = ''
 };
 
 /**
+ * Get all category list for Categories tab
+ * @param cultureId Culture ID (defaults to English)
+ * @param userId User ID (optional, pass empty string if not logged in)
+ * @returns API response with all categories data
+ */
+export const getAllCategories = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+  // This also uses GET_DATA_JSON, so it will benefit from the apiRequest update
+  try {
+    const query = SP_QUERIES.GET_ALL_CATEGORY_LIST(cultureId, userId); // This is Get_All_HomePage_Category_List
+    // Use the updated apiRequest directly
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
+
+  } catch (error) {
+    console.error('Error getting all categories:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch all categories. Please try again.',
+      Data: null // Or { success: 0, row: [], Message: '...' }
+    };
+  }
+};
+
+/**
  * Get list of promotional banners
  * @param cultureId Culture ID (defaults to English)
  * @param userId User ID (optional, pass empty string if not logged in)
@@ -722,6 +787,200 @@ export const searchItems = async (
       ResponseCode: RESPONSE_CODES.GENERAL_ERROR,
       Message: errorMessage,
       Data: { success: 0, row: [], Message: errorMessage },
+    };
+  }
+};
+
+// --- Product Listing and Details Functions ---
+
+// Interface for the parameters of getAllProductsDirectly function
+interface GetAllProductsDirectParams {
+  PageCode: string;
+  Category?: string;
+  SubCategory?: string;
+  SearchName?: string;
+  HomePageCatSrNo?: string;
+  CultureId?: string;
+  UserId?: string;
+  Company?: string;
+}
+
+/**
+ * Get list of products using the direct Get_AllProduct_List HTTP GET endpoint.
+ */
+export const getAllProductsDirectly = async (
+  params: GetAllProductsDirectParams
+): Promise<AllProductsDirectResponse> => {
+  const queryParams = new URLSearchParams({
+    Company: params.Company || COMMON_PARAMS.Company,
+    CultureId: params.CultureId || CULTURE_IDS.ENGLISH,
+    PageCode: params.PageCode,
+    Category: params.Category || '',
+    SubCategory: params.SubCategory || '',
+    SearchName: params.SearchName || '',
+    HomePageCatSrNo: params.HomePageCatSrNo || '',
+    UserId: params.UserId || '',
+  }).toString();
+
+  const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_DIRECT}?${queryParams}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    const data: AllProductsDirectResponse = await response.json();
+    if (!response.ok) {
+      // Even if not ok, the body might contain ResponseCode and Message
+      console.error(`Error fetching all products directly: ${response.status}`, data);
+      return { 
+        List: data.List || null,
+        ResponseCode: data.ResponseCode || String(response.status),
+        Message: data.Message || `HTTP error ${response.status}`
+      };
+    }
+    return data;
+  } catch (error) {
+    console.error('Network error in getAllProductsDirectly:', error);
+    return {
+      List: null,
+      ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
+      Message: 'Network request failed. Please check your connection.',
+    };
+  }
+};
+
+/**
+ * Get detailed information for a specific product by its item code using SP_QUERIES.
+ */
+export const getProductDetailsByItemCode = async (
+  itemCode: string,
+  location: string, // e.g., COMMON_PARAMS.Location
+  cultureId: string = '1',
+  userId: string = ''
+): Promise<ApiResponse<{ success: number; row: ProductDetail[]; Message: string }>> => {
+  // Note: SP for details usually returns a single item in the 'row' array.
+  const strQuery = SP_QUERIES.GET_PRODUCT_DETAILS_BY_ITEM_CODE(
+    itemCode,
+    location,
+    cultureId,
+    userId
+  );
+  const payload: GetDataJsonPayload = { strQuery };
+  return apiRequest<{ success: number; row: ProductDetail[]; Message: string }>(
+    ENDPOINTS.GET_DATA_JSON,
+    'POST',
+    payload
+  );
+};
+
+/**
+ * Get special description list for a specific product by its item code.
+ */
+export const getSpecialDescriptionListByItemCode = async (
+  itemCode: string,
+  cultureId: string = '1',
+  userId: string = ''
+): Promise<ApiResponse<{ success: number; row: any[]; Message: string }>> => {
+  const strQuery = SP_QUERIES.GET_SPECIAL_DESCRIPTION_LIST_BY_ITEM_CODE(
+    itemCode,
+    cultureId,
+    userId
+  );
+  const payload: GetDataJsonPayload = { strQuery };
+  return apiRequest<{ success: number; row: any[]; Message: string }>(
+    ENDPOINTS.GET_DATA_JSON,
+    'POST',
+    payload
+  );
+};
+
+// Commented out or removed the old getProductList that used SP_QUERIES.GET_ALL_PRODUCT_LIST
+/*
+export const getProductList = async (
+  params: GetProductListParams
+): Promise<ApiResponse<{ success: number; row: ProductListItem[]; Message: string }>> => {
+  const { 
+    pageCode, 
+    category = '', 
+    subCategory = '', 
+    searchName = '', 
+    homePageCatSrNo = '', 
+    cultureId = '1', 
+    userId = '' 
+  } = params;
+
+  // This SP_QUERY might not exist anymore or was incorrectly named.
+  // const strQuery = SP_QUERIES.GET_ALL_PRODUCT_LIST(
+  //   pageCode,
+  //   category,
+  //   subCategory,
+  //   searchName,
+  //   homePageCatSrNo,
+  //   cultureId,
+  //   userId
+  // );
+  // const payload: GetDataJsonPayload = { strQuery };
+  // return apiRequest<{ success: number; row: ProductListItem[]; Message: string }>(
+  //   ENDPOINTS.GET_DATA_JSON,
+  //   'POST',
+  //   payload
+  // );
+};
+*/
+
+// Define interface for AddToCart request parameters
+export interface AddToCartParams {
+  ItemCode: string;
+  NewPrice: number;
+  OldPrice: number;
+  Discount: number;
+  UserId: string;
+  UniqueId: string;
+  IpAddress: string;
+  Company: string;
+  Location: string;
+  Qty: number;
+}
+
+// Define interface for AddToCart response
+export interface AddToCartResponse {
+  StatusCode?: number;
+  ResponseCode: string | number;
+  Message: string;
+  TrackId?: string | null;
+}
+
+// Implementation of the AddToCart API function
+export const addToCart = async (params: AddToCartParams): Promise<ApiResponse<AddToCartResponse | null>> => {
+  try {
+    const url = `${API_BASE_URL}AddToCart`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    const responseData = await response.json();
+    return {
+      StatusCode: response.status,
+      ResponseCode: responseData.ResponseCode || RESPONSE_CODES.GENERAL_ERROR,
+      Message: responseData.Message || 'Unknown response from server',
+      Data: responseData as AddToCartResponse,
+    };
+  } catch (error: any) {
+    console.error('Error in addToCart:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: error.message || 'An error occurred while adding to cart',
+      Data: null,
     };
   }
 };

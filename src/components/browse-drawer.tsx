@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Modal,
   View,
@@ -40,14 +40,19 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
 
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const slideAnim = useState(new Animated.Value(-DRAWER_WIDTH))[0];
-  const [actuallyVisible, setActuallyVisible] = useState(isVisible);
+  const [actuallyVisible, setActuallyVisible] = useState(false);
+  const isClosingRef = useRef(false);
 
+  // Separate effect for handling visibility changes
   useEffect(() => {
     if (isVisible) {
       setActuallyVisible(true);
+      isClosingRef.current = false;
+      
       if (menuStructure.length === 0 && !isLoading && !error) {
         fetchMenuStructure();
       }
+      
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 300,
@@ -55,36 +60,85 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
         useNativeDriver: true,
       }).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: -DRAWER_WIDTH,
-        duration: 300,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }).start(() => setActuallyVisible(false));
+      // Only trigger closing animation if we're currently visible
+      if (actuallyVisible) {
+        isClosingRef.current = true;
+        Animated.timing(slideAnim, {
+          toValue: -DRAWER_WIDTH,
+          duration: 300,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }).start();
+      }
     }
-  }, [isVisible, slideAnim, menuStructure, isLoading, error, fetchMenuStructure]);
+  }, [isVisible, slideAnim, menuStructure, isLoading, error, fetchMenuStructure, actuallyVisible]);
+  
+  // Monitor animation value for completion
+  useEffect(() => {
+    const id = slideAnim.addListener(({ value }) => {
+      if (isClosingRef.current && value === -DRAWER_WIDTH) {
+        setActuallyVisible(false);
+        isClosingRef.current = false;
+      }
+    });
+    
+    return () => {
+      slideAnim.removeListener(id);
+    };
+  }, [slideAnim]);
 
-  const toggleCategory = (categoryXcode: string) => {
-    const currentlyExpanded = expandedCategories[categoryXcode];
-    if (!currentlyExpanded) {
+  const handleCategoryPress = useCallback((categoryXcode: string, categoryName: string) => {
+    // Navigate to products list with pageCode=MN and category=XCode
+    router.push({
+      pathname: '/products/list',
+      params: {
+        name: categoryName,
+        pageCode: 'MN',
+        category: categoryXcode
+      }
+    });
+    onClose();
+  }, [router, onClose]);
+
+  // Toggle category expansion state
+  const toggleCategory = useCallback((categoryXcode: string) => {
+    setExpandedCategories(prev => {
+      const isCurrentlyExpanded = !!prev[categoryXcode];
+      return {
+        ...prev,
+        [categoryXcode]: !isCurrentlyExpanded,
+      };
+    });
+  }, []);
+
+  // Use an effect to fetch subcategories when expanded state changes
+  useEffect(() => {
+    // Check for newly expanded categories
+    Object.entries(expandedCategories).forEach(([categoryXcode, isExpanded]) => {
+      if (isExpanded) {
         const category = menuStructure.find(c => c.XCode === categoryXcode);
         if (category && 
             (!category.subCategories || category.subCategories.length === 0 || category.errorSubCategories) && 
             !category.isLoadingSubCategories) {
-            fetchSubCategoriesForCategory(categoryXcode);
+          fetchSubCategoriesForCategory(categoryXcode);
         }
-    }
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryXcode]: !prev[categoryXcode],
-    }));
-  };
+      }
+    });
+  }, [expandedCategories, menuStructure, fetchSubCategoriesForCategory]);
   
-  const handleSubCategoryPress = (subCategoryXCode: string, subCategoryName: string) => {
-    console.log(`Navigating to subcategory: ${subCategoryName} (${subCategoryXCode})`);
-    router.push({ pathname: '/categories/' + subCategoryXCode, params: { name: subCategoryName, isSubCategory: 'true' } });
+  const handleSubCategoryPress = useCallback((categoryXcode: string, categoryName: string, subCategoryXCode: string, subCategoryName: string) => {
+    // Navigate to products list with pageCode=MN, category=XCode, and subcategory=XCode
+    router.push({
+      pathname: '/products/list',
+      params: {
+        name: subCategoryName,
+        pageCode: 'MN',
+        category: categoryXcode,
+        subCategory: subCategoryXCode
+      }
+    });
     onClose();
-  };
+  }, [router, onClose]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -99,14 +153,26 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
 
     return menuStructure.map((category) => (
       <View key={category.id} style={styles.categoryContainer}>
-        <TouchableOpacity onPress={() => toggleCategory(category.XCode)} style={styles.categoryHeader}>
-          <Text style={styles.categoryName}>{category.XName}</Text>
-          <FontAwesome 
-            name={expandedCategories[category.XCode] ? 'chevron-up' : 'chevron-down'} 
-            size={16} 
-            color={colors.textGray}
-          />
-        </TouchableOpacity>
+        <View style={styles.categoryHeaderContainer}>
+          <TouchableOpacity
+            onPress={() => handleCategoryPress(category.XCode, category.XName)}
+            style={styles.categoryNameButton}
+          >
+            <Text style={styles.categoryName}>{category.XName}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => toggleCategory(category.XCode)}
+            style={styles.expandButton}
+          >
+            <FontAwesome 
+              name={expandedCategories[category.XCode] ? 'chevron-up' : 'chevron-down'} 
+              size={16} 
+              color={colors.textGray}
+            />
+          </TouchableOpacity>
+        </View>
+        
         {expandedCategories[category.XCode] && (
           <View style={styles.subCategoryListContainer}>
             {category.isLoadingSubCategories && (
@@ -122,7 +188,7 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
               <TouchableOpacity 
                 key={subCat.XCode} 
                 style={styles.subCategoryItem}
-                onPress={() => handleSubCategoryPress(subCat.XCode, subCat.XName)}
+                onPress={() => handleSubCategoryPress(category.XCode, category.XName, subCat.XCode, subCat.XName)}
               >
                 <Text style={styles.subCategoryName}>{subCat.XName}</Text>
               </TouchableOpacity>
@@ -219,11 +285,17 @@ const styles = StyleSheet.create({
   categoryContainer: {
     marginBottom: spacing.md,
   },
-  categoryHeader: {
+  categoryHeaderContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  categoryNameButton: {
+    flex: 1,
     paddingVertical: spacing.md,
+  },
+  expandButton: {
+    padding: spacing.sm,
   },
   categoryName: {
     fontSize: typography.title.fontSize, 
@@ -250,24 +322,23 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.red,
     textAlign: 'center',
-    marginVertical: spacing.md,
-  },
-  subErrorText: {
-    color: colors.red,
-    marginLeft: spacing.md, 
-    marginVertical: spacing.sm,
+    marginTop: spacing.xl,
   },
   emptyText: {
-    textAlign: 'center',
     color: colors.textGray,
-    marginVertical: spacing.md,
+    textAlign: 'center',
+    marginTop: spacing.xl,
   },
   noSubCategoriesText: {
     color: colors.textGray,
-    marginLeft: spacing.md, 
     fontStyle: 'italic',
     marginVertical: spacing.sm,
   },
+  subErrorText: {
+    color: colors.red,
+    fontStyle: 'italic',
+    marginVertical: spacing.sm,
+  }
 });
 
 export default BrowseDrawer; 

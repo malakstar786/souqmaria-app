@@ -84,7 +84,7 @@ const AddEditAddress: React.FC<AddressFormProps> = ({
       IsDefault: addressData.isDefault ? 1 : 0,
       Command: addressId === 0 ? 'Save' : 'Update',
       UserId: user?.id?.toString() || '',
-      CompanyId: 3044,
+      Company: 3044,
       IpAddress: ''
     };
 

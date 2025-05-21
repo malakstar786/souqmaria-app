@@ -2,9 +2,20 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii } from '@theme';
+import { colors, spacing, radii, typography } from '../../../../theme';
 import useAuthStore from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
+
+// Define the Order interface based on usage in this component
+// It can extend or be similar to StoreOrder if that's appropriate
+interface Order {
+  OrderID?: string;
+  OrderNo: string;
+  OrderDate: string;
+  TotalAmount?: number | string;
+  Status?: string;
+  ItemCount?: number;
+}
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -13,23 +24,24 @@ export default function OrdersScreen() {
 
   // Fetch orders when the screen loads
   useEffect(() => {
-    if (user?.id || user?.UserID) {
-      fetchOrders(user.id || user.UserID);
+    const userId = user?.id || user?.UserID;
+    if (userId) {
+      fetchOrders(userId);
     }
-  }, [user]);
+  }, [user, fetchOrders]);
 
   // Handle navigation to order details
-  const handleOrderPress = (order) => {
+  const handleOrderPress = (order: Order) => {
     router.push(`/account/orders/${order.OrderNo}`);
   };
 
   // Format date to a more readable format (e.g., "Jun 15, 2023")
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return 'Unknown Date';
     
     const date = new Date(dateString);
     return isNaN(date.getTime()) 
-      ? dateString // Return original if parsing fails
+      ? dateString 
       : date.toLocaleDateString('en-US', { 
           month: 'short', 
           day: 'numeric', 
@@ -38,13 +50,15 @@ export default function OrdersScreen() {
   };
 
   // Format currency
-  const formatPrice = (price) => {
+  const formatPrice = (price: number | string | undefined | null): string => {
     if (price === undefined || price === null) return '--';
-    return `KD ${parseFloat(price).toFixed(2)}`;
+    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(numericPrice)) return '--';
+    return `KD ${numericPrice.toFixed(2)}`;
   };
 
   // Render an individual order card
-  const renderOrderItem = ({ item }) => (
+  const renderOrderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity 
       style={styles.orderCard} 
       onPress={() => handleOrderPress(item)}
@@ -66,7 +80,7 @@ export default function OrdersScreen() {
         <Text style={styles.itemCount}>
           {item.ItemCount || 0} {item.ItemCount === 1 ? 'item' : 'items'}
         </Text>
-        <FontAwesome name="chevron-right" size={14} color={colors.gray} />
+        <FontAwesome name="chevron-right" size={14} color={colors.textGray} />
       </View>
     </TouchableOpacity>
   );
@@ -106,7 +120,7 @@ export default function OrdersScreen() {
         </View>
       ) : (
         <FlatList
-          data={orders}
+          data={orders as Order[]}
           renderItem={renderOrderItem}
           keyExtractor={(item) => item.OrderID || item.OrderNo || String(Math.random())}
           contentContainerStyle={styles.listContainer}
@@ -127,30 +141,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.medium,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.lightBlue,
   },
   backButton: {
-    padding: spacing.small,
+    padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: typography.title.fontSize,
+    fontWeight: typography.title.fontWeight as 'bold',
     color: colors.blue,
   },
   placeholder: {
-    width: 20, // Same as the back button for alignment
+    width: 20 + spacing.sm * 2,
   },
   errorContainer: {
-    padding: spacing.medium,
+    padding: spacing.md,
     backgroundColor: '#ffebee',
-    marginHorizontal: spacing.medium,
-    marginTop: spacing.medium,
-    borderRadius: radii.small,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: radii.md,
   },
   errorText: {
-    color: '#d32f2f',
+    color: colors.red,
     textAlign: 'center',
+    fontSize: typography.body.fontSize,
   },
   loadingContainer: {
     flex: 1,
@@ -158,20 +174,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing.medium,
-    color: colors.gray,
+    marginTop: spacing.md,
+    color: colors.textGray,
+    fontSize: typography.body.fontSize,
   },
   listContainer: {
-    padding: spacing.medium,
-    paddingBottom: spacing.large,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
   },
   orderCard: {
     backgroundColor: colors.white,
-    borderRadius: radii.medium,
-    padding: spacing.medium,
-    marginBottom: spacing.medium,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.borderLight,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -181,7 +198,7 @@ const styles = StyleSheet.create({
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.small,
+    marginBottom: spacing.sm,
   },
   orderNumber: {
     fontWeight: 'bold',
@@ -189,19 +206,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   orderDate: {
-    color: colors.gray,
+    color: colors.textGray,
     fontSize: 14,
   },
   orderInfo: {
-    marginBottom: spacing.small,
+    marginBottom: spacing.sm,
   },
   orderTotal: {
     fontSize: 15,
     marginBottom: 2,
+    color: colors.text,
   },
   orderStatus: {
     fontSize: 14,
-    color: colors.gray,
+    color: colors.textGray,
   },
   statusText: {
     fontWeight: 'bold',
@@ -211,14 +229,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.small,
-    marginTop: spacing.small,
+    paddingTop: spacing.sm,
+    marginTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
+    borderTopColor: colors.borderLight,
   },
   itemCount: {
     fontSize: 13,
-    color: colors.gray,
+    color: colors.textGray,
   },
   emptyContainer: {
     flex: 1,
@@ -227,15 +245,15 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    marginTop: spacing.medium,
-    fontSize: 18,
+    marginTop: spacing.md,
+    fontSize: typography.title.fontSize,
     fontWeight: 'bold',
-    color: colors.gray,
+    color: colors.textGray,
   },
   emptySubText: {
-    marginTop: spacing.small,
-    fontSize: 14,
-    color: colors.gray,
+    marginTop: spacing.sm,
+    fontSize: typography.body.fontSize,
+    color: colors.textGray,
     textAlign: 'center',
   },
 }); 

@@ -115,7 +115,7 @@ export default function AddShippingAddressScreen() {
         IsDefault: isDefault ? 1 : 0,
         Command: 'Save', // Required parameter as per API docs
         UserId: user.UserID,
-        CompanyId: 3044, // Fixed value as per API docs
+        Company: 3044, // Fixed value as per API docs
         IpAddress: '127.0.0.1', // In a real app, get the actual IP
       };
 

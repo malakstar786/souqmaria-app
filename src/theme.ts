@@ -11,6 +11,7 @@ export const colors = {
   text: '#333333', // Primary text color
   border: '#CCCCCC', // Standard border color
   borderLight: '#EEEEEE', // Lighter border color for dividers
+  backgroundLight: '#F9F9F9', // Light background color for content containers
   // Add other colors from PRD as needed
 };
 

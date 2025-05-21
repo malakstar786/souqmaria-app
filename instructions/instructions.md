@@ -704,268 +704,10 @@ When a user clicks the "Add to Cart" button on the individual product page, a su
 2. Each subpage follows the above layout and color scheme.
 3. User can view/edit details, manage addresses, view orders, manage wishlist, and view company policies.
 
-# Example eCommerce App File Structure
-
-```
-mobile-app
-├── app.json
-├── App.tsx
-├── assets
-│   ├── categories.tsx
-│   ├── icon.png
-│   ├── images
-│   │   ├── fragrance-1.png
-│   │   ├── fragrance-2.png
-│   │   ├── fragrance-hero.png
-│   │   ├── makeup-1.png
-│   │   ├── makeup-2.png
-│   │   ├── nail-care-1.png
-│   │   ├── nail-care-2.png
-│   │   ├── nail-care-3.png
-│   │   ├── nail-care-hero.png
-│   │   └── splash.png
-│   ├── orders.ts
-│   ├── products.ts
-│   └── types
-│       ├── category.ts
-│       ├── order.ts
-│       └── product.ts
-├── babel.config.js
-├── cookies.txt
-├── eas.json
-├── index.ts
-├── instructions
-│   ├── instructions.md
-│   └── UI 
-│       ├── account
-│       │   ├── add-address-new.png
-│       │   ├── add-edit-address.png
-│       │   ├── all-addresses-page.png
-│       │   ├── auth-user-acc-page.png
-│       │   ├── my-details-page.png
-│       │   ├── my-orders-display.png
-│       │   └── unauth-user-acc-page.png
-│       ├── api-examples
-│       │   ├── edit-address.png
-│       │   └── ocsessid-example.png
-│       ├── authentication
-│       │   ├── forgot-pass-page.png
-│       │   ├── sign-in-page.png
-│       │   └── sign-up page.png
-│       ├── cart
-│       │   ├── cart-delete-item.png
-│       │   ├── cart-empty.png
-│       │   └── cart-with-products.png
-│       ├── checkout
-│       │   ├── checkout-no-saved-address.png
-│       │   ├── checkout-with-address.png
-│       │   ├── order-failure-page.png
-│       │   └── order-success-page.png
-│       ├── homepage
-│       │   ├── homepage-first-screen.png
-│       │   └── homepage-second-screen.png
-│       ├── language
-│       │   └── language-selection-splash.png
-│       ├── product-page
-│       │   ├── all-products-page.png
-│       │   └── individual-product-page.png
-│       ├── search
-│       │   ├── search-product-example.png
-│       │   └── search-product.png
-│       └── splash
-│           └── splash.png
-├── package-lock.json
-├── package.json
-├── src
-│   ├── app
-│   │   ├── _layout.tsx
-│   │   ├── (shop)
-│   │   │   ├── _layout.tsx
-│   │   │   ├── account.tsx
-│   │   │   ├── cart.tsx
-│   │   │   ├── index.tsx
-│   │   │   └── search.tsx
-│   │   ├── +not-found.tsx
-│   │   ├── account
-│   │   │   ├── address
-│   │   │   │   └── index.tsx
-│   │   │   ├── details
-│   │   │   │   └── index.tsx
-│   │   │   └── language
-│   │   │       └── index.tsx
-│   │   ├── auth.tsx
-│   │   ├── categories
-│   │   │   ├── _layout.tsx
-│   │   │   └── [slug].tsx
-│   │   ├── checkout
-│   │   │   ├── _layout.tsx
-│   │   │   └── index.tsx
-│   │   ├── forgot-password.tsx
-│   │   ├── language-selection
-│   │   │   └── index.tsx
-│   │   ├── orders
-│   │   │   ├── _layout.tsx
-│   │   │   ├── [slug].tsx
-│   │   │   └── index.tsx
-│   │   ├── product
-│   │   │   ├── _layout.tsx
-│   │   │   ├── [slug].tsx
-│   │   │   └── index.tsx
-│   │   └── signup.tsx
-│   ├── assets
-│   │   ├── americanexpress.png
-│   │   ├── mastercard.png
-│   │   ├── types
-│   │   │   ├── category.ts
-│   │   │   └── product.ts
-│   │   └── visa.png
-│   ├── components
-│   │   ├── add-edit-address.tsx
-│   │   ├── AddressModal.tsx
-│   │   ├── AddressSelectionModal.tsx
-│   │   ├── custom-splash-screen.tsx
-│   │   ├── edit-user-details.tsx
-│   │   ├── language-selection.tsx
-│   │   └── product-list-item.tsx
-│   ├── screens
-│   │   └── language-screen.tsx
-│   ├── store
-│   │   ├── address-store.ts
-│   │   ├── auth-store.ts
-│   │   ├── cart-store.ts
-│   │   ├── language-store.ts
-│   │   └── order-store.ts
-│   ├── theme.ts
-│   ├── types
-│   │   └── api.ts
-│   └── utils
-│       ├── api-config.ts
-│       ├── api-docs-test.ts
-│       ├── api-service.ts
-│       ├── cities.ts
-│       ├── format-price.ts
-│       ├── price-formatter.ts
-│       └── translations.ts
-└── tsconfig.json
-```
-
-The above structure is a clear example of how the file structure and file names should look like. 
 
 # Current Structure
 
 mobile-app-sm
-├── app.json
-├── App.tsx
-├── assets
-│   ├── categories
-│   ├── icon.png
-│   ├── logo.png
-│   ├── order_failed_image.png
-│   ├── order_succesful_image.png
-│   └── pre_login_account.png
-├── babel.config.js
-├── eas.json
-├── index.ts
-├── instructions
-│   ├── instructions.md
-│   ├── reference_instructions.md
-│   └── UI
-│       ├── account
-│       │   ├── account_pre_login.png
-│       │   ├── account_with_login.png
-│       │   ├── my_addresses
-│       │   │   ├── add_address.png
-│       │   │   ├── address_adding_screen.png
-│       │   │   └── edit_address.png
-│       │   ├── my_details
-│       │   │   ├── edit_details.png
-│       │   │   └── my_details.png
-│       │   ├── my_orders.png
-│       │   ├── policies
-│       │   │   └── company_details.png
-│       │   └── wishlist.png
-│       ├── cart
-│       │   ├── cart_delete_item.png
-│       │   ├── cart_with_products.png
-│       │   └── empty_cart.png
-│       ├── categories
-│       │   ├── all_categories_page.png
-│       │   ├── browse_drawer.png
-│       │   └── search_products.png
-│       ├── checkout
-│       │   ├── change_select_address.png
-│       │   ├── guest
-│       │   │   └── guest_checkout.png
-│       │   ├── login
-│       │   │   └── login.png
-│       │   ├── order_failure.png
-│       │   ├── order_success.png
-│       │   ├── post_login_checkout.png
-│       │   └── signup
-│       │       └── signup.png
-│       ├── homepage.png
-│       ├── product_pages
-│       │   ├── addtocart_success.png
-│       │   ├── all_products_page.png
-│       │   ├── brand_filter.png
-│       │   ├── category_filter.png
-│       │   ├── individual_product_page.png
-│       │   ├── price_filter.png
-│       │   └── sort_by.png
-│       └── splash.png
-├── package-lock.json
-├── package.json
-├── src
-│   ├── app
-│   │   ├── (shop)
-│   │   │   ├── _layout.tsx
-│   │   │   ├── account
-│   │   │   │   ├── _layout.tsx
-│   │   │   │   ├── address
-│   │   │   │   ├── details
-│   │   │   │   ├── index.tsx
-│   │   │   │   └── orders
-│   │   │   ├── cart.tsx
-│   │   │   ├── index.tsx
-│   │   │   └── search.tsx
-│   │   ├── +not-found.tsx
-│   │   ├── auth.tsx
-│   │   ├── forgot-password.tsx
-│   │   └── signup.tsx
-│   ├── components
-│   │   ├── add-edit-address.tsx
-│   │   ├── AddressDropdown.tsx
-│   │   ├── browse-drawer.tsx
-│   │   └── CategoryCard.tsx
-│   ├── screens
-│   │   └── account
-│   │       └── AccountScreen.tsx
-│   ├── store
-│   │   ├── address-store.ts
-│   │   ├── advertisement-store.ts
-│   │   ├── auth-store.ts
-│   │   ├── banner-store.ts
-│   │   ├── category-store.ts
-│   │   ├── location-store.ts
-│   │   ├── menu-store.ts
-│   │   ├── order-store.ts
-│   │   └── search-store.ts
-│   ├── theme.ts
-│   └── utils
-│       ├── api-config.ts
-│       ├── api-service.ts
-│       ├── login-debug.js
-│       ├── test-apis.js
-│       ├── test-banner-api.js
-│       ├── test-category-api.js
-│       ├── test-order-details-api.js
-│       ├── test-orders-api.js
-│       └── test-user-login.js
-└── tsconfig.json
-
-28 directories, 81 files
-(base) hus3ain@Hussains-MacBook-Pro mobile-app-sm % tree -L 5 -I 'node_modules|.git'
-.
 ├── app.json
 ├── App.tsx
 ├── assets
@@ -1043,12 +785,16 @@ mobile-app-sm
 │   │   ├── +not-found.tsx
 │   │   ├── auth.tsx
 │   │   ├── forgot-password.tsx
+│   │   ├── products
+│   │   │   ├── _layout.tsx
+│   │   │   └── list.tsx
 │   │   └── signup.tsx
 │   ├── components
 │   │   ├── add-edit-address.tsx
 │   │   ├── AddressDropdown.tsx
 │   │   ├── browse-drawer.tsx
-│   │   └── CategoryCard.tsx
+│   │   ├── CategoryCard.tsx
+│   │   └── ProductCard.tsx
 │   ├── screens
 │   │   └── account
 │   │       └── AccountScreen.tsx
@@ -1074,7 +820,6 @@ mobile-app-sm
 │       ├── test-orders-api.js
 │       └── test-user-login.js
 └── tsconfig.json
-
 
 
 # API Documentation
@@ -1119,7 +864,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/SaveUserRegistration/
 | 4 | Password | String | 48 | User's password | Yes |
 | 5 | IpAddress | String | 128 | User's IP address (obtained from device) | Yes |
 | 6 | Source | String | 10 | Device type ("Android"/"iOS") | Yes |
-| 7 | CompanyId | String | - | Company identifier (fixed: "3044") | Yes |
+| 7 | Company | String | - | Company identifier (fixed: "3044") | Yes |
 
 **Response Structure:**
 
@@ -1266,7 +1011,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 |---|-----------|------|--------|-------------|----------|
 | 1 | UserName | String | 72 | User's email address or mobile number | Yes |
 | 2 | Password | String | 48 | User's password | Yes |
-| 3 | CompanyId | int | - | Company identifier (fixed: 3044) | Yes |
+| 3 | Company | int | - | Company identifier (fixed: 3044) | Yes |
 
 **Response Structure (Success Example):**
 
@@ -1330,7 +1075,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
   ```json
   {
     "Email": "string (72)",
-    "CompanyId": "int (3044)"
+    "Company": "int (3044)"
   }
   ```
 - **Request Parameters Table:**
@@ -1338,7 +1083,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | # | Parameter | Type   | Length | Description             | Required |
 |---|-----------|--------|--------|-------------------------|----------|
 | 1 | Email     | String | 72     | User's registered email | Yes      |
-| 2 | CompanyId | int    | -      | Company ID (fixed: 3044)| Yes      |
+| 2 | Company | int    | -      | Company ID (fixed: 3044)| Yes      |
 
 - **Response Scenarios & Codes:**
   - **Success (Password Sent):** `StatusCode: 200`, `ResponseCode: 2`
@@ -1367,7 +1112,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "Password": "string (48)", // New password. Send empty string or omit if not changing, based on API behavior.
     "UserId": "string (10)",
     "IpAddress": "string (128)",
-    "CompanyId": "int (e.g., 3044)"
+    "Company": "int (e.g., 3044)"
   }
   ```
 - **Response Scenarios & Codes:**
@@ -1412,7 +1157,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Save", // Command to execute
     "UserId": "string (10)", // User's ID
-    "CompanyId": "int (3044)", // Fixed Company ID
+    "Company": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1435,7 +1180,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault        | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command          | String  | 50     | Command (e.g., "Save")          | Yes      |
 | 15| UserId           | String  | 10     | User's ID                       | Yes      |
-| 16| CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| Company          | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress        | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1478,7 +1223,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Update", // Command to execute
     "UserId": "string (10)", // User's ID
-    "CompanyId": "int (3044)", // Fixed Company ID
+    "Company": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1501,7 +1246,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault        | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command          | String  | 50     | Command (must be "Update")      | Yes      |
 | 15| UserId           | String  | 10     | User's ID                       | Yes      |
-| 16| CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| Company          | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress        | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1532,7 +1277,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "BillingAddressId": "int", // Pass the existing address ID to delete
     "UserId": "string (10)", // User's ID
     "IpAddress": "string (100)", // User's IP Address
-    "CompanyId": "int (3044)", // Fixed Company ID
+    "Company": "int (3044)", // Fixed Company
     "Command": "Delete" // Command to execute
   }
   ```
@@ -1543,7 +1288,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 1 | BillingAddressId | int     | -      | Existing Address ID to delete   | Yes      |
 | 2 | UserId           | String  | 10     | User's ID                       | Yes      |
 | 3 | IpAddress        | String  | 100    | User's IP Address               | Yes      |
-| 4 | CompanyId        | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 4 | Company          | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 5 | Command          | String  | 50     | Command (must be "Delete")      | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1588,7 +1333,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Save", // Command to execute
     "UserId": "string (10)", // User's ID
-    "CompanyId": "int (3044)", // Fixed Company ID
+    "Company": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1611,7 +1356,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault         | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command           | String  | 50     | Command (e.g., "Save")          | Yes      |
 | 15| UserId            | String  | 10     | User's ID                       | Yes      |
-| 16| CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| Company           | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress         | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1654,7 +1399,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "IsDefault": "boolean (0 or 1)", // 1 for true, 0 for false
     "Command": "Update", // Command to execute
     "UserId": "string (10)", // User's ID
-    "CompanyId": "int (3044)", // Fixed Company ID
+    "Company": "int (3044)", // Fixed Company
     "IpAddress": "string (100)" // User's IP Address
   }
   ```
@@ -1677,7 +1422,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 13| IsDefault         | Boolean | -      | Set as default (0 or 1)         | Yes      |
 | 14| Command           | String  | 50     | Command (must be "Update")      | Yes      |
 | 15| UserId            | String  | 10     | User's ID                       | Yes      |
-| 16| CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 16| Company         | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 17| IpAddress         | String  | 100    | User's IP Address               | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -1709,7 +1454,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
     "ShippingAddressId": "int", // Pass the existing address ID to delete
     "UserId": "string (10)", // User's ID
     "IpAddress": "string (100)", // User's IP Address
-    "CompanyId": "int (3044)", // Fixed Company ID
+    "Company": "int (3044)", // Fixed Company ID
     "Command": "Delete" // Command to execute
   }
   ```
@@ -1720,7 +1465,7 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
 | 1 | ShippingAddressId | int     | -      | Existing Address ID to delete   | Yes      |
 | 2 | UserId            | String  | 10     | User's ID                       | Yes      |
 | 3 | IpAddress         | String  | 100    | User's IP Address               | Yes      |
-| 4 | CompanyId         | int     | -      | Company ID (fixed: 3044)        | Yes      |
+| 4 | Company         | int     | -      | Company ID (fixed: 3044)        | Yes      |
 | 5 | Command           | String  | 50     | Command (must be "Delete")      | Yes      |
 
 - **Response Scenarios & Codes:**
@@ -2075,10 +1820,58 @@ Future improvements to consider:
   }
   ```
 
+Actual Response for Get_HomePage_Category_List
+
+
+```
+{
+  "success": 1,
+  "row": [
+    {"SrNo": "HC31790001", "CategoryName": "Mobile", "Ordering": 1, "Image": "unnamed (1).png", "HPCType": "HPC2"},
+    {"SrNo": "HC31790002", "CategoryName": "Tablets", "Ordering": 2, "Image": "64d2fe7d22fd6054ca632795-onn-10-1-kids-tablet-32gb-2022.jpg", "HPCType": "HPC2"},
+    {"SrNo": "HC31790003", "CategoryName": "Accessories", "Ordering": 3, "Image": "mobile-accessories-wholesale-500x500.webp", "HPCType": "HPC2"},
+    {"SrNo": "HC31790004", "CategoryName": "Speakers & Headphones", "Ordering": 4, "Image": "20-204377_headphones-speaker-speakers-and-headphones-png.png", "HPCType": "HPC2"},
+    {"SrNo": "HC31790005", "CategoryName": "Smartwatches", "Ordering": 5, "Image": "smartwatchesicon.webp", "HPCType": "HPC2"},
+    {"SrNo": "HC31790006", "CategoryName": "Electronics Appliances", "Ordering": 6, "Image": "home-appliances-250x250.webp", "HPCType": "HPC2"}
+  ],
+  "Message": "Data found."
+}
+```
+
 - **Implementation Notes:**
   - `CategoryName` is the display name.
   - `Image` contains the filename of the category image.
   - `Ordering` determines the display order.
+  - This endpoint is used for the Home tab.
+
+#### 1A. Get All Home Page Category List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a complete list of product categories for display on the Categories tab, including image names.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Get_SM_Apps] 'Get_All_HomePage_Category_List','','','','','',1,3044,''"
+  }
+  ```
+- **Request Parameters Table (for `Sp_Get_SM_Apps`):**
+
+| # | Parameter  | Type   | Length | Description                           |
+|---|------------|--------|--------|---------------------------------------|
+| 1 | Type       | String | 50     | "Get_All_HomePage_Category_List"      |
+| 2 | Value      | String | 50     | Pass empty string                     |
+| 3 | Value1     | String | 50     | Pass empty string                     |
+| 4 | Value2     | String | 50     | Pass empty string                     |
+| 5 | Value3     | String | 50     | Pass empty string                     |
+| 6 | Value4     | String | 50     | Pass empty string                     |
+| 7 | CultureId  | int    | -      | Culture ID (1-English, 2-Arabic)      |
+| 8 | Company    | String | 10     | Company ID (fixed: 3044)              |
+| 9 | UserId     | String | 10     | User ID (pass empty string if not logged in) |
+
+- **Response Structure:** Similar to Get Home Page Category List
+- **Implementation Notes:**
+  - This endpoint returns a more comprehensive list of categories compared to the Home tab version.
+  - All other fields and behavior are similar to the Get Home Page Category List endpoint.
+  - This endpoint is used specifically for the Categories tab.
 
 #### 2. Get Category Image
 - **Base URL:** `https://erp.merpec.com/Upload/HomePage_Category/3044/`
@@ -2141,7 +1934,6 @@ Future improvements to consider:
 #### 1. Get Advertisement List (`getData_JSON/`)
 - **Method:** `POST` (FromBody)
 - **Description:** Retrieves a list of advertisements, typically for display on the homepage.
-- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
 - **Request Body:**
   ```json
   {
@@ -2200,7 +1992,7 @@ These APIs are used to populate the browse drawer menu with categories and their
   - `Type`: "Get_Menu_Category_List"
   - `Value`, `Value1`, `Value2`, `Value3`, `Value4`: Empty strings `''`
   - `CultureId`: e.g., `'1'` for English
-  - `CompanyId`: `'3044'`
+  - `Company`: `'3044'`
   - `UserId`: User ID or empty string `''`
 - **Example `strQuery`:** `[Web].[Sp_Get_SM_Apps] 'Get_Menu_Category_List','','','','','','1','3044',''`
 - **Response Structure (Success Example - `Data` field content):**
@@ -2235,7 +2027,7 @@ These APIs are used to populate the browse drawer menu with categories and their
   - `Value`: Main Category `XCode` (e.g., `'MOB'`)
   - `Value1`, `Value2`, `Value3`, `Value4`: Empty strings `''`
   - `CultureId`: e.g., `'1'` for English
-  - `CompanyId`: `'3044'`
+  - `Company`: `'3044'`
   - `UserId`: User ID or empty string `''`
 - **Example `strQuery` (for main category with XCode 'MOB'):** `[Web].[Sp_Get_SM_Apps] 'Get_Menu_SubCategory_List_ByCategory','MOB','','','','','1','3044',''`
 - **Response Structure (Success Example - `Data` field content):**
@@ -2276,7 +2068,7 @@ This API is used to get a list of item names based on a search query, typically 
   - `Value3`: Empty string `''`
   - `Value4`: Empty string `''`
   - `CultureId`: e.g., `'1'` for English
-  - `CompanyId`: `'3044'`
+  - `Company`: `'3044'`
   - `UserId`: User ID or empty string `''` (pass if available)
 - **Example `strQuery` (searching for "Mascara")**: `[Web].[Sp_Get_SM_Apps] 'Get_ItemName_List_BySearch','Mascara','','','','','1','3044',''`
 
@@ -2329,4 +2121,336 @@ This API is used to get a list of item names based on a search query, typically 
   - The UI should display these items in a dropdown list below the search bar.
   - Tapping an item should typically navigate the user to the product details page for that item.
 
-// ... continue with the rest of the documentation ...
+### Product Listing API
+
+This API is used to get a list of products based on different criteria, such as navigating from a homepage category or the menu drawer.
+
+#### 1. Get All Product List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of products. The behavior depends on the `PageCode` and other parameters provided.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery` (Example: Navigating from Homepage Category):
+  - `Type`: "Get_AllProduct_List"
+  - `Value (PageCode)`: e.g., "Hctds,Prmtrs,HPCL,HPCt" (for homepage category click) or "MN" (for menu navigation)
+  - `Value1 (Category)`: Category Xcode (Pass empty string if `HomePageCatSrNo` is used, or relevant Category XCode for menu navigation)
+  - `Value2 (SubCategory)`: SubCategory Xcode (Pass empty string or relevant SubCategory XCode for menu navigation)
+  - `Value3 (SearchName)`: Search term (Pass empty string if not a search context)
+  - `Value4 (HomePageCatSrNo)`: SrNo of the category clicked on the homepage (or empty string if using menu navigation).
+  - `CultureId`: e.g., `'1'` for English
+  - `Company`: `'3044'`
+  - `UserId`: User ID or empty string `''`
+- **Example `strQuery` (Homepage Category SrNo 'HC001'):** 
+  `[Web].[Sp_Get_SM_Apps] 'Get_AllProduct_List','Hctds,Prmtrs,HPCL,HPCt','','','','HC001','1','3044',''`
+- **Example `strQuery` (Menu Category Navigation with Category XCode 'MOB'):** 
+  `[Web].[Sp_Get_SM_Apps] 'Get_AllProduct_List','MN','MOB','','','','1','3044',''`
+- **Example `strQuery` (Menu SubCategory Navigation with Category XCode 'MOB' and SubCategory XCode 'MOB_IPHONE'):** 
+  `[Web].[Sp_Get_SM_Apps] 'Get_AllProduct_List','MN','MOB','MOB_IPHONE','','','1','3044',''`
+
+- **Request Parameters Table (for `Sp_Get_SM_Apps` with `Type = Get_AllProduct_List`):
+
+| # | Parameter         | Type   | Length | Description                           | Notes / Example Value          |
+|---|-------------------|--------|--------|---------------------------------------|--------------------------------|
+| 1 | Type              | String | 50     | Defines the action to perform         | "Get_AllProduct_List"          |
+| 2 | Value (PageCode)  | String | 50     | Code indicating navigation source     | "Hctds,Prmtrs,HPCL,HPCt" for homepage category<br>"MN" for menu navigation |
+| 3 | Value1 (Category) | String | 50     | Category Xcode                        | Pass `''` if using `HomePageCatSrNo`<br>Pass Category XCode (e.g., "MOB") for menu navigation |
+| 4 | Value2 (SubCategory)| String | 50   | SubCategory Xcode                     | Pass `''` or SubCategory XCode (e.g., "MOB_IPHONE") for menu navigation |
+| 5 | Value3 (SearchName)| String | 50    | Search term                           | Pass `''` if not a search context |
+| 6 | Value4 (HomePageCatSrNo)| String | 50 | Homepage Category SrNo              | e.g., "HC001" for homepage navigation<br>Pass `''` for menu navigation |
+| 7 | CultureId         | int    | -      | Culture ID for localization           | "1" (English), "2" (Arabic)    |
+| 8 | Company           | String | 10     | Company identifier                    | "3044"                         |
+| 9 | UserId            | String | 10     | User ID for personalized content      | Pass User ID or empty string `''` |
+
+- **Expected Response Structure (Success Example - `Data` field content from `getData_JSON`):
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ItemCode": "ITM000123"
+        // Potentially other minimal product identifiers or flags
+      },
+      // ... more items
+    ],
+    "Message": "Data found."
+  }
+  ```
+  *Note: This API is expected to return a list of `ItemCode`s. Full details for each item must be fetched using `Get_ProductDetails_ByItemCode`.*
+
+- **Response Scenarios (from `getData_JSON` `Data` field):
+  - `success: 1`: Product list (of ItemCodes) found in `row`.
+  - `success: 0`: No products found, `row` is empty. `Message` indicates "Data not found."
+  - HTTP errors from `getData_JSON` call itself are handled by the `apiRequest` wrapper.
+
+### Product Details API
+
+This API is used to get detailed information for a single product using its ItemCode.
+
+#### 1. Get Product Details By ItemCode (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves detailed information for a specific product.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery`:
+  - `Type`: "Get_ProductDetails_ByItemCode"
+  - `Value (ItemCode)`: The `ItemCode` of the product.
+  - `Value1 (Location)`: Location code (`'304401HO'` from `COMMON_PARAMS.Location`).
+  - `Value2`: Empty string `''`
+  - `Value3`: Empty string `''`
+  - `Value4`: Empty string `''`
+  - `CultureId`: e.g., `'1'` for English
+  - `Company`: `'3044'`
+  - `UserId`: User ID or empty string `''`
+- **Example `strQuery` (ItemCode 'IM31790673', Location '304401HO'):** 
+  `[Web].[Sp_Get_SM_Apps] 'Get_ProductDetails_ByItemCode','IM31790673','304401HO','','','','1','3044',''`
+
+- **Request Parameters Table (for `Sp_Get_SM_Apps` with `Type = Get_ProductDetails_ByItemCode`):
+
+| # | Parameter         | Type   | Length | Description                           | Notes / Example Value      |
+|---|-------------------|--------|--------|---------------------------------------|----------------------------|
+| 1 | Type              | String | 50     | Defines the action to perform         | "Get_ProductDetails_ByItemCode"|
+| 2 | Value (ItemCode)  | String | 50     | Product's Item Code                   | e.g., "IM31790673"          |
+| 3 | Value1 (Location) | String | 50     | Location Code                         | e.g., "304401HO"           |
+| 4 | Value2            | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 5 | Value3            | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 6 | Value4            | String | 50     | Generic parameter, not used           | Pass empty string `''`      |
+| 7 | CultureId         | int    | -      | Culture ID for localization           | "1" (English), "2" (Arabic)|
+| 8 | Company           | String | 10     | Company identifier                    | "3044"                     |
+| 9 | UserId            | String | 10     | User ID for personalized content      | Pass User ID or empty string `''` |
+
+- **Actual Response Structure (Success Example - for ItemCode 'IM31790673'):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "Image1": "7587878907130228_cff50d95.png",
+        "Image2": "7587877867267795_76a31fe9.png",
+        "Image3": "Default.jpg",
+        "ProductBrand": "Apple",
+        "ItemCode": "IM31790673",
+        "ItemName": "IPhone 6 Mobile 64 GB Model A1586",
+        "Description": "The iPhone 6 (Model A1586) is a smartphone released by Apple in 2014, offering a sleek design and an improved user experience over previous iPhone models. The 64GB storage variant offers ample space for apps, photos, videos, and other content...",
+        "Barcode": "888462062954",
+        "IsWishListItem": false,
+        "StockQty": 2,
+        "OldPrice": 0,
+        "Discount": 0,
+        "NewPrice": 20
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Field Descriptions:**
+  - `Image1`, `Image2`, `Image3`: Image filenames for product photos
+  - `ProductBrand`: Brand name (e.g., "Apple")
+  - `ItemCode`: Unique product identifier 
+  - `ItemName`: Display name of the product
+  - `Description`: Detailed product description
+  - `Barcode`: Product barcode
+  - `IsWishListItem`: Boolean indicating if the product is in the user's wishlist
+  - `StockQty`: Available stock quantity
+  - `OldPrice`: Original price (if there's a discount)
+  - `Discount`: Discount amount
+  - `NewPrice`: Current price (after discount)
+
+- **Response Scenarios (from `getData_JSON` `Data` field):
+  - `success: 1`: Product details found in `row[0]`.
+  - `success: 0`: Product details not found, `row` is empty. `Message` indicates "Data not found."
+
+### Product Search API
+// ... existing content of Product Search API ...
+
+### Product Listing & Details APIs
+
+This section covers the two-step process to list products and then get their details.
+
+#### 1. Get All Product List (Direct API Call)
+
+- **Method:** `GET`
+- **Endpoint:** `Get_AllProduct_List` (e.g., `https://api.souqmaria.com/api/MerpecWebApi/Get_AllProduct_List`)
+- **Description:** Retrieves a list of product identifiers (ItemCodes) based on various criteria. This is a direct HTTP GET request, not via `getData_JSON`.
+- **Request Parameters (Query Parameters / FromUri):
+
+| Parameter         | Type   | Length | Description                                     | Required | Example Value                |
+|-------------------|--------|--------|-------------------------------------------------|----------|------------------------------|
+| `PageCode`        | String | 10     | Code indicating which category to call          | Yes      | `HPC2`                       |
+| `Category`        | String | max    | Category Xcode                                  | No       | `CAT001`                     |
+| `SubCategory`     | String | max    | Sub Category Xcode                              | No       | `SUBCAT005`                  |
+| `SearchName`      | String | max    | Search Text Value                               | No       | `Lipstick`                   |
+| `HomePageCatSrNo` | String | max    | Homepage Category SrNo (Srno of homepage category)| No     | `HC31790001`                 |
+| `UserId`          | String | 10     | User's ID                                       | No       | `USER123`                    |
+| `Company`         | int    | -      | Company Identifier                              | Yes      | `3044`                       |
+| `CultureId`       | int    | -      | Culture ID (1 for English, 2 for Arabic)        | Yes      | `1`                          |
+
+- **Notes on `PageCode` from API Documentation Image:**
+  - Search: `Srch` (and pass `SearchName`)
+  - Menu (Category only): `MN` (and pass `Category` Xcode)
+  - Menu (Category & SubCategory): `MN` (and pass `Category` Xcode and `SubCategory` Xcode)
+  - Homepage Category / Categories Tab: `HPC2` (and pass `HomePageCatSrNo`)
+  - Banner / Advertisement: Same as menu.
+
+- **Expected Response Structure (Success Example):
+  ```json
+  {
+    "List": [
+      { "ItemCode": "ITM000123" },
+      { "ItemCode": "ITM000456" }
+      // ... more items
+    ],
+    "ResponseCode": "2",
+    "Message": "List Found"
+  }
+  ```
+
+- **Expected Response Structure (Not Found / Error Example):
+  ```json
+  {
+    "List": null,
+    "ResponseCode": "-4",
+    "Message": "List not Found"
+  }
+  ```
+  Other error codes like `"-6"` (Server side validation) or `"-2"` (Something went wrong) are also possible.
+
+### Product Images for All Products Page
+
+To display product images on the All Products Page (category listing), use the following URL pattern:
+
+```
+https://erp.merpec.com/Upload/CompanyLogo/3044/{imageName}
+```
+
+- Replace `{imageName}` with the value of the `Item_Image1` field from the product API response for each product.
+- Example: If `Item_Image1` is `74ebc450_IM31110511_1.png`, the image URL will be:
+  `https://erp.merpec.com/Upload/CompanyLogo/3044/74ebc450_IM31110511_1.png`
+
+This should be used for rendering product images in the grid/list as per the UI design.
+
+### AddToCart API
+
+**Endpoint:** `https://api.souqmaria.com/api/MerpecWebApi/AddToCart`
+
+**Method:** POST
+
+**Parameters:**
+
+| Parameter | Type   | Required | Description                                     |
+|-----------|--------|----------|-------------------------------------------------|
+| ItemCode  | string | Yes      | Product code/SKU                                |
+| NewPrice  | number | Yes      | Current price of the product                    |
+| OldPrice  | number | Yes      | Original price of the product (if discounted)   |
+| Discount  | number | Yes      | Discount amount                                 |
+| UserId    | string | No       | User ID for logged in users (empty for guests)  |
+| UniqueId  | string | Yes      | Unique identifier for the cart item             |
+| IpAddress | string | Yes      | IP address of the client                        |
+| Company   | string | Yes      | Company code (typically '3044')                 |
+| Location  | string | Yes      | Location code (typically '304401HO')            |
+| Qty       | number | Yes      | Quantity of the product to add                  |
+
+**Example Request:**
+```json
+{
+  "ItemCode": "IM31790673",
+  "NewPrice": 20,
+  "OldPrice": 0,
+  "Discount": 0,
+  "UserId": "",
+  "UniqueId": "test-1623456789",
+  "IpAddress": "127.0.0.1",
+  "Company": "3044",
+  "Location": "304401HO", 
+  "Qty": 1
+}
+```
+
+**Example Response (Success):**
+```json
+{
+  "ResponseCode": "2",
+  "Message": "Item added to your cart.",
+  "TrackId": null
+}
+```
+
+**Response Codes:**
+
+| Code  | Description                                          |
+|-------|------------------------------------------------------|
+| 2     | Success - Item added to cart successfully            |
+| 4     | Updated - Item already in cart, quantity updated     |
+| -4    | Error - Stock not available                          |
+| -10   | Error - General error with message                   |
+
+**Implementation Notes:**
+- The `UniqueId` should be generated dynamically for each new cart item, typically using a timestamp.
+- For guest users, pass an empty string for `UserId`.
+- In mobile apps, `IpAddress` can be set to a default value like "127.0.0.1" since getting the actual device IP may not be straightforward.
+- Response should be handled based on the `ResponseCode` value, showing appropriate UI feedback to the user.
+
+#### 2. Get Special Description List By ItemCode (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves detailed descriptive information for a specific product, organized by sections.
+- **Stored Procedure:** `[Web].[Sp_Get_SM_Apps]`
+- **Request Body Parameters for `strQuery`:**
+  - `Type`: "Get_Special_Description_List_ByItemCode"
+  - `Value (ItemCode)`: The `ItemCode` of the product.
+  - `Value1`: Empty string `''`
+  - `Value2`: Empty string `''`
+  - `Value3`: Empty string `''`
+  - `Value4`: Empty string `''`
+  - `CultureId`: e.g., `'1'` for English
+  - `Company`: `'3044'`
+  - `UserId`: User ID or empty string `''`
+- **Example `strQuery` (ItemCode 'IM31790673'):** 
+  `[Web].[Sp_Get_SM_Apps] 'Get_Special_Description_List_ByItemCode','IM31790673','','','','','1','3044',''`
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "Title": "Dimensions",
+        "Description": "Height: 6.1 inches, Width: 2.9 inches, Depth: 0.3 inches"
+      },
+      {
+        "Title": "Display",
+        "Description": "6.4-inch AMOLED, 90Hz refresh rate, 1080 x 2400 pixels"
+      },
+      // ... more description items
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Structure (No Data Found):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - This API provides detailed technical specifications and feature descriptions for products.
+  - Each row in the response represents a separate section of product details with a title and description.
+  - Sections are typically displayed in the product details page under the main product description.
+  - If no special descriptions are available for a product, the API will return with `success: 0` and an empty `row` array.
+  - The implementation should handle both success and no-data scenarios gracefully.
+
+**Request Parameters Table:**
+
+| # | Parameter  | Type   | Length | Description                           |
+|---|------------|--------|--------|---------------------------------------|
+| 1 | Type       | String | 50     | "Get_Special_Description_List_ByItemCode" |
+| 2 | Value      | String | 50     | Product ItemCode                      |
+| 3 | Value1     | String | 50     | Pass empty string                     |
+| 4 | Value2     | String | 50     | Pass empty string                     |
+| 5 | Value3     | String | 50     | Pass empty string                     |
+| 6 | Value4     | String | 50     | Pass empty string                     |
+| 7 | CultureId  | int    | -      | Culture ID (1-English, 2-Arabic)      |
+| 8 | Company    | String | 10     | Company ID (fixed: 3044)              |
+| 9 | UserId     | String | 10     | User ID (pass empty string if not logged in) |
+

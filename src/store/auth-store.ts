@@ -26,7 +26,7 @@ interface UpdateUserPayload {
   Password?: string;
   UserId: string;
   IpAddress: string;
-  CompanyId: number;
+  Company: number;
 }
 
 // Types for API requests and responses
@@ -226,7 +226,7 @@ export const useAuthStore = create<AuthState>()(
       forgotPassword: async (email: string) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await forgotPassword({ Email: email, CompanyId: 3044 });
+          const response = await forgotPassword({ Email: email, Company: 3044 });
           if (response.StatusCode === 200 && String(response.ResponseCode) === RESPONSE_CODES.SUCCESS) {
             set({ isLoading: false, error: null });
             return { success: true, message: response.Message };

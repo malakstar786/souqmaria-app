@@ -34,11 +34,14 @@ const useSearchStore = create<SearchState>((set, get) => ({
       set({ searchResults: [], isLoading: false, error: null });
       return;
     }
+    
+    // Reset error state when starting a new search
     set({ isLoading: true, error: null });
+    
     try {
+      console.log(`Searching for: "${currentSearchQuery}"`);
       const response = await searchItems(currentSearchQuery);
-
-      // console.log(`Search API Response for "${currentSearchQuery}":`, JSON.stringify(response.Data, null, 2));
+      console.log(`Search API response status: ${response.StatusCode}, responseCode: ${response.ResponseCode}`);
 
       if (response.StatusCode === 200) {
         if (response.Data?.success === 1 && Array.isArray(response.Data.row)) {
@@ -46,6 +49,8 @@ const useSearchStore = create<SearchState>((set, get) => ({
           const validApiResults = response.Data.row.filter(
             (item: SearchItem) => item.XName && typeof item.XName === 'string' && item.XName.trim() !== '' && item.XCode
           );
+
+          console.log(`Search results: ${validApiResults.length} valid items found in API response`);
 
           if (validApiResults.length === 0) {
              set({
@@ -64,7 +69,7 @@ const useSearchStore = create<SearchState>((set, get) => ({
             searchRegex.test(item.XName)
           );
 
-          // console.log(`Client filtered ${clientFilteredResults.length} results from ${validApiResults.length} API results for query "${currentSearchQuery}"`);
+          console.log(`Client filtered ${clientFilteredResults.length} results from ${validApiResults.length} API results`);
 
           if (clientFilteredResults.length > 0) {
             set({
@@ -81,6 +86,7 @@ const useSearchStore = create<SearchState>((set, get) => ({
           }
         } else {
           // API reported success: 0 or unexpected Data.row structure
+          console.log(`Search API success != 1 or row not an array: ${JSON.stringify(response.Data?.success)}`);
           set({
             searchResults: [],
             isLoading: false,
@@ -89,6 +95,7 @@ const useSearchStore = create<SearchState>((set, get) => ({
         }
       } else {
         // HTTP error or other API error
+        console.log(`Search API error: ${response.StatusCode}, ${response.Message}`);
         set({
           searchResults: [],
           isLoading: false,
@@ -106,7 +113,7 @@ const useSearchStore = create<SearchState>((set, get) => ({
   },
 
   clearSearchResults: () => {
-    set({ searchQuery: '', searchResults: [], isLoading: false, error: null });
+    set({ searchResults: [], error: null });
   },
   
   clearError: () => {

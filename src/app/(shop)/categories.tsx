@@ -16,7 +16,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, radii, typography } from '@theme';
-import useCategoryStore from '../../store/category-store';
+import useAllCategoryStore from '../../store/all-category-store';
 import CategoryCard from '../../components/CategoryCard';
 import useSearchStore from '../../store/search-store';
 import { SearchItem } from '../../utils/api-service';
@@ -32,8 +32,8 @@ export default function CategoriesScreen() {
     categories, 
     isLoading: isLoadingCategories, 
     error: errorCategories, 
-    fetchCategories 
-  } = useCategoryStore();
+    fetchAllCategories 
+  } = useAllCategoryStore();
   
   const {
     searchQuery,
@@ -48,8 +48,8 @@ export default function CategoriesScreen() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
-    fetchCategories('1', ''); // CultureId '1' for English, empty UserId
-  }, [fetchCategories]);
+    fetchAllCategories('1', ''); // CultureId '1' for English, empty UserId
+  }, [fetchAllCategories]);
 
   const debouncedSearch = useCallback(
     debounce((query: string) => {
@@ -69,8 +69,23 @@ export default function CategoriesScreen() {
 
   const handleSearchSubmit = () => {
     Keyboard.dismiss();
-    if (searchQuery.trim().length > 1) {
-      performSearch(searchQuery);
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery.length > 0) {
+      // Clear current suggestions and search query in store before navigating
+      clearSearchResults(); 
+      // setSearchQuery(''); // Keep the query in the input for the new page, or clear based on UX preference
+
+      router.push({
+        pathname: '/products/list',
+        params: {
+          pageCode: 'Srch',
+          searchName: trimmedQuery,
+          name: trimmedQuery, // For screen title on products/list
+        },
+      });
+    } else {
+      // Optionally handle empty search submission, e.g., show a toast or do nothing
+      console.log('Empty search submitted');
     }
   };
 
@@ -84,7 +99,15 @@ export default function CategoriesScreen() {
   const handleCartPress = () => router.push('/cart');
 
   const handleCategoryPress = (category: any) => {
-    router.push({ pathname: `/categories/${category.SrNo}`, params: { name: category.CategoryName } });
+    console.log("Navigating to category:", category.CategoryName, "SrNo:", category.SrNo, "HPCType:", category.HPCType);
+    router.push({
+      pathname: `/products/list`,
+      params: { 
+        homePageCatSrNo: category.SrNo,
+        pageCode: category.HPCType || 'HPC2', // HPC2 as fallback for homepage category type
+        name: category.CategoryName 
+      }
+    });
   };
 
   const renderCategoryItem = ({ item, index }: { item: any, index: number }) => (

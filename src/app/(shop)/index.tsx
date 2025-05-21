@@ -123,8 +123,16 @@ export default function HomeScreen() {
         clearSearchResults();
       }
     }, 500), // 500ms debounce delay
-    [performSearch, clearSearchResults]
+    [] // Empty dependency array to prevent re-creation of the debounced function on each render
   );
+
+  // Wrap the debounced function call in a useEffect for cleanup
+  useEffect(() => {
+    return () => {
+      // Cancel any pending debounced calls when the component unmounts
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
 
   const handleSearchTextChange = (text: string) => {
     setSearchQuery(text);
@@ -134,12 +142,18 @@ export default function HomeScreen() {
   const handleSearchSubmit = () => {
     Keyboard.dismiss();
     if (searchQuery.trim()) {
-      // For now, submitting search via enter key will also just use the suggestions logic
-      // Or navigate to a full search results page if that's the desired UX
-      // router.push({ pathname: '/search', params: { query: searchQuery } });
-      if (searchQuery.trim().length > 1) {
-        performSearch(searchQuery.trim());
-      }
+      // Navigate to products/list page with search parameters
+      router.push({
+        pathname: '/products/list',
+        params: { 
+          pageCode: 'Srch',
+          searchName: searchQuery.trim(),
+          name: `Search: "${searchQuery.trim()}"` 
+        }
+      });
+      // Clear search query and results
+      setSearchQuery('');
+      clearSearchResults();
     }
   };
 
@@ -151,9 +165,17 @@ export default function HomeScreen() {
     router.push({ pathname: `/product/${item.XCode}`, params: { name: item.XName } });
   };
 
-  const handleCartPress = () => router.push('/cart');
-  const handleCategoryPress = (category: any) => {
-    router.push({ pathname: `/categories/${category.SrNo}`, params: { name: category.CategoryName } });
+  const handleCartPress = () => router.push('/(shop)/cart');
+  const handleCategoryPress = (category: Category) => {
+    console.log("Navigating to category:", category.CategoryName, "SrNo:", category.SrNo, "HPCType:", category.HPCType);
+    router.push({
+      pathname: `/products/list`,
+      params: { 
+        homePageCatSrNo: category.SrNo,
+        pageCode: category.HPCType,
+        name: category.CategoryName 
+      }
+    });
   };
   const handleBannerPress = (tagUrl: string | null) => {
     if (tagUrl) {

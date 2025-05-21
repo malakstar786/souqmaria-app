@@ -96,7 +96,7 @@ export default function AccountDetailsScreen() {
       Password: newPassword || '', // Only send if provided
       UserId: user.UserID, 
       IpAddress: '127.0.0.1', // This should be properly obtained in production
-      CompanyId: 3044, 
+      Company: 3044, 
     };
 
     console.log('Sending update payload:', payload); // Debug log
