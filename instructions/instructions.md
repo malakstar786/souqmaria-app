@@ -1343,6 +1343,236 @@ POST https://api.souqmaria.com/api/MerpecWebApi/UserLogin/
   - A successful delete operation returns `ResponseCode: 6` rather than `2` as used for save/update operations.
   - After deletion, you should update the UI to remove the deleted address from the list.
 
+#### 4. Get Billing Address List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of billing addresses for the user.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM]'Get_BillingAddress_List','USER_ID','','','','',1,3044"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     | Required |
+|---|-----------|--------|--------|---------------------------------|----------|
+| 1 | Type      | String | 50     | Pass "Get_BillingAddress_List"  | Yes      |
+| 2 | Value     | String | 50     | Pass User Id                    | Yes      |
+| 3 | Value1    | String | 50     | Pass Empty string               | No       |
+| 4 | Value2    | String | 50     | Pass Empty string               | No       |
+| 5 | Value3    | String | 50     | Pass Empty string               | No       |
+| 6 | Value4    | String | 50     | Pass Empty string               | No       |
+| 7 | CultureId | int    | -      | Culture ID (1-English, 2-Arabic)| Yes      |
+| 8 | Company   | int    | -      | Company ID (fixed: 3044)        | Yes      |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "BillingAddressId": 123,
+        "FullName": "Example User",
+        "Mobile": "12345678",
+        "Address": "Block - 1, Street - 2, House/Building - 3, Apartment No. - 4",
+        "Address2": "Optional additional address line",
+        "Country": "Kuwait",
+        "State": "Kuwait City",
+        "City": "Al Soor",
+        "IsDefault": true,
+        "Email": "user@example.com"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Structure (No Addresses):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+#### 5. Get Shipping Address List (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves a list of shipping addresses for the user.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM]'Get_ShippingAddress_List','USER_ID','','','','',1,3044"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                       | Required |
+|---|-----------|--------|--------|-----------------------------------|----------|
+| 1 | Type      | String | 50     | Pass "Get_ShippingAddress_List"   | Yes      |
+| 2 | Value     | String | 50     | Pass User Id                      | Yes      |
+| 3 | Value1    | String | 50     | Pass Empty string                 | No       |
+| 4 | Value2    | String | 50     | Pass Empty string                 | No       |
+| 5 | Value3    | String | 50     | Pass Empty string                 | No       |
+| 6 | Value4    | String | 50     | Pass Empty string                 | No       |
+| 7 | CultureId | int    | -      | Culture ID (1-English, 2-Arabic)  | Yes      |
+| 8 | Company   | int    | -      | Company ID (fixed: 3044)          | Yes      |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ShippingAddressId": 332,
+        "FullName": "Hussain Test User",
+        "Mobile": "12345678",
+        "Address": "Block - 1, Street - 2, House/Building - 4, Apartment No. - 3",
+        "Address2": "White house",
+        "Country": "Kuwait",
+        "State": "Kuwait City",
+        "City": "Al Soor Gradens -BLOCK1",
+        "IsDefault": true,
+        "Email": "hussain@test.com"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Structure (No Addresses):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+#### 6. Get Billing Address Details (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves details of a specific billing address.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM] 'Get_BillingAddress_ByBillingAddressId','BILLING_ADDRESS_ID','USER_ID','','','',1,3044"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                            | Required |
+|---|-----------|--------|--------|----------------------------------------|----------|
+| 1 | Type      | String | 50     | Pass "Get_BillingAddress_ByBillingAddressId" | Yes      |
+| 2 | Value     | String | 50     | Pass Billing Address Id                | Yes      |
+| 3 | Value1    | String | 50     | Pass User Id                           | Yes      |
+| 4 | Value2    | String | 50     | Pass Empty string                      | No       |
+| 5 | Value3    | String | 50     | Pass Empty string                      | No       |
+| 6 | Value4    | String | 50     | Pass Empty string                      | No       |
+| 7 | CultureId | int    | -      | Culture ID (1-English, 2-Arabic)       | Yes      |
+| 8 | Company   | int    | -      | Company ID (fixed: 3044)               | Yes      |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "BillingAddressId": 123,
+        "FullName": "Example User",
+        "Email": "user@example.com",
+        "Mobile": "12345678",
+        "Country": 69,
+        "State": 242,
+        "City": 2119,
+        "Block": "1",
+        "Street": "2",
+        "House": "3",
+        "Apartment": "4",
+        "Address2": "Optional additional address line",
+        "IsDefault": true,
+        "CountryName": "Kuwait",
+        "StateName": "Kuwait City",
+        "CityName": "Al Soor"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Structure (No Address Found):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+#### 7. Get Shipping Address Details (`getData_JSON/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Retrieves details of a specific shipping address.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Manage_Address_Apps_SM] 'Get_ShippingAddress_ByShippingAddressId','SHIPPING_ADDRESS_ID','USER_ID','','','',1,3044"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                              | Required |
+|---|-----------|--------|--------|------------------------------------------|----------|
+| 1 | Type      | String | 50     | Pass "Get_ShippingAddress_ByShippingAddressId" | Yes      |
+| 2 | Value     | String | 50     | Pass Shipping Address Id                 | Yes      |
+| 3 | Value1    | String | 50     | Pass User Id                             | Yes      |
+| 4 | Value2    | String | 50     | Pass Empty string                        | No       |
+| 5 | Value3    | String | 50     | Pass Empty string                        | No       |
+| 6 | Value4    | String | 50     | Pass Empty string                        | No       |
+| 7 | CultureId | int    | -      | Culture ID (1-English, 2-Arabic)         | Yes      |
+| 8 | Company   | int    | -      | Company ID (fixed: 3044)                 | Yes      |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ShippingAddressId": 332,
+        "FullName": "Hussain Test User",
+        "Email": "hussain@test.com",
+        "Mobile": "12345678",
+        "Country": 69,
+        "State": 242,
+        "City": 2119,
+        "Block": "1",
+        "Street": "2",
+        "House": "4",
+        "Apartment": "3",
+        "Address2": "White house",
+        "IsDefault": true,
+        "CountryName": "Kuwait",
+        "StateName": "Kuwait City",
+        "CityName": "Al Soor Gradens -BLOCK1"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Structure (No Address Found):**
+  ```json
+  {
+    "success": 0,
+    "row": [],
+    "Message": "Data not found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - The address list APIs return combined address fields for display, while the details APIs return the individual components.
+  - When saving or editing addresses, use the individual fields (Country, State, City, Block, etc.) rather than the combined address field.
+  - The Country, State, and City fields in the details response are numeric IDs corresponding to the location data, while CountryName, StateName, and CityName provide the display names.
+  - IsDefault is a boolean indicating whether this is the default address for the user.
+
 ### Shipping Address Management APIs
 
 #### 1. Save Shipping Address (`/CRUD_Shipping_Manage_Address/`)

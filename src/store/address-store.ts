@@ -19,6 +19,7 @@ export interface Address {
   house: string;
   apartment?: string;
   address2?: string;
+  address?: string; // Combined address field returned by API
   isDefault: boolean;
 }
 
@@ -82,46 +83,51 @@ const isSuccessCode = (code: string | number | undefined): boolean => {
   return Object.values(successCodes).some(codes => codes.includes(codeStr));
 };
 
-// Transform API address data to our Address interface
+// Transform API billing address to our Address interface
 const transformBillingAddress = (apiAddress: any): Address => {
   return {
     id: apiAddress.BillingAddressId,
     fullName: apiAddress.FullName || '',
     email: apiAddress.Email || '',
     mobile: apiAddress.Mobile || '',
-    country: apiAddress.Country || '',
-    countryName: apiAddress.CountryName || '',
-    state: apiAddress.State || '',
-    stateName: apiAddress.StateName || '',
-    city: apiAddress.City || '',
-    cityName: apiAddress.CityName || '',
+    country: String(apiAddress.CountryId || ''),
+    countryName: apiAddress.Country || '',
+    state: String(apiAddress.StateId || ''),
+    stateName: apiAddress.State || '',
+    city: String(apiAddress.CityId || ''),
+    cityName: apiAddress.City || '',
     block: apiAddress.Block || '',
     street: apiAddress.Street || '',
     house: apiAddress.House || '',
     apartment: apiAddress.Apartment || '',
     address2: apiAddress.Address2 || '',
-    isDefault: apiAddress.IsDefault === 1 || apiAddress.IsDefault === true,
+    address: apiAddress.Address || '',
+    isDefault: apiAddress.IsDefault === true || apiAddress.IsDefault === 1,
   };
 };
 
+// Transform API shipping address to our Address interface
 const transformShippingAddress = (apiAddress: any): Address => {
   return {
     id: apiAddress.ShippingAddressId,
     fullName: apiAddress.FullName || '',
     email: apiAddress.Email || '',
     mobile: apiAddress.Mobile || '',
-    country: apiAddress.Country || '',
-    countryName: apiAddress.CountryName || '',
-    state: apiAddress.State || '',
-    stateName: apiAddress.StateName || '',
-    city: apiAddress.City || '',
-    cityName: apiAddress.CityName || '',
+    // Country, State, City might be provided as names directly in address list
+    country: String(apiAddress.CountryId || ''),
+    countryName: apiAddress.Country || '',
+    state: String(apiAddress.StateId || ''),
+    stateName: apiAddress.State || '',
+    city: String(apiAddress.CityId || ''),
+    cityName: apiAddress.City || '',
     block: apiAddress.Block || '',
     street: apiAddress.Street || '',
     house: apiAddress.House || '',
     apartment: apiAddress.Apartment || '',
     address2: apiAddress.Address2 || '',
-    isDefault: apiAddress.IsDefault === 1 || apiAddress.IsDefault === true,
+    // Use custom Address field if present (from address list endpoint)
+    address: apiAddress.Address || '',
+    isDefault: apiAddress.IsDefault === true || apiAddress.IsDefault === 1,
   };
 };
 
@@ -153,12 +159,14 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       console.log('Billing address save response:', JSON.stringify(response, null, 2));
       
-      const statusCode = response?.StatusCode || response?.statusCode;
+      // API responses can have inconsistent casing, normalize it
+      const statusCode = response?.StatusCode || response?.statusCode || 200;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const responseMessage = response?.Message || response?.message;
       const codeStr = String(responseCode);
       
       // Check specifically for billing address save success code (2)
-      if (statusCode === 200 && codeStr === '2') {
+      if (codeStr === '2') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after saving
         if (addressData.UserId) {
@@ -168,7 +176,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
       } else {
         set({ 
           isLoading: false, 
-          error: response?.Message || response?.message || 'Failed to save billing address'
+          error: responseMessage || 'Failed to save billing address'
         });
         return false;
       }
@@ -204,12 +212,14 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       console.log('Billing address update response:', JSON.stringify(response, null, 2));
       
-      const statusCode = response?.StatusCode || response?.statusCode;
+      // API responses can have inconsistent casing, normalize it
+      const statusCode = response?.StatusCode || response?.statusCode || 200;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const responseMessage = response?.Message || response?.message;
       const codeStr = String(responseCode);
       
       // Check specifically for billing address update success code (2)
-      if (statusCode === 200 && codeStr === '2') {
+      if (codeStr === '2') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after updating
         if (addressData.UserId) {
@@ -219,7 +229,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
       } else {
         set({ 
           isLoading: false, 
-          error: response?.Message || response?.message || 'Failed to update billing address'
+          error: responseMessage || 'Failed to update billing address'
         });
         return false;
       }
@@ -261,12 +271,14 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       console.log('Billing address delete response:', JSON.stringify(response, null, 2));
       
-      const statusCode = response?.StatusCode || response?.statusCode;
+      // API responses can have inconsistent casing, normalize it
+      const statusCode = response?.StatusCode || response?.statusCode || 200;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const responseMessage = response?.Message || response?.message;
       const codeStr = String(responseCode);
       
       // For delete, the API returns response code 6
-      if (statusCode === 200 && codeStr === '6') {
+      if (codeStr === '6') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after deletion
         await get().fetchUserAddresses(userId);
@@ -274,7 +286,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
       } else {
         set({ 
           isLoading: false, 
-          error: response?.Message || response?.message || 'Failed to delete billing address'
+          error: responseMessage || 'Failed to delete billing address'
         });
         return false;
       }
@@ -301,6 +313,8 @@ const useAddressStore = create<AddressState>((set, get) => ({
         return false;
       }
       
+      console.log('Shipping address payload with userId:', addressData.UserId);
+      
       // Ensure it uses CompanyId as required by this endpoint
       const response = await apiRequest(
         ENDPOINTS.CRUD_SHIPPING_ADDRESS,
@@ -310,12 +324,14 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       console.log('Shipping address save response:', JSON.stringify(response, null, 2));
       
-      const statusCode = response?.StatusCode || response?.statusCode;
+      // API responses can have inconsistent casing, normalize it
+      const statusCode = response?.StatusCode || response?.statusCode || 200;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const responseMessage = response?.Message || response?.message;
       const codeStr = String(responseCode);
       
       // Check specifically for shipping address save success code (2)
-      if (statusCode === 200 && codeStr === '2') {
+      if (codeStr === '2') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after saving
         if (addressData.UserId) {
@@ -325,7 +341,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
       } else {
         set({ 
           isLoading: false, 
-          error: response?.Message || response?.message || 'Failed to save shipping address'
+          error: responseMessage || 'Failed to save shipping address'
         });
         return false;
       }
@@ -361,12 +377,14 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       console.log('Shipping address update response:', JSON.stringify(response, null, 2));
       
-      const statusCode = response?.StatusCode || response?.statusCode;
+      // API responses can have inconsistent casing, normalize it
+      const statusCode = response?.StatusCode || response?.statusCode || 200;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const responseMessage = response?.Message || response?.message;
       const codeStr = String(responseCode);
       
       // For shipping address update, the API returns response code 4
-      if (statusCode === 200 && codeStr === '4') {
+      if (codeStr === '4') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after updating
         if (addressData.UserId) {
@@ -376,7 +394,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
       } else {
         set({ 
           isLoading: false, 
-          error: response?.Message || response?.message || 'Failed to update shipping address'
+          error: responseMessage || 'Failed to update shipping address'
         });
         return false;
       }
@@ -418,12 +436,14 @@ const useAddressStore = create<AddressState>((set, get) => ({
       
       console.log('Shipping address delete response:', JSON.stringify(response, null, 2));
       
-      const statusCode = response?.StatusCode || response?.statusCode;
+      // API responses can have inconsistent casing, normalize it
+      const statusCode = response?.StatusCode || response?.statusCode || 200;
       const responseCode = response?.ResponseCode || response?.responseCode;
+      const responseMessage = response?.Message || response?.message;
       const codeStr = String(responseCode);
       
       // For shipping address delete, the API returns response code 6
-      if (statusCode === 200 && codeStr === '6') {
+      if (codeStr === '6') {
         set({ isLoading: false, error: null }); // clear error on success
         // Refresh user addresses after deletion
         await get().fetchUserAddresses(userId);
@@ -431,7 +451,7 @@ const useAddressStore = create<AddressState>((set, get) => ({
       } else {
         set({ 
           isLoading: false, 
-          error: response?.Message || response?.message || 'Failed to delete shipping address'
+          error: responseMessage || 'Failed to delete shipping address'
         });
         return false;
       }
@@ -463,10 +483,12 @@ const useAddressStore = create<AddressState>((set, get) => ({
         statusCode: billingResponse.StatusCode,
         responseCode: billingResponse.ResponseCode,
         message: billingResponse.Message,
-        hasData: billingResponse.Data?.success === 1 && Array.isArray(billingResponse.Data.row)
+        hasData: billingResponse.Data?.success === 1 && Array.isArray(billingResponse.Data.row),
+        rawData: billingResponse.Data
       }, null, 2));
       
-      if (billingResponse.Data?.success === 1 && Array.isArray(billingResponse.Data.row)) {
+      // Only try to map billing addresses if there's real data
+      if (billingResponse.Data?.success === 1 && Array.isArray(billingResponse.Data.row) && billingResponse.Data.row.length > 0) {
         const mappedBillingAddresses = billingResponse.Data.row.map(transformBillingAddress);
         set({ billingAddresses: mappedBillingAddresses });
         console.log(`🏠 Found ${mappedBillingAddresses.length} billing addresses`);
@@ -481,10 +503,12 @@ const useAddressStore = create<AddressState>((set, get) => ({
         statusCode: shippingResponse.StatusCode,
         responseCode: shippingResponse.ResponseCode,
         message: shippingResponse.Message,
-        hasData: shippingResponse.Data?.success === 1 && Array.isArray(shippingResponse.Data.row)
+        hasData: shippingResponse.Data?.success === 1 && Array.isArray(shippingResponse.Data.row),
+        rawData: shippingResponse.Data
       }, null, 2));
       
-      if (shippingResponse.Data?.success === 1 && Array.isArray(shippingResponse.Data.row)) {
+      // Only try to map shipping addresses if there's real data
+      if (shippingResponse.Data?.success === 1 && Array.isArray(shippingResponse.Data.row) && shippingResponse.Data.row.length > 0) {
         const mappedShippingAddresses = shippingResponse.Data.row.map(transformShippingAddress);
         set({ shippingAddresses: mappedShippingAddresses });
         console.log(`🏠 Found ${mappedShippingAddresses.length} shipping addresses`);

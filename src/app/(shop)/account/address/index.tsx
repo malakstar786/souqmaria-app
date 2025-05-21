@@ -96,10 +96,23 @@ export default function AddressScreen() {
       <Text style={styles.addressName}>{item.fullName}</Text>
       <Text style={styles.addressDetail}>{item.email}</Text>
       <Text style={styles.addressDetail}>{item.mobile}</Text>
-      <Text style={styles.addressDetail}>
-        {item.block}, {item.street}, {item.house}
-        {item.apartment ? `, ${item.apartment}` : ''}
-      </Text>
+      
+      {/* Use address field if present (from API), otherwise construct from parts */}
+      {item.address ? (
+        <Text style={styles.addressDetail}>{item.address}</Text>
+      ) : (
+        <Text style={styles.addressDetail}>
+          {item.block ? `Block - ${item.block}` : ''} 
+          {item.street ? `, Street - ${item.street}` : ''} 
+          {item.house ? `, House/Building - ${item.house}` : ''}
+          {item.apartment ? `, Apartment No. - ${item.apartment}` : ''}
+        </Text>
+      )}
+      
+      {item.address2 && (
+        <Text style={styles.addressDetail}>{item.address2}</Text>
+      )}
+      
       <Text style={styles.addressDetail}>
         {item.cityName}, {item.stateName}, {item.countryName}
       </Text>
