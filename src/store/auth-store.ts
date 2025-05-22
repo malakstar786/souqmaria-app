@@ -96,7 +96,7 @@ export const useAuthStore = create<AuthState>()(
           
           const responseCodeStr = String(response.ResponseCode);
 
-          if (responseCodeStr === String(RESPONSE_CODES.SUCCESS)) {
+          if (responseCodeStr === String(RESPONSE_CODES.CREATED)) {
             // Extract the user ID from the response
             let userId = '';
             if (response.Data?.UserId) {
@@ -154,8 +154,8 @@ export const useAuthStore = create<AuthState>()(
           console.log('Attempting login with credentials:', { userName, password: '***' });
           // Attempt to login using the API
           const response: ApiResponse<any> = await loginUser({
-            UserName: userName,
-            Password: password,
+            userName: userName,
+            password: password,
           });
 
           console.log('Full Login Response:', JSON.stringify(response, null, 2));
@@ -275,7 +275,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const response = await forgotPassword({ Email: email, CompanyId: 3044 });
-          if (response.StatusCode === 200 && String(response.ResponseCode) === RESPONSE_CODES.CREATED) {
+          if (response.StatusCode === 200 && String(response.ResponseCode) === String(RESPONSE_CODES.CREATED)) {
             set({ isLoading: false, error: null });
             return { success: true, message: response.Message };
           }

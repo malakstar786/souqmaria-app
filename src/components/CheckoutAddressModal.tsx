@@ -13,16 +13,18 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@theme';
 import useAuthStore from '../store/auth-store';
-import useAddressStore from '../store/address-store';
+import useAddressStore, { Address } from '../store/address-store';
 
 type AddressType = 'billing' | 'shipping';
 
-interface CheckoutAddressModalProps {
+export interface CheckoutAddressModalProps {
   isVisible: boolean;
   onClose: () => void;
   addressType: AddressType;
-  onSelectAddress: (address: any) => void;
-  onAddNewAddress: () => void;
+  onSelectAddress: (address: Address) => void;
+  onAddNew: () => void;
+  addresses: Address[];
+  selectedAddress: Address | null;
 }
 
 const CheckoutAddressModal = ({
@@ -30,20 +32,16 @@ const CheckoutAddressModal = ({
   onClose,
   addressType,
   onSelectAddress,
-  onAddNewAddress
+  onAddNew,
+  addresses,
+  selectedAddress
 }: CheckoutAddressModalProps) => {
   const { user } = useAuthStore();
-  const { 
-    billingAddresses, 
-    shippingAddresses, 
-    isLoading, 
-    error, 
-    fetchUserAddresses 
-  } = useAddressStore();
+  const { isLoading, error, fetchUserAddresses } = useAddressStore();
 
-  // Load addresses on mount
+  // Load addresses on mount if none are provided
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && addresses.length === 0) {
       const userId = user?.UserID || user?.id || '';
       if (userId) {
         console.log(`📍 Loading ${addressType} addresses for user ID:`, userId);
@@ -52,16 +50,16 @@ const CheckoutAddressModal = ({
         console.log('📍 No user ID available, cannot fetch addresses');
       }
     }
-  }, [user, isVisible, addressType]);
-
-  // Get the right addresses based on type
-  const addresses = addressType === 'billing' ? billingAddresses : shippingAddresses;
+  }, [user, isVisible, addressType, addresses]);
 
   // Render an address item
-  const renderAddressItem = (address: any, index: number) => (
+  const renderAddressItem = (address: Address, index: number) => (
     <TouchableOpacity
       key={`${addressType}-${address.id}-${index}`}
-      style={styles.addressItem}
+      style={[
+        styles.addressItem,
+        selectedAddress?.id === address.id && styles.selectedAddressItem
+      ]}
       onPress={() => onSelectAddress(address)}
     >
       {address.isDefault && (
@@ -110,7 +108,7 @@ const CheckoutAddressModal = ({
           {/* Add New Address Button */}
           <TouchableOpacity 
             style={styles.addNewButton}
-            onPress={onAddNewAddress}
+            onPress={onAddNew}
           >
             <FontAwesome name="plus" size={14} color={colors.white} />
             <Text style={styles.addNewButtonText}>
@@ -150,7 +148,7 @@ const CheckoutAddressModal = ({
               </Text>
               <TouchableOpacity 
                 style={styles.addEmptyButton}
-                onPress={onAddNewAddress}
+                onPress={onAddNew}
               >
                 <Text style={styles.addEmptyButtonText}>
                   Add New Address
@@ -320,6 +318,9 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  selectedAddressItem: {
+    backgroundColor: 'rgba(141, 198, 63, 0.1)',
   },
 });
 

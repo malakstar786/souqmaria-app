@@ -37,7 +37,21 @@ export interface LocationItem {
 
 // API response for location data
 export interface LocationDataResponse {
+  success: number;
   rows: LocationItem[];
+}
+
+// API response for checkout location data (different structure)
+export interface CheckoutLocationDataResponse {
+  success: number;
+  row: CheckoutLocationItem[];
+  Message: string;
+}
+
+// Location item for checkout APIs
+export interface CheckoutLocationItem {
+  XCode: number;
+  XName: string;
 }
 
 interface RegisterUserParams {
@@ -50,8 +64,8 @@ interface RegisterUserParams {
 
 // Login User
 interface LoginUserParams {
-  UserName: string; // Email or Mobile No.
-  Password: string;
+  userName: string; // Email or Mobile No. - lowercase to match API
+  password: string; // lowercase to match API
 }
 
 // Add interface for UpdateUserDetails payload
@@ -278,6 +292,22 @@ export interface PromoCodesListResponse {
   Message: string;
 }
 
+// Guest checkout interfaces
+export interface GuestUserRegistrationParams {
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  IpAddress?: string; // Will be set by the API service if not provided
+  Source?: string; // Will be set by the API service if not provided
+  CompanyId?: number; // Will default to 3044
+}
+
+export interface GuestUserRegistrationResponse {
+  ResponseCode: string;
+  Message: string;
+  TrackId: string;
+}
+
 /**
  * Get device IP address (simplified implementation)
  * In a real app, you would use a more robust method to get the IP
@@ -381,8 +411,9 @@ export const registerUser = async (params: RegisterUserParams): Promise<ApiRespo
  */
 export const loginUser = async (params: LoginUserParams): Promise<ApiResponse> => {
   const loginPayload = {
-    ...params,
-    CompanyId: 3044, // Login endpoint expects CompanyId
+    userName: params.userName,
+    password: params.password, 
+    companyId: 3044, // Use lowercase companyId to match API
   };
   
   return apiRequest(ENDPOINTS.LOGIN_USER, 'POST', loginPayload);
@@ -1557,4 +1588,324 @@ export const getFilteredProducts = async (
   }
 };
 
-// Export other API functions here 
+/**
+ * Register a guest user during checkout
+ */
+export const registerGuestUser = async (params: GuestUserRegistrationParams): Promise<ApiResponse<GuestUserRegistrationResponse>> => {
+  const ipAddress = await getDeviceIpAddress();
+  const source = getPlatformSource();
+  
+  const registrationPayload = {
+    ...params,
+    IpAddress: params.IpAddress || ipAddress,
+    Source: params.Source || source,
+    CompanyId: params.CompanyId || 3044,
+  };
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}${ENDPOINTS.GUEST_SAVE_USER_REGISTRATION}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(registrationPayload),
+    });
+    
+    const responseData: GuestUserRegistrationResponse = await response.json();
+    
+    return {
+      StatusCode: response.status,
+      ResponseCode: responseData.ResponseCode,
+      Message: responseData.Message,
+      Data: responseData,
+      TrackId: responseData.TrackId,
+    };
+  } catch (error) {
+    console.error('Error registering guest user:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.GUEST_REGISTRATION_ERROR,
+      Message: 'Failed to register guest user. Please try again.',
+      TrackId: null,
+    };
+  }
+};
+
+/**
+ * Get countries list for checkout
+ */
+export async function getCheckoutCountries(): Promise<ApiResponse<CheckoutLocationDataResponse>> {
+  try {
+    const data = {
+      strQuery: "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Country_List','','','','','',1,3044,''"
+    };
+    return apiRequest<CheckoutLocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+  } catch (error) {
+    console.error('Error fetching checkout countries:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch countries'
+    };
+  }
+}
+
+/**
+ * Get states list for checkout for a specific country
+ */
+export async function getCheckoutStates(countryXcode: string): Promise<ApiResponse<CheckoutLocationDataResponse>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_State_List','${countryXcode}','','','','',1,3044,''`
+    };
+    return apiRequest<CheckoutLocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+  } catch (error) {
+    console.error('Error fetching checkout states:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch states'
+    };
+  }
+}
+
+/**
+ * Get cities list for checkout for a specific state
+ */
+export async function getCheckoutCities(stateXcode: string): Promise<ApiResponse<CheckoutLocationDataResponse>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_City_List','${stateXcode}','','','','',1,3044,''`
+    };
+    return apiRequest<CheckoutLocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+  } catch (error) {
+    console.error('Error fetching checkout cities:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch cities'
+    };
+  }
+}
+
+// Payment Mode interface
+export interface PaymentModeItem {
+  XCode: string;
+  XName: string;
+}
+
+export interface PaymentModeResponse {
+  success: number;
+  row: PaymentModeItem[];
+  Message: string;
+}
+
+// Get payment modes for checkout
+export async function getPaymentModes(): Promise<ApiResponse<PaymentModeResponse>> {
+  try {
+    const data = {
+      strQuery: SP_QUERIES.GET_PAYMENT_MODE_LIST
+    };
+    const response = await apiRequest<PaymentModeResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+    return response;
+  } catch (error) {
+    console.error('Error fetching payment methods:', error);
+    throw error;
+  }
+}
+
+// Save Checkout Order
+export interface SaveCheckoutParams {
+  UserID: string;  // Use TrackId for guest users
+  IpAddress: string;
+  UniqueId: string;
+  Company: number | string;
+  CultureId: number | string;
+  BuyNow: string;
+  Location: string;
+  DifferentAddress: boolean;
+  BillingAddressId: number;
+  ShippingAddressId?: number;  // Optional if DifferentAddress is false
+  SCountry?: string;  // Only required if DifferentAddress is true
+  SState?: string;    // Only required if DifferentAddress is true
+  SCity?: string;     // Only required if DifferentAddress is true
+  PaymentMode: string;
+  Source: string;
+  OrderNote?: string;
+  Salesman?: string;
+  CreateAccount?: number; // 1 for yes, 0 for no - Used for guest users
+}
+
+export interface SaveCheckoutResponse {
+  StatusCode: number;
+  ResponseCode: string | number;
+  Message: string;
+  TrackId?: string;
+}
+
+export async function saveCheckout(params: SaveCheckoutParams): Promise<ApiResponse<SaveCheckoutResponse>> {
+  try {
+    console.log('Saving checkout with params:', JSON.stringify(params, null, 2));
+    
+    // Construct the complete payload
+    const payload = {
+      ...params,
+      IpAddress: params.IpAddress || '127.0.0.1',
+      Source: params.Source || Platform.OS === 'ios' ? 'iOS' : 'Android',
+      Company: params.Company || 3044,
+      CultureId: params.CultureId || 1,
+      BuyNow: params.BuyNow || '',
+      Location: params.Location || '304401HO',
+      OrderNote: params.OrderNote || '',
+      Salesman: params.Salesman || '3044SMOL'
+    };
+    
+    const response = await apiRequest<SaveCheckoutResponse>(ENDPOINTS.SAVE_CHECKOUT, 'POST', payload);
+    
+    // Log the response for debugging
+    console.log('Save checkout response:', JSON.stringify(response, null, 2));
+    
+    return response;
+  } catch (error) {
+    console.error('Error saving checkout:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: error instanceof Error ? error.message : 'Unknown error saving checkout',
+    };
+  }
+}
+
+// Add functions for getting default and all addresses for logged-in users
+export interface CheckoutAddressResponse {
+  success: number;
+  row: ApiAddress[];
+  Message: string;
+}
+
+export interface ApiAddress {
+  BillingAddressId?: number;
+  ShippingAddressId?: number;
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  Address: string;
+  Address2?: string;
+  Country: string;
+  State: string;
+  City: string;
+  Block?: string;
+  Street?: string;
+  House?: string;
+  Apartment?: string;
+  IsDefault: boolean | number;
+}
+
+export interface Address {
+  BillingAddressId?: number;
+  ShippingAddressId?: number;
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  Address2: string;
+  Country: string;
+  State: string;
+  City: string;
+  Block: string;
+  Street: string;
+  House: string;
+  Apartment: string;
+  IsDefault: boolean | number;
+}
+
+// Get default billing address for logged-in user
+export async function getDefaultBillingAddressByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','${userId}','','','','',1,3044,''`
+    };
+    const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+    return response;
+  } catch (error) {
+    console.error('Error fetching default billing address:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch default billing address'
+    };
+  }
+}
+
+// Get default shipping address for logged-in user
+export async function getDefaultShippingAddressByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','${userId}','','','','',1,3044,''`
+    };
+    const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+    return response;
+  } catch (error) {
+    console.error('Error fetching default shipping address:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch default shipping address'
+    };
+  }
+}
+
+// Get all billing addresses for logged-in user
+export async function getAllBillingAddressesByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','${userId}','','','','',1,3044,''`
+    };
+    const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+    return response;
+  } catch (error) {
+    console.error('Error fetching all billing addresses:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch billing addresses'
+    };
+  }
+}
+
+// Get all shipping addresses for logged-in user
+export async function getAllShippingAddressesByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','${userId}','','','','',1,3044,''`
+    };
+    const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+    return response;
+  } catch (error) {
+    console.error('Error fetching all shipping addresses:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch shipping addresses'
+    };
+  }
+}
+
+/**
+ * Get order details for thank you page
+ */
+export async function getOrderDetailsForThankYou(trackId: string): Promise<ApiResponse<any>> {
+  try {
+    const data = {
+      strQuery: `[Web].[Sp_Template1_Get_OrderDetails_ThankYou_Apps] '${trackId}',3044`
+    };
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+  } catch (error) {
+    console.error('Error fetching order details for thank you page:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch order details'
+    };
+  }
+} 

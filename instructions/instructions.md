@@ -533,7 +533,10 @@ When a user clicks the "Add to Cart" button on the individual product page, a su
 - **Address section:**
   - Title: "Address" in black (`#000000`), bold.
   - "+ Add Address" button: Blue text (`#00AEEF`), right-aligned, touchable.
-  - If no address, prompts user to add one.
+  - If no address, prompts user to add one by opening up a add billing address modal. 
+  - When the user adds their billing address, they have one option in the bottom above save button - "Ship to Different Address?"
+  - On checking "Ship to Different Address?", an add shipping address modal opens up. 
+  - On saving the addresses, they are redirected to the checkout modal where their addresses are shown.
 - **Promo code section:**
   - Title: "Have a Promo Code?" in black (`#000000`), left-aligned.
   - "See Promo Codes" link: Blue (`#00AEEF`), right-aligned, touchable.
@@ -541,11 +544,13 @@ When a user clicks the "Add to Cart" button on the individual product page, a su
   - "Apply" button: Black background (`#000000`), white text, bold, rounded corners (8px), right-aligned.
 - **Payment type section:**
   - Title: "Select Payment Type" in black (`#000000`), bold.
+  - List the payment methods from the response during api call.
   - Only one option: "CASH" (black, `#000000`), with payment icons (Visa, MasterCard, Knet, etc.) in color.
 - **Order summary:**
   - Item Sub total, Discount, Shipping Fee, Grand Total: All right-aligned, black (`#000000`), blue (`#00AEEF`) for Grand Total.
 - **Account creation prompt:**
-  - "Create an Account?" link: Blue (`#00AEEF`), left-aligned, touchable.
+  - "Create an Account?" link: Blue (`#00AEEF`), left-aligned, touchable, with a square select box. 
+  - Upon clicking the box, sign up modal opens up for the user to sign up to souqmaria.
 - **Place Order button:**
   - Small text above the button: "By proceeding, I've read and accept the terms & conditions." in black (`#000000`).
   - Full width, blue background (`#00AEEF`), white text, bold, all caps, rounded corners (8px), centered at the bottom.
@@ -792,6 +797,7 @@ mobile-app-sm
 │       │   ├── order_failure.png
 │       │   ├── order_success.png
 │       │   ├── post_login_checkout.png
+│       │   ├── promo_code_remove.png
 │       │   └── signup
 │       │       └── signup.png
 │       ├── homepage.png
@@ -816,6 +822,7 @@ mobile-app-sm
 │   │   │   │   ├── details
 │   │   │   │   ├── index.tsx
 │   │   │   │   ├── orders
+│   │   │   │   ├── policies.tsx
 │   │   │   │   └── wishlist.tsx
 │   │   │   ├── cart.tsx
 │   │   │   ├── categories.tsx
@@ -836,6 +843,7 @@ mobile-app-sm
 │   │   ├── logo.png
 │   │   ├── order_failed_image.png
 │   │   ├── order_succesful_image.png
+│   │   ├── payment_methods.png
 │   │   └── pre_login_account.png
 │   ├── components
 │   │   ├── add-edit-address.tsx
@@ -843,13 +851,18 @@ mobile-app-sm
 │   │   ├── browse-drawer.tsx
 │   │   ├── CartIcon.tsx
 │   │   ├── CategoryCard.tsx
+│   │   ├── ChangeAddressModal.tsx
 │   │   ├── CheckoutAddressFormModal.tsx
 │   │   ├── CheckoutAddressModal.tsx
 │   │   ├── common
 │   │   │   └── TopBar.tsx
 │   │   ├── CreateAddressModal.tsx
+│   │   ├── GuestCheckoutAddressForm.tsx
+│   │   ├── GuestCheckoutShippingForm.tsx
 │   │   ├── HeaderCartIcon.tsx
 │   │   ├── ProductCard.tsx
+│   │   ├── ProductFilters.tsx
+│   │   ├── PromoCodeModal.tsx
 │   │   └── SearchBarWithSuggestions.tsx
 │   ├── constants
 │   │   └── colors.ts
@@ -864,9 +877,11 @@ mobile-app-sm
 │   │   ├── banner-store.ts
 │   │   ├── cart-store.ts
 │   │   ├── category-store.ts
+│   │   ├── checkout-store.ts
 │   │   ├── location-store.ts
 │   │   ├── menu-store.ts
 │   │   ├── order-store.ts
+│   │   ├── promo-store.ts
 │   │   ├── search-store.ts
 │   │   └── wishlist-store.ts
 │   ├── theme.ts
@@ -904,8 +919,8 @@ mobile-app-sm
 This section contains detailed documentation for all API endpoints used in the SouqMaria mobile application. It serves as the single source of truth for API integration, covering request formats, response structures, error handling, and implementation details.
 
 Test Creds: 
-email: hussain@test.com
-password: test@786110
+email: hb@test.com
+password: test@5253
 
 ### Base API Information
 
@@ -3244,4 +3259,961 @@ This should be used for rendering product images in the grid/list as per the UI 
   - The culture ID (1 for English, 2 for Arabic) can be changed if needed.
   - The user ID can be provided if available, otherwise pass an empty string.
 
+### Product Filtering API
+
+#### Get Filtered Product List (`Get_AllProduct_List_FilterApply`)
+
+- **Method:** `POST`
+- **Description:** Retrieves a filtered list of products based on multiple criteria including category, brand, price range, and sorting options.
+- **Request Body:**
+  ```json
+  {
+    "PageCode": "string",
+    "Category": "string",
+    "SubCategory": "string",
+    "SearchName": "string",
+    "HomePageCatSrNo": "string",
+    "UserId": "string",
+    "Company": "string | number",
+    "CultureId": "string | number",
+    "Arry_Category": "string[]",
+    "Arry_SubCategory": "string[]",
+    "Arry_Brand": "string[]",
+    "Arry_Color": "string[]",
+    "MinPrice": "number",
+    "MaxPrice": "number",
+    "SortBy": "string"
+  }
+  ```
+
+- **Request Parameters Table:**
+
+| # | Parameter | Type | Length | Description | Required |
+|---|-----------|------|--------|-------------|----------|
+| 1 | PageCode | String | - | Page code (e.g., "HPC2", "Srch", "MN") | Yes |
+| 2 | Category | String | - | Category code, required for "MN" page code | Conditional |
+| 3 | SubCategory | String | - | Subcategory code | No |
+| 4 | SearchName | String | - | Search text, required for "Srch" page code | Conditional |
+| 5 | HomePageCatSrNo | String | - | HomePage category number | Conditional |
+| 6 | UserId | String | - | User ID (empty for guest users) | No |
+| 7 | Company | String/Number | - | Company ID (fixed: 3044) | Yes |
+| 8 | CultureId | String/Number | - | Culture ID (1 for English, 2 for Arabic) | Yes |
+| 9 | Arry_Category | Array | - | Array of selected category codes | No |
+| 10 | Arry_SubCategory | Array | - | Array of selected subcategory codes | No |
+| 11 | Arry_Brand | Array | - | Array of selected brand codes | No |
+| 12 | Arry_Color | Array | - | Array of selected color codes | No |
+| 13 | MinPrice | Number | - | Minimum price for filtering | Yes |
+| 14 | MaxPrice | Number | - | Maximum price for filtering | Yes |
+| 15 | SortBy | String | - | Sort order code (e.g., "LtoH", "HtoL", "AtoZ") | Yes |
+
+- **Response Structure:**
+  ```json
+  {
+    "List": {
+      "Productlist": [
+        {
+          "Item_Image1": "string",
+          "Item_XCode": "string",
+          "Item_XName": "string",
+          "OldPrice": "number",
+          "Discount": "number",
+          "NewPrice": "number",
+          "IsWishListItem": "boolean",
+          "Last_CategoryName": "string"
+        }
+      ],
+      "li_Brand_List": [
+        {
+          "XCode": "string",
+          "XName": "string",
+          "XMaster": "string",
+          "XLink": "string",
+          "IsSelected": "boolean"
+        }
+      ],
+      "li_Category_List": [
+        {
+          "XCode": "string",
+          "XName": "string",
+          "XMaster": "string",
+          "XLink": "string",
+          "IsSelected": "boolean"
+        }
+      ],
+      "li_SubCategory_List": [
+        {
+          "XCode": "string",
+          "XName": "string",
+          "XMaster": "string",
+          "XLink": "string",
+          "IsSelected": "boolean"
+        }
+      ],
+      "li_SortBy_List": [
+        {
+          "XCode": "string",
+          "XName": "string",
+          "XMaster": "string",
+          "XLink": "string",
+          "IsSelected": "boolean"
+        }
+      ],
+      "MinPrice": "number",
+      "MaxPrice": "number"
+    },
+    "ResponseCode": "string",
+    "Message": "string"
+  }
+  ```
+
+- **Response Codes:**
+
+| ResponseCode | Description |
+|--------------|-------------|
+| 2 | Success - List found |
+| -4 | Not found - No products match the criteria |
+
+- **Example Success Response:**
+  ```json
+  {
+    "List": {
+      "Productlist": [
+        {
+          "Item_Image1": "7587878907130228_cff50d95.png",
+          "Item_XCode": "IM31790673",
+          "Item_XName": "IPhone 6 Mobile 64 GB Model A1586",
+          "OldPrice": 0.000,
+          "Discount": 0.00,
+          "NewPrice": 20.000,
+          "IsWishListItem": false,
+          "Last_CategoryName": "M-bile1"
+        }
+      ],
+      "li_Brand_List": [
+        {
+          "XCode": "3044PB0068",
+          "XName": "Apple",
+          "XMaster": "Brand",
+          "XLink": "",
+          "IsSelected": true
+        },
+        ...
+      ],
+      "li_Category_List": [...],
+      "li_SubCategory_List": [...],
+      "li_SortBy_List": [...],
+      "MinPrice": 0.0,
+      "MaxPrice": 0.0
+    },
+    "ResponseCode": "2",
+    "Message": "List Found"
+  }
+  ```
+
+- **Implementation Notes:**
+  - Always include all filter parameters even if not all are used.
+  - SortBy options include: 
+    - "Srt_Dflt" (Default Sorting)
+    - "LtoH" (Price: Low to High)
+    - "HtoL" (Price: High to Low)
+    - "AtoZ" (Sort by A to Z)
+    - "ZtoA" (Sort by Z to A)
+    - "Srt_Nwst" (Sort by New Arrival)
+    - "Srt_Old" (Sort by Old)
+  - The response includes the product list along with available filter options that can be displayed to the user.
+  - Filter option lists (brands, categories, etc.) include an IsSelected property to indicate which options are currently active.
+
+### Address and Checkout APIs
+
+#### 1. Get Country List (`/getData_JSON/`)
+
+- **Method:** `POST`
+- **Description:** Retrieves the list of available countries for address forms.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Country_List','','','','','',1,3044,''"
+  }
+  ```
+
+- **Response Structure:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": 69,
+        "XName": "Kuwait"
+      }
+      // More countries if available
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Codes:**
+  - success: 1 (data found)
+  - success: 0 (no data found)
+
+#### 2. Get State List (`/getData_JSON/`)
+
+- **Method:** `POST`
+- **Description:** Retrieves the list of states/regions for a specific country.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_State_List','69','','','','',1,3044,''"
+  }
+  ```
+  Where '69' is the country XCode.
+
+- **Response Structure:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": 238,
+        "XName": "Ahmadi"
+      },
+      {
+        "XCode": 239,
+        "XName": "Farwaniya"
+      }
+      // More states if available
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Codes:**
+  - success: 1 (data found)
+  - success: 0 (no data found)
+
+#### 3. Get City List (`/getData_JSON/`)
+
+- **Method:** `POST`
+- **Description:** Retrieves the list of cities for a specific state/region.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_City_List','240','','','','',1,3044,''"
+  }
+  ```
+  Where '240' is the state XCode.
+
+- **Response Structure:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": 2047,
+        "XName": "Al-Bidea"
+      },
+      {
+        "XCode": 2048,
+        "XName": "Al-Siddeeq"
+      }
+      // More cities if available
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Codes:**
+  - success: 1 (data found)
+  - success: 0 (no data found)
+
+#### 4. Guest User Registration (`/Guest_SaveUserRegistration`)
+
+- **Method:** `POST`
+- **Description:** Registers a guest user during checkout without creating a full account.
+- **Request Body:**
+  ```json
+  {
+    "FullName": "string",
+    "Email": "string",
+    "Mobile": "string",
+    "IpAddress": "string",
+    "Source": "string",
+    "CompanyId": "number"
+  }
+  ```
+
+- **Request Parameters Table:**
+
+| # | Parameter | Type | Length | Description | Required |
+|---|-----------|------|--------|-------------|----------|
+| 1 | FullName | String | 128 | User's full name | Yes |
+| 2 | Email | String | 72 | User's email address | Yes |
+| 3 | Mobile | String | 16 | User's mobile number | Yes |
+| 4 | IpAddress | String | 128 | User's IP address | Yes |
+| 5 | Source | String | 10 | Device platform ("Android"/"iOS") | Yes |
+| 6 | CompanyId | Number | - | Company ID (fixed: 3044) | Yes |
+
+- **Response Structure:**
+  ```json
+  {
+    "ResponseCode": "string",
+    "Message": "string",
+    "TrackId": "string"
+  }
+  ```
+
+- **Response Codes:**
+
+| ResponseCode | Description |
+|--------------|-------------|
+| 2 | Success - User Registration Save Successfully!!! |
+| 4 | User Already Registered |
+| -2 | Server Error - Something went wrong |
+| -6 | Server validation error |
+| -8 | Server validation error |
+| -10 | Something went wrong... |
+
+- **Example Success Response:**
+  ```json
+  {
+    "ResponseCode": "2",
+    "Message": "User Registration Save Successfully!!!",
+    "TrackId": "8010"
+  }
+  ```
+
+- **Implementation Notes:**
+  - This endpoint is used during guest checkout to register the user's basic information.
+  - The TrackId returned in a successful response should be stored and used for subsequent checkout steps.
+  - Source parameter should be determined programmatically based on the device platform.
+  - IpAddress should be obtained from the device, but can be set to a placeholder like "127.0.0.1" if not available.
+
+### Checkout API Endpoints
+
+#### Get Payment Mode List (`Get_PaymentMode_List`)
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves available payment methods for checkout
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_PaymentMode_List','','','','','',1,3044,''"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": "01PMCash",
+        "XName": "Cash"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+- **Status Codes:**
+  - `1` - Success, data found
+  - `0` - No data found
+
+#### Guest User Registration (`Guest_SaveUserRegistration`)
+- **Method:** `POST`
+- **Description:** Registers a guest user during checkout to generate a TrackId
+- **Request Body:**
+  ```json
+  {
+    "FullName": "string",
+    "Email": "string",
+    "Mobile": "string",
+    "IpAddress": "string",
+    "Source": "iOS" | "Android",
+    "CompanyId": 3044
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "ResponseCode": "2",
+    "Message": "Guest registration successful",
+    "TrackId": "string"
+  }
+  ```
+- **Status Codes:**
+  - `2` - Success
+  - `-2` - Error
+
+#### Save Checkout (`Save_Checkout`)
+- **Method:** `POST`
+- **Description:** Saves the complete checkout order
+- **Request Body:**
+  ```json
+  {
+    "UserID": "string",        // Use TrackId for guest users
+    "IpAddress": "string",
+    "UniqueId": "string",
+    "Company": "int",
+    "CultureId": "int",
+    "BuyNow": "string",
+    "Location": "string",
+    "DifferentAddress": "boolean",
+    "BillingAddressId": "int",
+    "ShippingAddressId": "int",
+    "SCountry": "string",
+    "SState": "string",
+    "SCity": "string",
+    "PaymentMode": "string",
+    "Source": "string",
+    "OrderNote": "string",
+    "Salesman": "string"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "StatusCode": "200" | "400" | "500",
+    "ResponseCode": "2" | "-2" | "-4" | "-6" | "-8" | "-16",
+    "Message": "string",
+    "TrackId": "string"
+  }
+  ```
+- **Status Codes:**
+  - `200` and `2` - Order saved successfully, returns TrackId for order confirmation page
+  - `200` and `-2` - Something went wrong
+  - `200` and `-4` - Payment mode not passed
+  - `200` and `-6` - Cart is empty
+  - `400` and `-8` - Server side validation error
+  - `200` and `-16` - Quantity is not available
+
+## Checkout Flow Implementation Details
+
+### Overview
+The checkout process has two paths:
+1. **Logged-in User Flow**: Users with accounts can select from saved addresses
+2. **Guest User Flow**: Users without accounts provide addresses during checkout
+
+### Guest Checkout Process
+1. User selects items and proceeds to checkout
+2. User fills out billing address form
+3. If "Ship to different address" is checked, user fills out shipping address form
+4. User selects payment method
+5. User places order
+
+### API Integration Flow for Guest Users
+1. When user fills out billing address form:
+   - Call `Guest_SaveUserRegistration` to register the guest user and get a TrackId
+   - Save this TrackId for later use as the UserID in the final checkout call
+   - Call `CRUD_Billing_Manage_Address` with Command: 'Save' to store the billing address
+
+2. If "Ship to different address" is checked:
+   - When user fills out shipping address form
+   - Call `CRUD_Shipping_Manage_Address` with Command: 'Save' to store the shipping address
+
+3. When user clicks "Place Order":
+   - Call `Save_Checkout` with:
+     - UserID: the TrackId from the guest registration
+     - DifferentAddress: boolean indicating if shipping address is different
+     - BillingAddressId and ShippingAddressId: 0 for guest users
+     - For guest users with different shipping address, include SCountry, SState, SCity from the shipping form
+     - PaymentMode: the selected payment method's XCode
+
+### Technical Implementation Details
+1. **State Management**:
+   - `checkout-store.ts`: Manages guest checkout state including addresses and TrackId
+   - Uses step tracking to manage the flow: billing → shipping → payment → confirmation
+
+2. **Components**:
+   - `GuestCheckoutAddressForm.tsx`: Form for collecting billing address from guest users
+   - `GuestCheckoutShippingForm.tsx`: Form for collecting shipping address from guest users
+   - Main checkout screen handles payment method selection and order placement
+
+3. **API Interactions**:
+   - Location data (countries, states, cities) fetched from relevant endpoints
+   - Payment methods fetched from `Get_PaymentMode_List` endpoint
+   - Order placed with `Save_Checkout` endpoint
+
+4. **Error Handling**:
+   - Client-side validation for all required fields
+   - Proper handling of API error responses
+   - User-friendly error messages for all possible error scenarios
+
+### Edge Cases & Considerations
+1. Different address handling:
+   - For logged-in users: Compare billing and shipping address IDs
+   - For guest users: Use checkout step to determine if shipping is different
+
+2. TrackId management:
+   - Store and retrieve the guest TrackId from checkout store
+   - Pass TrackId as UserID for guest checkout
+
+3. Response code handling:
+   - Handle server validation errors (-8)
+   - Handle quantity availability errors (-16)
+   - Handle payment mode errors (-4)
+   - Handle empty cart errors (-6)
+
+### Checkout API Documentation
+
+#### Get Available Promo Codes (`Get_Promo_Coupons_List`)
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves a list of available promo codes that can be applied during checkout
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Promo_Coupons_List','','','','','',1,3044,''"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": "FREE",
+        "XName": "Test promo"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+- **Status Codes:**
+  - `1` - Success, data found
+  - `0` - No data found/error
+
+#### Get Payment Methods (`Get_PaymentMode_List`)
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves a list of available payment methods for checkout
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_PaymentMode_List','','','','','',1,3044,''"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "XCode": "01PMCash",
+        "XName": "Cash"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+- **Status Codes:**
+  - `1` - Success, data found
+  - `0` - No data found/error
+
+#### Save Checkout Order (`Save_Checkout`)
+- **Method:** `POST` to `/Save_Checkout/`
+- **Description:** Processes the final checkout and places the order
+- **Request Body:**
+  ```json
+  {
+    "UserID": "string",        // Track ID for guest users, User ID for logged-in users
+    "IpAddress": "string",     // Device IP
+    "UniqueId": "string",      // Cart unique ID 
+    "Company": 3044,           // Company ID
+    "CultureId": 1,            // Culture ID
+    "BuyNow": "",              // Empty for cart checkout
+    "Location": "304401HO",    // Location code
+    "DifferentAddress": true,  // Whether shipping address is different from billing
+    "BillingAddressId": 0,     // Billing address ID (0 for guest users)
+    "ShippingAddressId": 0,    // Optional: Shipping address ID (if DifferentAddress=true)
+    "SCountry": "string",      // Optional: Shipping country code (if guest with DifferentAddress=true)
+    "SState": "string",        // Optional: Shipping state code (if guest with DifferentAddress=true)
+    "SCity": "string",         // Optional: Shipping city code (if guest with DifferentAddress=true)
+    "PaymentMode": "string",   // Payment method code
+    "Source": "iOS",           // Device platform
+    "OrderNote": "",           // Optional: Order notes
+    "Salesman": "3044SMOL",    // Salesman code
+    "CreateAccount": 0         // Optional: 1 to create account for guest, 0 otherwise
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "StatusCode": 200,
+    "ResponseCode": "2",       // 2 for success
+    "Message": "Order placed successfully",
+    "TrackId": "ORD12345"      // Order tracking ID
+  }
+  ```
+- **Error Codes:**
+  - `2` - Success
+  - `-4` - Payment method not selected
+  - `-6` - Cart is empty
+  - `-8` - Validation error
+  - `-16` - Item quantity not available
+
+### Default Address Endpoints for Logged-in Users
+
+#### Get Default Billing Address by UserID
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves the default billing address for a logged-in user
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','userId','','','','',1,3044,''"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "BillingAddressId": 123,
+        "FullName": "John Doe",
+        "Email": "john@example.com",
+        "Mobile": "12345678",
+        "Address2": "",
+        "Country": "KWT",
+        "State": "KW01",
+        "City": "KW0101",
+        "Block": "Block 1",
+        "Street": "Street 1",
+        "House": "House 1",
+        "Apartment": "Apt 101",
+        "IsDefault": true
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+#### Get Default Shipping Address by UserID
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves the default shipping address for a logged-in user
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','userId','','','','',1,3044,''"
+  }
+  ```
+- **Response Format:** Same as default billing address endpoint
+
+#### Get All Billing Addresses by UserID
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves all billing addresses for a logged-in user
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','userId','','','','',1,3044,''"
+  }
+  ```
+- **Response Format:** Similar to default address but with multiple addresses in the `row` array
+
+#### Get All Shipping Addresses by UserID
+- **Method:** `POST` to `/getData_JSON`
+- **Description:** Retrieves all shipping addresses for a logged-in user
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','userId','','','','',1,3044,''"
+  }
+  ```
+- **Response Format:** Similar to default address but with multiple addresses in the `row` array
+
+## SouqMaria Mobile App Implementation Details
+
+### 1. Checkout Screen Implementation
+
+#### Billing and Shipping Address Selection
+The checkout process supports both logged-in and guest users with different address management flows:
+
+- **Logged-in Users**:
+  - Default billing and shipping addresses are fetched automatically when a user logs in
+  - Users can change their addresses by clicking the "Change" button
+  - A modal displays all available addresses with the current one pre-selected
+  - Users can select a different address and save their selection
+  - The API endpoints used are:
+    - `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid'` - Gets default billing address
+    - `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid'` - Gets default shipping address
+    - `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId'` - Gets all billing addresses
+    - `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId'` - Gets all shipping addresses
+
+- **Guest Users**:
+  - Prompted to enter billing address information first
+  - Option to select "Ship to Different Address" for separate shipping details
+  - Form appears for adding shipping address when needed
+  - All guest addresses are stored locally and sent during checkout
+
+#### Promo Code Implementation
+
+- Users can enter promo codes directly or select from available codes
+- Available promo codes are shown in a modal by clicking "See Available Promo Codes"
+- Promo code application uses the API endpoints:
+  - `/Apply_PromoCode/` - Applies a promo code
+  - `/Remove_PromoCode/` - Removes previously applied promo code
+  - `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Promo_Coupons_List'` - Fetches available promo codes
+
+#### Payment Methods
+
+- Payment methods are fetched from the API using:
+  - `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_PaymentMode_List'`
+- Users can select only one payment method for their order
+- Cash on Delivery is the primary payment method available
+
+#### Order Placement
+
+The final checkout process:
+1. Validates all required fields (addresses, payment method, terms acceptance)
+2. Prepares the correct payload based on user type (guest vs. logged-in)
+3. Sends the order to the API using the `/Save_Checkout/` endpoint
+4. Handles the response, showing success/failure messages
+5. Navigates to thank you page on success with the order tracking ID
+
+### 2. Error Handling Implementation
+
+#### Product Filter Error Handling
+
+Improved error handling in product listing:
+- When filter API returns "List not Found" or other errors:
+  - Error message is properly displayed to the user
+  - UI shows "No products found for [search term]" with appropriate messaging
+  - Error code and message are logged for debugging
+
+#### API Error Handling
+
+General approach to API error handling:
+- All API responses include standard fields:
+  - `StatusCode` - HTTP status code
+  - `ResponseCode` - Application-specific success/error code
+  - `Message` - Human-readable message for display
+  - `Data` - The actual data payload when successful
+  
+- Common error scenarios handled:
+  - Network errors with appropriate reconnection prompts
+  - Authentication errors with login redirection
+  - Validation errors with field-specific highlighting
+  - Server errors with retry options
+
+### 3. Address Modal Implementation
+
+The address change modals follow these patterns:
+
+#### ChangeAddressModal Component
+- Displays a list of addresses for the user to select from
+- Highlights the currently selected address
+- Provides a checkbox for setting as default
+- Implements proper loading states during API calls
+- Handles empty states when no addresses are available
+
+### 4. API Endpoints Documentation
+
+#### Address Management Endpoints
+
+| Endpoint | Description | Parameters |
+|----------|-------------|------------|
+| `/getData_JSON/` | Used with SP `Get_Default_BillingAddress_ByUserid` | UserId |
+| `/getData_JSON/` | Used with SP `Get_Default_ShippingAddress_ByUserid` | UserId |
+| `/getData_JSON/` | Used with SP `Get_All_BillingAddress_ByUserId` | UserId |
+| `/getData_JSON/` | Used with SP `Get_All_ShippingAddress_ByUserId` | UserId |
+
+#### Checkout Endpoints
+
+| Endpoint | Description | Parameters |
+|----------|-------------|------------|
+| `/getData_JSON/` | Used with SP `Get_PaymentMode_List` | None specific |
+| `/Save_Checkout/` | Saves order details | UserID, addresses, payment info, etc. |
+
+#### Promo Code Endpoints
+
+| Endpoint | Description | Parameters |
+|----------|-------------|------------|
+| `/Apply_PromoCode/` | Apply promo code to cart | PromoCode, UserId, UniqueId, etc. |
+| `/Remove_PromoCode/` | Remove applied promo code | PromoCode, UserId, UniqueId, etc. |
+| `/getData_JSON/` | Used with SP `Get_Promo_Coupons_List` | None specific |
+
+## Guest Checkout Flow Implementation
+
+The guest checkout flow has been implemented with the following steps:
+
+1. **Initial Checkout Screen**:
+   - When a guest user navigates to the checkout page, they see the main checkout screen with an "Add Address" button (as shown in guest_checkout.png)
+   - The checkout screen displays the cart items, subtotal, and a button to add address
+
+2. **Adding Billing Address**:
+   - When the user clicks "Add Address", the `GuestCheckoutAddressForm` component is displayed
+   - This form collects standard billing address information:
+     - Full Name, Email, Mobile
+     - Country, State, City (fetched from API using `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Country_List'` etc.)
+     - Block, Street, House, Apartment
+   - The form has a toggle for "Ship to different address"
+   - Upon form submission, the guest user is registered using the `Save_Guest_User_Registration` endpoint
+
+3. **Shipping Address (Optional)**:
+   - If the user selected "Ship to different address", the `GuestCheckoutShippingForm` is displayed next
+   - This form collects shipping address information similar to the billing form
+   - User can pre-fill the form with billing information
+
+4. **Payment Selection**:
+   - After completing address forms, the user returns to the main checkout page
+   - The entered addresses are displayed with options to change them
+   - User selects a payment method
+
+5. **Promo Code (Optional)**:
+   - User can enter a promo code or see available codes
+   - API endpoints `/Apply_PromoCode/` and `/Remove_PromoCode/` are used
+
+6. **Order Placement**:
+   - When "Place Order" is clicked, validation checks ensure all required fields are completed
+   - For guest users, the `Save_Checkout` endpoint is called with:
+     - The guest track ID as UserID (returned from guest registration)
+     - Flag for different shipping address
+     - Shipping country/state/city codes (SCountry, SState, SCity) when using different shipping address
+   - Success response redirects to thank you page with order tracking ID
+
+### Guest User Registration Process
+
+The guest user registration process uses the `Save_Guest_User_Registration` endpoint with the following parameters:
+- FullName (from billing form)
+- Email (from billing form)
+- Mobile (from billing form)
+- IpAddress (automatically determined)
+- Source (iOS/Android based on platform)
+- CompanyId (default 3044)
+
+The response includes a TrackId that is used as the UserID for the remainder of the checkout process.
+
+### API Endpoints for Country/State/City
+
+For the address forms, the following stored procedures are used:
+- `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Country_List'` - Fetches all available countries
+- `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_State_List','COUNTRY_CODE'` - Fetches states for a specific country
+- `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_City_List','STATE_CODE'` - Fetches cities for a specific state
+
+The response from these APIs is used to populate the dropdown selectors in the address forms, ensuring users can only select valid geographic locations.
+
+### Save Checkout Parameters for Guest Users
+
+When a guest user places an order, the following parameters are sent to the `Save_Checkout` endpoint:
+
+```json
+{
+  "UserID": "guest_track_id",
+  "IpAddress": "127.0.0.1",
+  "UniqueId": "cart_unique_id",
+  "Company": 3044,
+  "CultureId": 1,
+  "BuyNow": "",
+  "Location": "304401HO",
+  "DifferentAddress": true/false,
+  "BillingAddressId": 0,
+  "SCountry": "country_code",  // Only if DifferentAddress is true
+  "SState": "state_code",      // Only if DifferentAddress is true
+  "SCity": "city_code",        // Only if DifferentAddress is true
+  "PaymentMode": "payment_code",
+  "Source": "iOS/Android",
+  "Salesman": "3044SMOL",
+  "CreateAccount": 0/1
+}
+```
+
+The `DifferentAddress` flag is set based on whether the user completed the shipping address form. When true, the shipping location codes (SCountry, SState, SCity) are included from the user's shipping address form.
+
+## API Testing Results and Complete Guest Checkout Flow
+
+### Guest User Registration API
+**Endpoint**: `/Guest_SaveUserRegistration/`
+**Method**: POST
+**Parameters**:
+```json
+{
+  "FullName": "Jane Smith",
+  "Email": "jane.smith.test@example.com", 
+  "Mobile": "87654321",
+  "IpAddress": "192.168.1.1",
+  "Source": "iOS",
+  "CompanyId": 3044
+}
+```
+**Success Response**:
+```json
+{"ResponseCode":"2","Message":"User Registration Save Successfully!!!","TrackId":"8011"}
+```
+**Already Registered Response**:
+```json
+{"ResponseCode":"4","Message":"User Already Registered...!!!","TrackId":"7975"}
+```
+
+### Get All Billing Addresses API
+**Endpoint**: `/getData_JSON/`
+**Method**: POST
+**SP**: `[Web].[Sp_CheckoutMst_Apps_SM]`
+**Parameters**:
+```json
+{
+  "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','8011','','','','',1,3044,''"
+}
+```
+**Response** (when no addresses):
+```json
+{"success":0,"row":[],"Message":"Data not found."}
+```
+
+### Get All Shipping Addresses API  
+**Endpoint**: `/getData_JSON/`
+**Method**: POST
+**SP**: `[Web].[Sp_CheckoutMst_Apps_SM]`
+**Parameters**:
+```json
+{
+  "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','8011','','','','',1,3044,''"
+}
+```
+**Response** (when no addresses):
+```json
+{"success":0,"row":[],"Message":"Data not found."}
+```
+
+### Thank You Page Order Details API
+**Endpoint**: `/getData_JSON/`
+**Method**: POST
+**SP**: `[Web].[Sp_Template1_Get_OrderDetails_ThankYou_Apps]`
+**Parameters**:
+```json
+{
+  "strQuery": "[Web].[Sp_Template1_Get_OrderDetails_ThankYou_Apps] '8011',3044"
+}
+```
+**Response** (when no order found):
+```json
+{"success":0,"row":[],"Message":"Data not found."}
+```
+
+### Complete Guest Checkout Implementation Flow
+
+1. **Guest User Adds Billing Address & Hits Save**:
+   - Call `Guest_SaveUserRegistration` API
+   - Store returned `TrackId` as guest user ID
+   - Call `Get_All_BillingAddress_ByUserId` with guest TrackId
+   - Store billing address ID from response (if any addresses returned)
+
+2. **If "Ship to Different Address" is Toggled**:
+   - Show shipping address form
+   - When shipping form is saved:
+     - Call `Get_All_ShippingAddress_ByUserId` with guest TrackId  
+     - Store shipping address ID from response
+
+3. **Place Order**:
+   - Call `Save_Checkout` API with correct parameters:
+     - `UserID`: Use guest TrackId
+     - `BillingAddressId`: From billing address API response (or 0 if none)
+     - `ShippingAddressId`: From shipping address API response (or 0 if none)
+     - `DifferentAddress`: true/false based on user selection
+     - `SCountry`, `SState`, `SCity`: Shipping location codes when DifferentAddress is true
+
+4. **Order Success**:
+   - Get TrackId from `Save_Checkout` response
+   - Call `[Web].[Sp_Template1_Get_OrderDetails_ThankYou_Apps]` with order TrackId
+   - Display thank you page with order details
+
+### Key Implementation Notes
+
+- **Guest TrackId Persistence**: The guest TrackId from registration must be stored and used throughout the checkout process
+- **Address ID Handling**: When no addresses are found, use 0 as the address ID in checkout
+- **Response Code Handling**: `ResponseCode "2"` = success, `ResponseCode "4"` = already registered (still use TrackId)
+- **Error Handling**: All APIs return structured responses with success flags and messages
 

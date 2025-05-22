@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,10 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
-  Platform
+  Platform,
+  KeyboardAvoidingView
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 // Directly define theme constants since @theme import is not working correctly
@@ -47,11 +48,74 @@ const radii = {
 import useCartStore from '../store/cart-store';
 import useAuthStore from '../store/auth-store';
 import useAddressStore, { Address } from '../store/address-store';
-import usePromoStore from '../store/promo-store'; // Import the promo store
+import usePromoStore from '../store/promo-store';
+import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
 import CheckoutAddressModal from '../components/CheckoutAddressModal';
 import CheckoutAddressFormModal from '../components/CheckoutAddressFormModal';
+import GuestCheckoutAddressForm from '../components/GuestCheckoutAddressForm';
+import GuestCheckoutShippingForm from '../components/GuestCheckoutShippingForm';
+import { 
+  getPaymentModes, 
+  saveCheckout,
+  PaymentModeItem,
+  SaveCheckoutParams,
+  getDefaultBillingAddressByUserId, 
+  getDefaultShippingAddressByUserId,
+  getAllBillingAddressesByUserId,
+  getAllShippingAddressesByUserId,
+  ApiAddress
+} from '../utils/api-service';
+import { Address as StoreAddress } from '../store/address-store';
+import PromoCodeModal from '../components/PromoCodeModal';
+import ChangeAddressModal from '../components/ChangeAddressModal';
 
 const { width, height } = Dimensions.get('window');
+
+// Interfaces and types
+interface PaymentMethod {
+  PaymentModeCode: string;
+  PaymentModeName: string;
+}
+
+// Add conversion helpers at the top
+function addressToApiAddress(address: any): ApiAddress {
+  return {
+    BillingAddressId: address.id,
+    ShippingAddressId: address.id,
+    FullName: address.fullName,
+    Email: address.email,
+    Mobile: address.mobile,
+    Address: address.address || '',
+    Address2: address.address2 || '',
+    Country: address.country || '',
+    State: address.state || '',
+    City: address.city || '',
+    Block: address.block || '',
+    Street: address.street || '',
+    House: address.house || '',
+    Apartment: address.apartment || '',
+    IsDefault: address.isDefault ?? false,
+  };
+}
+
+function apiAddressToAddress(api: ApiAddress): any {
+  return {
+    id: api.BillingAddressId || api.ShippingAddressId || 0,
+    fullName: api.FullName,
+    email: api.Email,
+    mobile: api.Mobile,
+    address2: api.Address2 || '',
+    address: api.Address || '',
+    country: api.Country || '',
+    state: api.State || '',
+    city: api.City || '',
+    block: api.Block || '',
+    street: api.Street || '',
+    house: api.House || '',
+    apartment: api.Apartment || '',
+    isDefault: typeof api.IsDefault === 'boolean' ? api.IsDefault : !!api.IsDefault,
+  };
+}
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -59,23 +123,31 @@ export default function CheckoutScreen() {
   const { cartItems, totalAmount, isLoading: cartLoading, refreshCartItems } = useCartStore();
   const { user, isLoggedIn } = useAuthStore();
   const { billingAddresses, shippingAddresses, fetchUserAddresses } = useAddressStore();
-  const { 
-    appliedPromoCode, 
-    discountAmount, 
-    isApplying, 
-    isRemoving, 
-    error: promoError, 
-    success: promoSuccess,
-    applyPromo,
-    removePromo,
-    clearError: clearPromoError
-  } = usePromoStore();
+  const promoStore = usePromoStore();
+  const {
+    billingAddress: guestBillingAddress,
+    shippingAddress: guestShippingAddress,
+    guestTrackId,
+    currentStep,
+    setCurrentStep,
+    billingAddressId: guestBillingAddressId,
+    shippingAddressId: guestShippingAddressId,
+    isLoading: checkoutLoading,
+    fetchDefaultAddresses: fetchCheckoutDefaultAddresses,
+    fetchAllAddresses: fetchCheckoutAllAddresses,
+    billingAddresses: checkoutBillingAddresses,
+    shippingAddresses: checkoutShippingAddresses,
+    selectedBillingAddressId,
+    selectedShippingAddressId,
+    setSelectedBillingAddressId,
+    setSelectedShippingAddressId,
+  } = useCheckoutStore();
   
   // State
   const [promoCode, setPromoCode] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(true);
-  const [selectedBillingAddress, setSelectedBillingAddress] = useState<Address | null>(null);
-  const [selectedShippingAddress, setSelectedShippingAddress] = useState<Address | null>(null);
+  const [selectedBillingAddress, setSelectedBillingAddress] = useState<ApiAddress | null>(null);
+  const [selectedShippingAddress, setSelectedShippingAddress] = useState<ApiAddress | null>(null);
   
   // State for address modals
   const [showBillingAddressModal, setShowBillingAddressModal] = useState(false);
@@ -84,31 +156,88 @@ export default function CheckoutScreen() {
   const [showAddShippingModal, setShowAddShippingModal] = useState(false);
   const [useShippingAsBilling, setUseShippingAsBilling] = useState(false);
   
+  // State for guest checkout flow
+  const [showGuestBillingForm, setShowGuestBillingForm] = useState(false);
+  const [showGuestShippingForm, setShowGuestShippingForm] = useState(false);
+  
+  // Add state for "Create an Account" checkbox
+  const [createAccount, setCreateAccount] = useState(false);
+  
+  // Add state for terms and conditions
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  
+  // Add state for PromoCodeModal
+  const [showPromoCodeModal, setShowPromoCodeModal] = useState(false);
+  
+  // Add state for applying promo codes
+  const [isPromoApplying, setIsPromoApplying] = useState(false);
+  const [isPromoRemoving, setIsPromoRemoving] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  
   // Get uniqueId and BuyNow from local storage or params
   const uniqueId = params.uniqueId as string || useCartStore(state => state.uniqueId);
   const buyNow = ''; // Always empty since users can only checkout from cart now
   
   // Calculate correct total based on items in cart
   const correctTotalAmount = cartItems.reduce((total, item) => 
-    total + (item.Price * item.Quantity), 0);
+    total + (item.Price * (item.Quantity || 1)), 0);
   
   // Constants for checkout calculations
   const shippingFee = 5.00;
-  const discount = discountAmount || 0.00;
+  const discount = promoDiscount || 0.00;
   const grandTotal = correctTotalAmount + shippingFee - discount;
+  
+  // State for payment methods
+  const [paymentMethods, setPaymentMethods] = useState<PaymentModeItem[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentModeItem | null>(null);
+  const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderPlacedTrackId, setOrderPlacedTrackId] = useState<string | null>(null);
+  
+  // State for address management
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [defaultBillingAddress, setDefaultBillingAddress] = useState<ApiAddress | null>(null);
+  const [defaultShippingAddress, setDefaultShippingAddress] = useState<ApiAddress | null>(null);
+  const [loggedInUserBillingAddresses, setLoggedInUserBillingAddresses] = useState<ApiAddress[]>([]);
+  const [loggedInUserShippingAddresses, setLoggedInUserShippingAddresses] = useState<ApiAddress[]>([]);
+  const [showChangeBillingModal, setShowChangeBillingModal] = useState(false);
+  const [showChangeShippingModal, setShowChangeShippingModal] = useState(false);
+  
+  // Add useEffect to fetch addresses for logged-in users
+  useEffect(() => {
+    if (isLoggedIn && user && user.UserID) {
+      // Fetch default addresses first for immediate display
+      fetchCheckoutDefaultAddresses(user.UserID);
+      
+      // Fetch all addresses for the selection modals
+      fetchCheckoutAllAddresses(user.UserID);
+    }
+  }, [isLoggedIn, user]);
+  
+  // Determine if we need to show the guest checkout form initially
+  useEffect(() => {
+    if (!isLoggedIn && cartItems.length > 0) {
+      // Don't immediately show the guest checkout form
+      // Let the user see the main checkout page first, as per guest_checkout.png
+      setShowGuestBillingForm(false);
+    }
+  }, [isLoggedIn, cartItems.length]);
   
   // Log for debugging
   useEffect(() => {
     console.log('Checkout - Cart Items:', cartItems.length);
     console.log('Checkout - CartStore totalAmount:', totalAmount);
     console.log('Checkout - Calculated correctTotalAmount:', correctTotalAmount);
-    console.log('Checkout - Applied Promo Code:', appliedPromoCode);
-    console.log('Checkout - Discount Amount:', discountAmount);
+    console.log('Checkout - Applied Promo Code:', appliedPromo);
+    console.log('Checkout - Discount Amount:', promoDiscount);
     console.log('Checkout - Grand Total:', grandTotal);
+    console.log('Checkout - Is Logged In:', isLoggedIn);
+    console.log('Checkout - Guest Track ID:', guestTrackId);
     
     // Refresh cart totals on mount to ensure they're correct
     refreshCartItems();
-  }, [cartItems, appliedPromoCode, discountAmount]);
+  }, [cartItems, appliedPromo, promoDiscount, isLoggedIn, guestTrackId]);
   
   // Fetch user addresses when component mounts
   useEffect(() => {
@@ -121,14 +250,37 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (billingAddresses.length > 0 && !selectedBillingAddress) {
       const defaultBillingAddress = billingAddresses.find(addr => addr.isDefault) || billingAddresses[0];
-      setSelectedBillingAddress(defaultBillingAddress);
+      setSelectedBillingAddress(addressToApiAddress(defaultBillingAddress));
     }
     
     if (shippingAddresses.length > 0 && !selectedShippingAddress) {
       const defaultShippingAddress = shippingAddresses.find(addr => addr.isDefault) || shippingAddresses[0];
-      setSelectedShippingAddress(defaultShippingAddress);
+      setSelectedShippingAddress(addressToApiAddress(defaultShippingAddress));
     }
   }, [billingAddresses, shippingAddresses]);
+  
+  // Fetch payment methods when the component mounts
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, []);
+  
+  // Function to fetch payment methods
+  const fetchPaymentMethods = async () => {
+    setIsLoadingPaymentMethods(true);
+    try {
+      const response = await getPaymentModes();
+      if (response.Data?.success === 1 && response.Data.row) {
+        setPaymentMethods(response.Data.row);
+        if (response.Data.row.length > 0) {
+          setSelectedPaymentMethod(response.Data.row[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching payment methods:', error);
+    } finally {
+      setIsLoadingPaymentMethods(false);
+    }
+  };
   
   // Close modal and cancel checkout
   const handleCloseModal = () => {
@@ -136,49 +288,99 @@ export default function CheckoutScreen() {
     router.back();
   };
   
-  // Apply promo code
+  // Update handleApplyPromoCode function to correctly use the selected promo code
   const handleApplyPromoCode = async () => {
     if (!promoCode.trim()) {
       Alert.alert('Error', 'Please enter a promo code');
       return;
     }
     
+    // Get the user ID if logged in, empty string if guest
     const userId = user?.UserID || '';
-    const result = await applyPromo(promoCode, userId, uniqueId, buyNow);
     
-    if (result) {
-      // Success - Promo code was applied
-      // (No need for alert here as the UI will update to show the applied promo)
-    } else if (promoError) {
-      // Show error message
-      Alert.alert('Error', promoError);
-      clearPromoError();
+    try {
+      setIsPromoApplying(true);
+      const result = await promoStore.applyPromo(promoCode, userId, uniqueId, buyNow);
+      
+      if (result) {
+        // Success - Promo code was applied
+        setAppliedPromo(promoCode);
+        // Update the discount in the UI based on the response
+        setPromoDiscount(promoStore.discountAmount);
+        Alert.alert('Success', 'Promo code applied successfully');
+      } else if (promoStore.promoError) {
+        // Show error message
+        Alert.alert('Error', promoStore.promoError);
+        promoStore.clearPromoError();
+      }
+    } catch (error) {
+      console.error('Error applying promo code:', error);
+      Alert.alert('Error', 'Failed to apply promo code. Please try again.');
+    } finally {
+      setIsPromoApplying(false);
     }
   };
   
   // Remove promo code
   const handleRemovePromoCode = async () => {
-    if (!appliedPromoCode) return;
+    if (!appliedPromo) return;
     
     const userId = user?.UserID || '';
-    const result = await removePromo(appliedPromoCode, userId, uniqueId, buyNow);
+    setIsPromoRemoving(true);
     
-    if (result) {
-      // Success - Promo code was removed
-      setPromoCode(''); // Clear the input field
-    } else if (promoError) {
-      // Show error message
-      Alert.alert('Error', promoError);
-      clearPromoError();
+    try {
+      const result = await promoStore.removePromo(userId, uniqueId, buyNow);
+      
+      if (result) {
+        // Success - Promo code was removed
+        setPromoCode(''); // Clear the input field
+        setAppliedPromo(null);
+        setPromoDiscount(0);
+      } else if (promoStore.promoError) {
+        // Show error message
+        Alert.alert('Error', promoStore.promoError);
+        promoStore.clearPromoError();
+      }
+    } catch (error) {
+      console.error('Error removing promo code:', error);
+      Alert.alert('Error', 'Failed to remove promo code. Please try again.');
+    } finally {
+      setIsPromoRemoving(false);
     }
   };
   
   // Navigate to see all promo codes
   const handleSeePromoCodes = () => {
-    Alert.alert('Promo Codes', 'Promo codes feature coming soon');
+    setShowPromoCodeModal(true);
   };
   
-  // Show the billing address selection modal
+  // Add function to handle promo code selection from modal
+  const handleSelectPromoCode = (code: string) => {
+    setPromoCode(code);
+    handleApplyPromoCode(); // Auto apply the selected code
+  };
+  
+  // Handle guest billing address submission
+  const handleGuestBillingComplete = (shipToDifferentAddress: boolean) => {
+    setShowGuestBillingForm(false);
+    
+    if (shipToDifferentAddress) {
+      // Show shipping address form
+      setShowGuestShippingForm(true);
+    } else {
+      // Continue to payment
+      setCurrentStep('payment');
+    }
+  };
+  
+  // Handle guest shipping address submission
+  const handleGuestShippingComplete = () => {
+    setShowGuestShippingForm(false);
+    // Continue to payment
+    setCurrentStep('payment');
+  };
+  
+  // Show the billing address selection modal for logged-in users
   const handleSelectBillingAddress = () => {
     if (!isLoggedIn) {
       Alert.alert(
@@ -195,7 +397,7 @@ export default function CheckoutScreen() {
     setShowBillingAddressModal(true);
   };
   
-  // Show the shipping address selection modal
+  // Show the shipping address selection modal for logged-in users
   const handleSelectShippingAddress = () => {
     if (!isLoggedIn) {
       Alert.alert(
@@ -213,19 +415,14 @@ export default function CheckoutScreen() {
   };
   
   // Handle billing address selected from modal
-  const handleBillingAddressSelected = (address: Address) => {
-    setSelectedBillingAddress(address);
+  const handleBillingAddressSelected = (address: any) => {
+    setSelectedBillingAddress(addressToApiAddress(address));
     setShowBillingAddressModal(false);
-    
-    // If shipping address is not yet selected, also use this as shipping
-    if (!selectedShippingAddress && !useShippingAsBilling) {
-      setSelectedShippingAddress(address);
-    }
   };
   
   // Handle shipping address selected from modal
-  const handleShippingAddressSelected = (address: Address) => {
-    setSelectedShippingAddress(address);
+  const handleShippingAddressSelected = (address: any) => {
+    setSelectedShippingAddress(addressToApiAddress(address));
     setShowShippingAddressModal(false);
   };
   
@@ -248,8 +445,6 @@ export default function CheckoutScreen() {
     }
     
     setShowAddBillingModal(false);
-    
-    // Will be handled in the parent component if Ship to Different Address was checked
   };
   
   // Handle new shipping address added
@@ -263,79 +458,408 @@ export default function CheckoutScreen() {
   
   // Navigate to login screen
   const handleLogin = () => {
-    setIsModalVisible(false);
     router.push('/auth');
   };
   
   // Format address for display
   const formatAddressForDisplay = (address: Address) => {
-    if (!address) return '';
-    
-    // If there's a combined address field from the API, use it
-    if (address.address) {
-      return `${address.fullName}, ${address.mobile}, ${address.address}`;
-    }
-    
-    // Otherwise build from individual fields
-    return `${address.fullName}, ${address.mobile}, ${address.countryName}, ${address.stateName}, ${address.cityName}, ${address.block}, ${address.street}, ${address.house}${address.apartment ? `, ${address.apartment}` : ''}`;
+    return `${address.fullName}, ${address.mobile}\n${address.block}, ${address.street}, ${address.house}${address.apartment ? ', ' + address.apartment : ''}\n${address.city}, ${address.state}, ${address.country}`;
   };
   
-  // Place order
-  const handlePlaceOrder = () => {
-    if (!selectedBillingAddress) {
-      Alert.alert('Error', 'Please add a billing address');
-      return;
-    }
-    
-    if (!selectedShippingAddress) {
-      Alert.alert('Error', 'Please add a shipping address');
-      return;
-    }
-    
-    Alert.alert(
-      'Place Order',
-      'Your order will be placed. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Confirm', 
-          onPress: () => {
-            Alert.alert('Success', 'Order placed successfully!');
-            router.replace('/(shop)');
-          }
-        }
-      ]
-    );
+  // Function to handle address selection callbacks
+  const handleChangeBillingAddress = (address: ApiAddress) => {
+    setDefaultBillingAddress(address);
+    setShowChangeBillingModal(false);
   };
 
-  // Render cart items in horizontal scroll
+  const handleChangeShippingAddress = (address: ApiAddress) => {
+    setDefaultShippingAddress(address);
+    setShowChangeShippingModal(false);
+  };
+
+  // Update handlePlaceOrder function to correctly use the API for guest users
+  const handlePlaceOrder = async () => {
+    if (!selectedPaymentMethod) {
+      Alert.alert('Payment Method Required', 'Please select a payment method to continue');
+      return;
+    }
+    
+    // Validate addresses based on user type
+    if (isLoggedIn) {
+      if (!selectedBillingAddressId) {
+        Alert.alert('Billing Address Required', 'Please select or add a billing address');
+        return;
+      }
+    } else {
+      // Guest user flow
+      if (!guestBillingAddress) {
+        Alert.alert('Billing Address Required', 'Please add your billing address');
+        return;
+      }
+      
+      // Check if shipping is needed and present
+      const differentShippingAddress = currentStep === 'shipping';
+      if (differentShippingAddress && !guestShippingAddress) {
+        Alert.alert('Shipping Address Required', 'Please add your shipping address');
+        return;
+      }
+    }
+    
+    if (!acceptTerms) {
+      Alert.alert('Terms & Conditions', 'Please accept the terms and conditions to continue');
+      return;
+    }
+    
+    setIsPlacingOrder(true);
+    
+    try {
+      // Get the user ID or guest track ID
+      const userId = isLoggedIn ? (user?.UserID || '') : guestTrackId || '';
+      
+      // Get cart unique ID
+      const cartUniqueId = typeof params?.uniqueId === 'string' ? params.uniqueId : useCartStore.getState().uniqueId;
+      
+      if (!userId) {
+        Alert.alert('Error', 'User ID or guest track ID is missing. Please try again.');
+        setIsPlacingOrder(false);
+        return;
+      }
+      
+      // Set address IDs and shipping flag based on user type
+      let billingAddressId = 0;
+      let shippingAddressId = 0;
+      let differentAddress = false;
+      
+      if (isLoggedIn) {
+        // Logged-in user - use selected address IDs from checkout store
+        const { selectedBillingAddressId, selectedShippingAddressId } = useCheckoutStore.getState();
+        
+        billingAddressId = selectedBillingAddressId || (defaultBillingAddress?.BillingAddressId || 0);
+        
+        // Check if using different shipping address
+        differentAddress = !!(selectedShippingAddressId && selectedShippingAddressId !== selectedBillingAddressId);
+        
+        shippingAddressId = differentAddress ? (selectedShippingAddressId || 0) : 0;
+      } else {
+        // Guest user - use address IDs from checkout store
+        billingAddressId = guestBillingAddressId;
+        differentAddress = !!(guestShippingAddress);
+        shippingAddressId = differentAddress ? guestShippingAddressId : 0;
+      }
+      
+      // Create checkout parameters
+      const checkoutParams: SaveCheckoutParams = {
+        UserID: userId,
+        IpAddress: '127.0.0.1',
+        UniqueId: cartUniqueId,
+        Company: 3044,
+        CultureId: 1,
+        BuyNow: '',
+        Location: '304401HO',
+        DifferentAddress: differentAddress,
+        BillingAddressId: billingAddressId,
+        PaymentMode: selectedPaymentMethod.XCode,
+        Source: Platform.OS === 'ios' ? 'iOS' : 'Android',
+        Salesman: '3044SMOL',
+        CreateAccount: !isLoggedIn && createAccount ? 1 : 0
+      };
+      
+      // For guest users with different shipping address, add country/state/city codes
+      if (!isLoggedIn && differentAddress && guestShippingAddress) {
+        checkoutParams.SCountry = guestShippingAddress.country?.XCode.toString() || '';
+        checkoutParams.SState = guestShippingAddress.state?.XCode.toString() || '';
+        checkoutParams.SCity = guestShippingAddress.city?.XCode.toString() || '';
+      }
+      
+      console.log('Placing order with params:', JSON.stringify(checkoutParams, null, 2));
+      
+      // Call the checkout API
+      const response = await saveCheckout(checkoutParams);
+      
+      if (response.ResponseCode === '2' || response.ResponseCode === 2) {
+        // Successful order placement
+        setOrderPlacedTrackId(response.TrackId || null);
+        
+        // Navigate to thank you page
+        if (response.TrackId) {
+          router.push({
+            pathname: '/thank-you',
+            params: { trackId: response.TrackId }
+          });
+        } else {
+          Alert.alert('Order Placed', 'Your order has been placed successfully!');
+          router.push('/');
+        }
+      } else {
+        // Error handling for different response codes
+        let errorMessage = 'Failed to place order. Please try again.';
+        
+        if (response.ResponseCode === '-4') {
+          errorMessage = 'Payment method not selected. Please select a payment method.';
+        } else if (response.ResponseCode === '-6') {
+          errorMessage = 'Your cart is empty. Please add items to cart before checkout.';
+        } else if (response.ResponseCode === '-8') {
+          errorMessage = 'Validation error. Please check your information.';
+        } else if (response.ResponseCode === '-16') {
+          errorMessage = 'One or more items in your cart are not available in the requested quantity.';
+        }
+        
+        Alert.alert('Checkout Error', errorMessage);
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+  
+  // Render cart items
   const renderCartItems = () => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.cartItemsContainer}
-    >
+    <View style={styles.cartItems}>
       {cartItems.map((item, index) => (
-        <View key={index} style={styles.cartItemCard}>
-          <Image
-            source={{ 
-              uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1 || 'placeholder.png'}` 
-            }}
-            style={styles.cartItemImage}
+        <View key={index} style={styles.cartItem}>
+          <Image 
+            source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1}` }} 
+            style={styles.cartItemImage} 
             resizeMode="contain"
           />
           <View style={styles.cartItemDetails}>
             <Text style={styles.cartItemName} numberOfLines={2}>{item.ProductName}</Text>
-            <Text style={styles.cartItemQuantity}>x {item.Quantity} {item.Price.toFixed(2)} KD</Text>
+            <Text style={styles.cartItemPrice}>
+              <Text style={styles.itemQuantity}>x {item.Quantity}</Text> {item.Price.toFixed(2)} KD
+            </Text>
           </View>
         </View>
       ))}
-    </ScrollView>
+    </View>
   );
 
+  // Render appropriate address section based on logged-in status and step
+  const renderAddressSection = () => {
+    if (isLoggedIn) {
+      // Render address section for logged-in users
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Address</Text>
+          
+          {/* Billing Address */}
+          <View style={styles.addressContainer}>
+            <Text style={styles.addressTitle}>Billing Address</Text>
+            {(() => {
+              const selectedBilling = checkoutBillingAddresses.find(addr => addr.BillingAddressId === selectedBillingAddressId);
+              return selectedBilling ? (
+                <View style={styles.selectedAddress}>
+                  <Text style={styles.addressText}>
+                    {selectedBilling.FullName}, {selectedBilling.Mobile}{'\n'}
+                    {[selectedBilling.Block, selectedBilling.Street, selectedBilling.House]
+                      .filter(Boolean).join(', ')}{'\n'}
+                    {[selectedBilling.City, selectedBilling.State, selectedBilling.Country]
+                      .filter(Boolean).join(', ')}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.changeButton}
+                    onPress={() => setShowChangeBillingModal(true)}
+                  >
+                    <Text style={styles.changeButtonText}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : checkoutLoading ? (
+                <ActivityIndicator size="small" color={colors.blue} />
+              ) : (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => setShowChangeBillingModal(true)}
+                >
+                  <FontAwesome name="plus" size={16} color="#0063B1" />
+                  <Text style={styles.addButtonText}>Add Billing Address</Text>
+                </TouchableOpacity>
+              );
+            })()}
+          </View>
+          
+          {/* Shipping Address */}
+          <View style={styles.addressContainer}>
+            <View style={styles.shippingHeader}>
+              <Text style={styles.addressTitle}>Shipping Address</Text>
+              <TouchableOpacity 
+                style={styles.checkbox}
+                onPress={() => {
+                  if (selectedShippingAddressId) {
+                    setSelectedShippingAddressId(0);
+                  } else if (checkoutShippingAddresses.length > 0) {
+                    setSelectedShippingAddressId(checkoutShippingAddresses[0].ShippingAddressId || 0);
+                  }
+                }}
+              >
+                                 <View style={[styles.checkboxInner, selectedShippingAddressId ? styles.checkboxSelected : null]}>
+                  {selectedShippingAddressId && <FontAwesome name="check" size={12} color="white" />}
+                </View>
+                <Text style={styles.checkboxLabel}>Ship to different address</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {selectedShippingAddressId ? (() => {
+              const selectedShipping = checkoutShippingAddresses.find(addr => addr.ShippingAddressId === selectedShippingAddressId);
+              return selectedShipping ? (
+                <View style={styles.selectedAddress}>
+                  <Text style={styles.addressText}>
+                    {selectedShipping.FullName}, {selectedShipping.Mobile}{'\n'}
+                    {[selectedShipping.Block, selectedShipping.Street, selectedShipping.House]
+                      .filter(Boolean).join(', ')}{'\n'}
+                    {[selectedShipping.City, selectedShipping.State, selectedShipping.Country]
+                      .filter(Boolean).join(', ')}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.changeButton}
+                    onPress={() => setShowChangeShippingModal(true)}
+                  >
+                    <Text style={styles.changeButtonText}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : checkoutLoading ? (
+                <ActivityIndicator size="small" color={colors.blue} />
+              ) : (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => setShowChangeShippingModal(true)}
+                >
+                  <FontAwesome name="plus" size={16} color="#0063B1" />
+                  <Text style={styles.addButtonText}>Add Shipping Address</Text>
+                </TouchableOpacity>
+              );
+            })() : null}
+          </View>
+        </View>
+      );
+    } else {
+      // Render address section for guest users
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Address</Text>
+          
+          {/* Guest Address Add Button - as per guest_checkout.png */}
+          {!guestBillingAddress && !showGuestBillingForm && (
+            <TouchableOpacity
+              style={styles.addGuestAddressButton}
+              onPress={() => setShowGuestBillingForm(true)}
+            >
+              <FontAwesome name="plus" size={16} color={colors.blue} style={styles.addIcon} />
+              <Text style={styles.addGuestAddressText}>Add Address</Text>
+              <FontAwesome name="chevron-right" size={14} color={colors.blue} style={styles.arrowIcon} />
+            </TouchableOpacity>
+          )}
+          
+          {/* Billing Address - only show if already entered */}
+          {guestBillingAddress && (
+            <View style={styles.addressContainer}>
+              <Text style={styles.addressTitle}>Billing Address</Text>
+              <View style={styles.selectedAddress}>
+                <Text style={styles.addressText}>
+                  {guestBillingAddress.fullName}, {guestBillingAddress.mobile}{'\n'}
+                  {guestBillingAddress.block}, {guestBillingAddress.street}, {guestBillingAddress.house}
+                  {guestBillingAddress.apartment ? ', ' + guestBillingAddress.apartment : ''}{'\n'}
+                  {guestBillingAddress.city?.XName}, {guestBillingAddress.state?.XName}, {guestBillingAddress.country?.XName}
+                </Text>
+                <TouchableOpacity
+                  style={styles.changeButton}
+                  onPress={() => setShowGuestBillingForm(true)}
+                >
+                  <Text style={styles.changeButtonText}>Change</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          
+          {/* Shipping Address - Only show if shipping is different */}
+          {currentStep === 'shipping' && guestShippingAddress && (
+            <View style={styles.addressContainer}>
+              <Text style={styles.addressTitle}>Shipping Address</Text>
+              <View style={styles.selectedAddress}>
+                <Text style={styles.addressText}>
+                  {guestShippingAddress.fullName}, {guestShippingAddress.mobile}{'\n'}
+                  {guestShippingAddress.block}, {guestShippingAddress.street}, {guestShippingAddress.house}
+                  {guestShippingAddress.apartment ? ', ' + guestShippingAddress.apartment : ''}{'\n'}
+                  {guestShippingAddress.city?.XName}, {guestShippingAddress.state?.XName}, {guestShippingAddress.country?.XName}
+                </Text>
+                <TouchableOpacity
+                  style={styles.changeButton}
+                  onPress={() => setShowGuestShippingForm(true)}
+                >
+                  <Text style={styles.changeButtonText}>Change</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      );
+    }
+  };
+
+  // Add handler for the checkbox
+  const handleCreateAccountToggle = () => {
+    setCreateAccount(!createAccount);
+  };
+
+  // Add handler for terms and conditions checkbox
+  const handleTermsToggle = () => {
+    setAcceptTerms(!acceptTerms);
+  };
+
+  // Add function to fetch default addresses
+  const fetchDefaultAddresses = async (userId: string) => {
+    setIsLoadingAddresses(true);
+    try {
+      // Fetch default billing address
+      const billingResponse = await getDefaultBillingAddressByUserId(userId);
+      console.log('Default billing address response:', billingResponse);
+      
+      if (billingResponse.Data?.success === 1 && billingResponse.Data.row?.length > 0) {
+        setDefaultBillingAddress(billingResponse.Data.row[0]);
+      }
+      
+      // Fetch default shipping address
+      const shippingResponse = await getDefaultShippingAddressByUserId(userId);
+      console.log('Default shipping address response:', shippingResponse);
+      
+      if (shippingResponse.Data?.success === 1 && shippingResponse.Data.row?.length > 0) {
+        setDefaultShippingAddress(shippingResponse.Data.row[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching default addresses:', error);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  // Add function to fetch all addresses
+  const fetchAllAddresses = async (userId: string) => {
+    try {
+      // Fetch all billing addresses
+      const billingResponse = await getAllBillingAddressesByUserId(userId);
+      console.log('All billing addresses response:', billingResponse);
+      
+      if (billingResponse.Data?.success === 1 && billingResponse.Data.row?.length > 0) {
+        setLoggedInUserBillingAddresses(billingResponse.Data.row);
+      }
+      
+      // Fetch all shipping addresses
+      const shippingResponse = await getAllShippingAddressesByUserId(userId);
+      console.log('All shipping addresses response:', shippingResponse);
+      
+      if (shippingResponse.Data?.success === 1 && shippingResponse.Data.row?.length > 0) {
+        setLoggedInUserShippingAddresses(shippingResponse.Data.row);
+      }
+    } catch (error) {
+      console.error('Error fetching all addresses:', error);
+    }
+  };
+
   return (
-    <>
+    <SafeAreaView style={styles.container}>
       <ExpoStatusBar style="dark" />
+      <StatusBar barStyle="dark-content" />
+      
       <Modal
         animationType="slide"
         transparent={true}
@@ -343,267 +867,339 @@ export default function CheckoutScreen() {
         onRequestClose={handleCloseModal}
       >
         <SafeAreaView style={styles.container}>
-          {/* Modal Content */}
           <View style={styles.modalContainer}>
-            {/* Header */}
+            {/* Modal Header */}
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Checkout</Text>
               <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
-                <FontAwesome name="times" size={20} color={colors.black} />
+                <FontAwesome name="close" size={24} color={colors.black} />
               </TouchableOpacity>
+              <Text style={styles.headerTitle}>Checkout</Text>
+              <View style={{ width: 24 }} />
             </View>
             
-            <ScrollView style={styles.scrollContent}>
-              {/* Cart Items */}
-              {renderCartItems()}
-              
-              {/* Address Section */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Address</Text>
-                {isLoggedIn && selectedShippingAddress ? (
-                  <TouchableOpacity 
-                    style={styles.addressCard}
-                    onPress={handleSelectShippingAddress}
-                  >
-                    <Text style={styles.addressText}>
-                      {formatAddressForDisplay(selectedShippingAddress)}
-                    </Text>
-                    <FontAwesome name="angle-right" size={20} color={colors.gray} />
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity 
-                    style={styles.addAddressButton}
-                    onPress={isLoggedIn ? handleSelectShippingAddress : handleLogin}
-                  >
-                    <Text style={styles.addAddressText}>
-                      {isLoggedIn ? '+ Add Address' : 'Login to add address'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              
-              {/* Promo Code Section */}
-              <View style={styles.section}>
-                <View style={styles.promoTitleRow}>
-                  <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
-                  <TouchableOpacity onPress={handleSeePromoCodes}>
-                    <Text style={styles.seePromoCodesText}>See Promo Codes</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                {appliedPromoCode ? (
-                  <View style={styles.appliedPromoContainer}>
-                    <View style={styles.appliedPromoCode}>
-                      <Text style={styles.appliedPromoText}>{appliedPromoCode}</Text>
+            {/* Guest Checkout Billing Form */}
+            {showGuestBillingForm && (
+              <GuestCheckoutAddressForm onComplete={handleGuestBillingComplete} />
+            )}
+            
+            {/* Guest Checkout Shipping Form */}
+            {showGuestShippingForm && (
+              <GuestCheckoutShippingForm onComplete={handleGuestShippingComplete} />
+            )}
+            
+            {/* Main Checkout Content */}
+            {!showGuestBillingForm && !showGuestShippingForm && (
+              <>
+                <ScrollView style={styles.modalContent}>
+                  {/* Cart Items */}
+                  {renderCartItems()}
+                  
+                  {/* Address Section */}
+                  {renderAddressSection()}
+                  
+                  {/* Payment Method Selection */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Select Payment Type</Text>
+                    
+                    {isLoadingPaymentMethods ? (
+                      <ActivityIndicator size="small" color={colors.blue} />
+                    ) : paymentMethods.length === 0 ? (
+                      <Text style={styles.emptyText}>No payment methods available</Text>
+                    ) : (
+                      <View style={styles.paymentMethodsContainer}>
+                        {paymentMethods.map((method) => (
+                          <TouchableOpacity
+                            key={method.XCode}
+                            style={[
+                              styles.paymentMethodItem,
+                              selectedPaymentMethod?.XCode === method.XCode && styles.selectedPaymentMethod
+                            ]}
+                            onPress={() => setSelectedPaymentMethod(method)}
+                          >
+                            <View style={styles.paymentMethodRadio}>
+                              <View 
+                                style={[
+                                  styles.paymentMethodRadioInner,
+                                  selectedPaymentMethod?.XCode === method.XCode && styles.paymentMethodRadioSelected
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.paymentMethodName}>{method.XName}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                  
+                  {/* Promo Code Section */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
+                    <View style={styles.promoContainer}>
+                      <TextInput
+                        style={styles.promoInput}
+                        placeholder="Enter Promo Code"
+                        value={promoCode}
+                        onChangeText={setPromoCode}
+                        editable={!appliedPromo && !isPromoApplying}
+                      />
+                      {appliedPromo && (
+                        <TouchableOpacity
+                          style={[styles.promoButton, styles.removePromoButton]}
+                          onPress={handleRemovePromoCode}
+                          disabled={isPromoRemoving}
+                        >
+                          {isPromoRemoving ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                          ) : (
+                            <Text style={styles.promoButtonText}>Remove</Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <TouchableOpacity 
-                      style={styles.removePromoButton}
-                      onPress={handleRemovePromoCode}
-                      disabled={isRemoving}
+                    {appliedPromo && (
+                      <View style={styles.appliedPromo}>
+                        <Text style={styles.appliedPromoText}>
+                          Promo code applied: {appliedPromo}
+                        </Text>
+                        <Text style={styles.discountText}>
+                          Discount: KD {promoDiscount.toFixed(2) || '0.00'}
+                        </Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.seePromosButton}
+                      onPress={handleSeePromoCodes}
                     >
-                      {isRemoving ? (
-                        <ActivityIndicator size="small" color={colors.white} />
-                      ) : (
-                        <Text style={styles.removePromoText}>Remove</Text>
-                      )}
+                      <Text style={styles.seePromosText}>See Available Promo Codes</Text>
                     </TouchableOpacity>
                   </View>
-                ) : (
-                  <View style={styles.promoInputContainer}>
-                    <TextInput
-                      style={styles.promoInput}
-                      placeholder="Enter Promo Code"
-                      value={promoCode}
-                      onChangeText={setPromoCode}
-                    />
+                  
+                  {/* Order Summary Section */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Order Summary</Text>
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>Item Sub total</Text>
+                      <Text style={styles.summaryValue}>KD {correctTotalAmount.toFixed(2)}</Text>
+                    </View>
+                    {promoDiscount > 0 && (
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Discount</Text>
+                        <Text style={[styles.summaryValue, styles.discountValue]}>KD {promoDiscount.toFixed(2)}</Text>
+                      </View>
+                    )}
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>Shipping Fee</Text>
+                      <Text style={styles.summaryValue}>KD {shippingFee.toFixed(2)}</Text>
+                    </View>
+                    <View style={[styles.summaryItem, styles.totalItem]}>
+                      <Text style={styles.totalLabel}>Grand Total</Text>
+                      <Text style={styles.totalValue}>KD {grandTotal.toFixed(2)}</Text>
+                    </View>
+                  </View>
+                  
+                  {/* Create Account Checkbox */}
+                  {!isLoggedIn && (
+                    <View style={styles.createAccountContainer}>
+                      <TouchableOpacity
+                        style={styles.checkboxContainer}
+                        onPress={handleCreateAccountToggle}
+                      >
+                        <View style={[styles.checkbox, createAccount && styles.checkboxChecked]}>
+                          {createAccount && <FontAwesome name="check" size={14} color={colors.white} />}
+                        </View>
+                        <Text style={styles.checkboxLabel}>Create an Account?</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Terms and Conditions */}
+                  <View style={styles.termsContainer}>
                     <TouchableOpacity 
-                      onPress={handleApplyPromoCode} 
-                      style={styles.applyButton}
-                      disabled={isApplying || !promoCode.trim()}
+                      style={styles.checkboxContainer}
+                      onPress={handleTermsToggle}
                     >
-                      {isApplying ? (
-                        <ActivityIndicator size="small" color={colors.white} />
-                      ) : (
-                        <Text style={styles.applyButtonText}>Apply</Text>
-                      )}
+                      <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
+                        {acceptTerms && <FontAwesome name="check" size={14} color={colors.white} />}
+                      </View>
+                      <Text style={styles.termsText}>
+                        By proceeding, I've read and accept the <Text style={styles.termsLink}>terms & conditions</Text>.
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                )}
-              </View>
-              
-              {/* Payment Type Section */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Select Payment Type</Text>
-                <View style={styles.paymentTypeContainer}>
-                  <Text style={styles.paymentOption}>CASH</Text>
-                  <Image 
-                    source={require('../assets/payment_methods.png')} 
-                    style={styles.paymentMethodsImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              </View>
-              
-              {/* Order Summary */}
-              <View style={styles.section}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Item Sub total</Text>
-                  <Text style={styles.summaryValue}>{correctTotalAmount.toFixed(2)} KD</Text>
-                </View>
+                </ScrollView>
                 
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>{discount.toFixed(2)} KD</Text>
-                </View>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Shipping Fee</Text>
-                  <Text style={styles.summaryValue}>{shippingFee.toFixed(2)} KD</Text>
-                </View>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, styles.grandTotalLabel]}>Grand Total</Text>
-                  <Text style={styles.grandTotalValue}>{grandTotal.toFixed(2)} KD</Text>
-                </View>
-              </View>
-              
-              {/* Create Account Checkbox (only for guest users) */}
-              {!isLoggedIn && (
-                <View style={styles.createAccountSection}>
-                  <TouchableOpacity onPress={handleLogin}>
-                    <Text style={styles.createAccountText}>Create an Account?</Text>
+                {/* Bottom Action Bar */}
+                <View style={styles.bottomBar}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.placeOrderButton,
+                      (!selectedPaymentMethod || isPlacingOrder || !acceptTerms) && styles.disabledButton
+                    ]}
+                    onPress={handlePlaceOrder}
+                    disabled={!selectedPaymentMethod || isPlacingOrder || !acceptTerms}
+                  >
+                    {isPlacingOrder ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
+                      <Text style={styles.placeOrderButtonText}>
+                        Place Order • KD {grandTotal.toFixed(2)}
+                      </Text>
+                    )}
                   </TouchableOpacity>
+                  
+                  {!isLoggedIn && (
+                    <View style={styles.loginContainer}>
+                      <Text style={styles.loginText}>Are you a returning customer? </Text>
+                      <TouchableOpacity onPress={handleLogin}>
+                        <Text style={styles.loginLink}>Login Here</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
-              )}
-              
-              {/* Terms & Conditions */}
-              <Text style={styles.termsText}>
-                By proceeding, I've read and accept the terms & conditions.
-              </Text>
-              
-              {/* Place Order Button */}
-              <TouchableOpacity 
-                style={styles.placeOrderButton}
-                onPress={handlePlaceOrder}
-              >
-                <Text style={styles.placeOrderButtonText}>Place Order</Text>
-              </TouchableOpacity>
-              
-              {/* Login prompt for guest users */}
-              {!isLoggedIn && (
-                <View style={styles.loginPrompt}>
-                  <Text style={styles.loginPromptText}>
-                    Are you a returning customer? {' '}
-                    <Text style={styles.loginPromptLink} onPress={handleLogin}>
-                      Login Here
-                    </Text>
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
+              </>
+            )}
+            
+            {/* Address Selection Modals for Logged In Users */}
+            <CheckoutAddressModal
+              isVisible={showBillingAddressModal}
+              onClose={() => setShowBillingAddressModal(false)}
+              addresses={billingAddresses}
+              selectedAddress={billingAddresses.find(addr => 
+                addr.id === (defaultBillingAddress?.BillingAddressId || 0)
+              ) || null}
+              onSelectAddress={handleBillingAddressSelected}
+              onAddNew={handleAddNewBillingAddress}
+              addressType="billing"
+            />
+            
+            <CheckoutAddressModal
+              isVisible={showShippingAddressModal}
+              onClose={() => setShowShippingAddressModal(false)}
+              addresses={shippingAddresses}
+              selectedAddress={shippingAddresses.find(addr => 
+                addr.id === (defaultShippingAddress?.ShippingAddressId || 0)
+              ) || null}
+              onSelectAddress={handleShippingAddressSelected}
+              onAddNew={handleAddNewShippingAddress}
+              addressType="shipping"
+            />
+            
+            <CheckoutAddressFormModal
+              isVisible={showAddBillingModal}
+              onClose={() => setShowAddBillingModal(false)}
+              addressType="billing"
+              onSuccess={handleBillingAddressAdded}
+            />
+            
+            <CheckoutAddressFormModal
+              isVisible={showAddShippingModal}
+              onClose={() => setShowAddShippingModal(false)}
+              addressType="shipping"
+              onSuccess={handleShippingAddressAdded}
+            />
+            
+            {/* Change Billing Address Modal */}
+            <ChangeAddressModal
+              isVisible={showChangeBillingModal}
+              onClose={() => setShowChangeBillingModal(false)}
+              onSelectAddress={address => {
+                setSelectedBillingAddressId(address.BillingAddressId || address.ShippingAddressId || 0);
+                setShowChangeBillingModal(false);
+              }}
+              addresses={checkoutBillingAddresses.map(apiAddressToAddress)}
+              selectedAddressId={selectedBillingAddressId || undefined}
+              addressType="billing"
+              isLoading={checkoutLoading}
+            />
+            
+            {/* Change Shipping Address Modal */}
+            <ChangeAddressModal
+              isVisible={showChangeShippingModal}
+              onClose={() => setShowChangeShippingModal(false)}
+              onSelectAddress={address => {
+                setSelectedShippingAddressId(address.ShippingAddressId || address.BillingAddressId || 0);
+                setShowChangeShippingModal(false);
+              }}
+              addresses={checkoutShippingAddresses.map(apiAddressToAddress)}
+              selectedAddressId={selectedShippingAddressId || undefined}
+              addressType="shipping"
+              isLoading={checkoutLoading}
+            />
           </View>
         </SafeAreaView>
-        
-        {/* Address selection modals */}
-        <CheckoutAddressModal
-          isVisible={showBillingAddressModal}
-          onClose={() => setShowBillingAddressModal(false)}
-          addressType="billing"
-          onSelectAddress={handleBillingAddressSelected}
-          onAddNewAddress={handleAddNewBillingAddress}
-        />
-        
-        <CheckoutAddressModal
-          isVisible={showShippingAddressModal}
-          onClose={() => setShowShippingAddressModal(false)}
-          addressType="shipping"
-          onSelectAddress={handleShippingAddressSelected}
-          onAddNewAddress={handleAddNewShippingAddress}
-        />
-        
-        <CheckoutAddressFormModal
-          isVisible={showAddBillingModal}
-          onClose={() => setShowAddBillingModal(false)}
-          addressType="billing"
-          onSuccess={handleBillingAddressAdded}
-        />
-        
-        <CheckoutAddressFormModal
-          isVisible={showAddShippingModal}
-          onClose={() => setShowAddShippingModal(false)}
-          addressType="shipping"
-          onSuccess={handleShippingAddressAdded}
-        />
       </Modal>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    width: width * 0.9,
-    maxHeight: height * 0.85,
+    flex: 1,
     backgroundColor: colors.white,
-    borderRadius: radii.lg,
+    width: '90%',
+    maxHeight: '90%',
+    alignSelf: 'center',
+    marginVertical: 50,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.md,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.lightGray,
-    position: 'relative',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.black,
+    textAlign: 'center',
   },
   closeButton: {
-    position: 'absolute',
-    right: spacing.md,
-    top: spacing.md,
-    padding: spacing.xs,
+    padding: 4,
   },
-  scrollContent: {
+  modalContent: {
+    flex: 1,
     padding: spacing.md,
   },
-  cartItemsContainer: {
+  cartItems: {
     paddingVertical: spacing.md,
   },
-  cartItemCard: {
-    width: 120,
-    marginRight: spacing.md,
-    backgroundColor: colors.veryLightGray,
-    borderRadius: radii.md,
-    padding: spacing.sm,
-    alignItems: 'center',
+  cartItem: {
+    flexDirection: 'row',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+    backgroundColor: colors.white,
   },
   cartItemImage: {
-    width: 80,
-    height: 80,
+    width: 60,
+    height: 60,
+    borderRadius: 4,
+    marginRight: 12,
   },
   cartItemDetails: {
-    alignItems: 'center',
-    marginTop: spacing.xs,
+    flex: 1,
+    justifyContent: 'center',
   },
   cartItemName: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 2,
+    color: colors.black,
+    marginBottom: 4,
   },
-  cartItemQuantity: {
-    fontSize: 11,
-    color: colors.blue,
+  cartItemPrice: {
+    fontSize: 14,
+    color: colors.black,
+  },
+  itemQuantity: {
     fontWeight: 'bold',
   },
   section: {
@@ -615,7 +1211,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     color: colors.black,
   },
-  addressCard: {
+  addressContainer: {
+    marginBottom: spacing.md,
+  },
+  addressTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: spacing.sm,
+    color: colors.black,
+  },
+  selectedAddress: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -628,27 +1233,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.black,
   },
-  addAddressButton: {
+  changeButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.blue,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  changeButtonText: {
+    color: colors.white,
+    fontWeight: '500',
+  },
+  addButton: {
     padding: spacing.md,
     backgroundColor: colors.veryLightGray,
     borderRadius: radii.md,
     alignItems: 'center',
   },
-  addAddressText: {
+  addButtonText: {
     color: colors.blue,
     fontWeight: '500',
   },
-  promoTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  seePromoCodesText: {
-    color: colors.blue,
-    fontSize: 14,
-  },
-  promoInputContainer: {
+  promoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -661,7 +1267,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginRight: spacing.sm,
   },
-  applyButton: {
+  promoButton: {
     backgroundColor: colors.black,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -670,56 +1276,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 80,
   },
-  applyButtonText: {
+  promoButtonText: {
     color: colors.white,
     fontWeight: '500',
   },
-  appliedPromoContainer: {
+  appliedPromo: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  appliedPromoCode: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    marginRight: spacing.sm,
-    justifyContent: 'center',
+    marginTop: spacing.sm,
   },
   appliedPromoText: {
     color: colors.black,
   },
-  removePromoButton: {
-    backgroundColor: colors.red,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 80,
+  discountText: {
+    color: colors.gray,
   },
-  removePromoText: {
+  seePromosButton: {
+    backgroundColor: colors.blue,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: 'center',
+  },
+  seePromosText: {
     color: colors.white,
     fontWeight: '500',
   },
-  paymentTypeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.veryLightGray,
-    borderRadius: radii.md,
-  },
-  paymentOption: {
-    fontWeight: 'bold',
-  },
-  paymentMethodsImage: {
-    height: 30,
-    width: 150,
-  },
-  summaryRow: {
+  summaryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
@@ -733,26 +1316,25 @@ const styles = StyleSheet.create({
     color: colors.black,
     fontWeight: '500',
   },
-  grandTotalLabel: {
+  discountValue: {
+    color: colors.red,
+  },
+  totalItem: {
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+  },
+  totalLabel: {
     fontWeight: 'bold',
   },
-  grandTotalValue: {
+  totalValue: {
     fontSize: 16,
     color: colors.blue,
     fontWeight: 'bold',
   },
-  createAccountSection: {
-    marginBottom: spacing.lg,
-  },
-  createAccountText: {
-    color: colors.blue,
-    fontWeight: '500',
-  },
-  termsText: {
-    fontSize: 12,
-    color: colors.gray,
-    textAlign: 'center',
-    marginBottom: spacing.md,
+  bottomBar: {
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
   },
   placeOrderButton: {
     backgroundColor: colors.blue,
@@ -766,16 +1348,168 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  loginPrompt: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
+  removePromoButton: {
+    backgroundColor: colors.red,
   },
-  loginPromptText: {
+  paymentMethodsContainer: {
+    marginTop: 10,
+  },
+  paymentMethodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  selectedPaymentMethod: {
+    borderColor: colors.blue,
+    backgroundColor: colors.lightBlue,
+  },
+  paymentMethodRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.gray,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentMethodRadioSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.blue,
+  },
+  paymentMethodRadioInner: {
+    width: 0,
+    height: 0,
+  },
+  paymentMethodName: {
+    fontSize: 16,
+    color: colors.black,
+  },
+  emptyText: {
+    color: colors.gray,
+    textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  createAccountContainer: {
+    marginVertical: 10,
+    paddingHorizontal: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkboxInner: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: colors.blue,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.blue,
+  },
+  checkboxLabel: {
     fontSize: 14,
     color: colors.black,
   },
-  loginPromptLink: {
+  shippingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  termsContainer: {
+    marginVertical: 10,
+    paddingHorizontal: 16,
+  },
+  termsText: {
+    fontSize: 14,
+    color: colors.black,
+    flexShrink: 1,
+  },
+  termsLink: {
+    color: colors.blue,
+    textDecorationLine: 'underline',
+  },
+  emptyCartContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyCartText: {
+    fontSize: 18,
+    color: colors.black,
+    marginBottom: 20,
+  },
+  continueShoppingButton: {
+    backgroundColor: colors.blue,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: 'center',
+  },
+  continueShoppingText: {
+    color: colors.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  loginText: {
+    fontSize: 14,
+    color: colors.black,
+  },
+  loginLink: {
+    fontSize: 14,
+    color: colors.blue,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
+  addGuestAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    padding: 16,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: 4,
+    marginVertical: 12,
+  },
+  addIcon: {
+    marginRight: 12,
+    color: colors.blue,
+  },
+  addGuestAddressText: {
+    fontSize: 16,
     color: colors.blue,
     fontWeight: '500',
+    flex: 1,
+  },
+  arrowIcon: {
+    color: colors.blue,
   },
 }); 

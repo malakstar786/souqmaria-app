@@ -254,6 +254,7 @@ export default function ProductListScreen() {
         setFilteredProducts(mappedProducts);
         initialLoadDone.current = true;
       } else {
+        // Set error message when API response indicates failure
         setError(filterResponse.Message || 'Failed to load products.');
         console.error('Product filter API error:', filterResponse.Message);
       }

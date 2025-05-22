@@ -1,75 +1,129 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth-store';
-import { colors, spacing, radii } from '../theme'; // Assuming your theme file is at src/theme.ts
+
+const colors = {
+  white: '#FFFFFF',
+  lightBlue: '#E6F0FA',
+  blue: '#0063B1',
+  black: '#000000',
+  lightGray: '#E0E0E0',
+  gray: '#888888',
+  red: '#FF0000',
+};
+
+const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+};
+
+const radii = {
+  sm: 4,
+  md: 8,
+  lg: 16,
+  xl: 24,
+};
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { forgotPassword, isLoading, error } = useAuthStore();
+  const { forgotPassword, isLoading } = useAuthStore();
+  
   const [email, setEmail] = useState('');
-  const [formError, setFormError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
-  const handleForgotPassword = async () => {
+  const validateEmail = () => {
     if (!email.trim()) {
-      setFormError('Please enter your email address.');
-      return;
+      setEmailError('Email is required');
+      return false;
     }
-    // Basic email validation
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setFormError('Please enter a valid email address.');
-      return;
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setEmailError('Invalid email format');
+      return false;
     }
-    setFormError('');
+    setEmailError('');
+    return true;
+  };
 
-    const result = await forgotPassword(email);
-    if (result.success) {
-      Alert.alert('Check Your Email', result.message, [{ text: 'OK', onPress: () => router.push('/auth') }]);
-    } else {
-      Alert.alert('Error', result.message || 'Failed to send password reset email.');
+  const handleSendPassword = async () => {
+    if (!validateEmail()) return;
+
+    try {
+      const result = await forgotPassword(email);
+      if (result.success) {
+        Alert.alert(
+          'Password Sent',
+          'Password has been sent to your email. Please check your inbox.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert('Error', result.message || 'Failed to send password. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={24} color={colors.black} />
+          <FontAwesome name="arrow-left" size={20} color={colors.blue} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Forgot Password</Text>
-        <View style={{ width: 24 }} /> {/*  Placeholder for centering title */}
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+          <FontAwesome name="close" size={20} color={colors.black} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.instructions}>
-          Enter your email address below and we'll send you a link to reset your password.
+        <Text style={styles.description}>
+          Password will be sent on Email.
         </Text>
-        <TextInput
-          style={[styles.input, formError ? styles.inputError : null]}
-          placeholder="Email Address"
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (formError) setFormError('');
-          }}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          textContentType="emailAddress"
-          placeholderTextColor={colors.lightGray}
-        />
-        {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
-        {error && !formError ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleForgotPassword} disabled={isLoading}>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.input, emailError ? styles.inputError : null]}
+            placeholder="Enter registered email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoFocus
+          />
+          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        </View>
+
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={handleSendPassword}
+          disabled={isLoading}
+        >
           {isLoading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.submitButtonText}>Send Reset Link</Text>
+            <Text style={styles.sendButtonText}>Send</Text>
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -82,62 +136,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.lightBlue, // Or your preferred header color
-    paddingTop: Platform.OS === 'ios' ? 56 : 24, // Adjust for status bar
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.lightGray,
+    marginTop: 40, // Account for status bar
   },
   backButton: {
     padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: colors.blue, // Or your preferred title color
-    textAlign: 'center',
-    flex: 1,
+    color: colors.blue,
+  },
+  closeButton: {
+    padding: spacing.sm,
   },
   content: {
     flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
   },
-  instructions: {
+  description: {
     fontSize: 16,
     color: colors.black,
-    textAlign: 'center',
     marginBottom: spacing.xl,
+    textAlign: 'left',
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
   },
   input: {
-    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.lightGray,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm, // Adjust padding for Android
+    paddingVertical: spacing.md,
     fontSize: 16,
-    color: colors.black,
-    marginBottom: spacing.md,
+    backgroundColor: colors.white,
   },
   inputError: {
     borderColor: colors.red,
   },
   errorText: {
     color: colors.red,
-    marginBottom: spacing.md,
-    textAlign: 'center',
+    fontSize: 14,
+    marginTop: spacing.sm,
   },
-  submitButton: {
-    backgroundColor: colors.blue, // Primary button color
+  sendButton: {
+    backgroundColor: colors.blue,
     borderRadius: radii.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
-  submitButtonText: {
+  sendButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: 'bold',

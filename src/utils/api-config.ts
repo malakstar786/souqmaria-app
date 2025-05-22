@@ -25,10 +25,14 @@ export const ENDPOINTS = {
   LOGIN_USER: '/UserLogin/',
   UPDATE_USER_DETAILS: '/Update_Account_Info/',
   FORGOT_PASSWORD: '/ForgetPassword/',
+  // Guest checkout
+  GUEST_SAVE_USER_REGISTRATION: '/Guest_SaveUserRegistration/',
   // Billing Address
   CRUD_BILLING_ADDRESS: '/CRUD_Billing_Manage_Address/',
   // Shipping Address
   CRUD_SHIPPING_ADDRESS: '/CRUD_Shipping_Manage_Address/',
+  // Checkout
+  SAVE_CHECKOUT: '/Save_Checkout/',
   // Wishlist
   CRUD_WISHLIST: '/CRUD_Wishlist/',
   // Promo Code 
@@ -116,6 +120,11 @@ export const RESPONSE_CODES = {
   CART_DELETE_FAILED: -2,       // Item delete failed
   CART_ITEM_NOT_FOUND: -4,      // Item not found in cart
   CART_DELETE_ERROR: -10,       // Something went wrong during delete
+
+  // Guest checkout response codes
+  GUEST_REGISTRATION_SUCCESS: '2',    // Guest user registration successful
+  GUEST_ALREADY_REGISTERED: '4',      // User already registered
+  GUEST_REGISTRATION_ERROR: '-2',     // General error in guest registration
 };
 
 // Platform identifiers for the Source parameter
@@ -126,10 +135,18 @@ export const PLATFORM = {
 
 // Stored procedure queries
 export const SP_QUERIES = {
-  // Location data queries
-  GET_COUNTRY_LIST: "[Web].[Sp_Manage_Address_Apps_SM] 'Get_Country_List','','','','','',1,3044",
+  // Location data queries for address forms
+  GET_COUNTRY_LIST: "[Web].[Sp_Manage_Address_Apps_SM] 'Get_Country_List','','','','','',${cultureId},3044",
   GET_STATE_LIST: (countryXcode: string) => `[Web].[Sp_Manage_Address_Apps_SM] 'Get_State_List','${countryXcode}','','','','',1,3044`,
-  GET_CITY_LIST: (stateXcode: string) => `[Web].[Sp_Manage_Address_Apps_SM] 'Get_City_List','${stateXcode}','','','','',1,3044`,
+  GET_CITY_LIST: (stateXcode: string) => `[Web].[Sp_Manage_Address_Apps_SM] 'Get_City_List','${stateXcode}','','','','',1,3044,''`,
+  
+  // Checkout location data queries (different stored procedure)
+  GET_CHECKOUT_COUNTRY_LIST: "[Web].[Sp_CheckoutMst_Apps_SM]'Get_Country_List','','','','','',1,3044,''",
+  GET_CHECKOUT_STATE_LIST: (countryXcode: string) => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_State_List','${countryXcode}','','','','',1,3044,''`,
+  GET_CHECKOUT_CITY_LIST: (stateXcode: string) => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_City_List','${stateXcode}','','','','',1,3044,''`,
+  
+  // Payment mode query
+  GET_PAYMENT_MODE_LIST: "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_PaymentMode_List','','','','','',1,3044,''",
   
   // Address listing queries
   GET_BILLING_ADDRESSES: (userId: string) => 
@@ -144,8 +161,7 @@ export const SP_QUERIES = {
     `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child','${userId}','${orderNo}','','CurrencyXName','CurrencyXCode',${COMMON_PARAMS.Company},${cultureId}`,
     
   // Promo code queries
-  GET_PROMO_CODES_LIST: (cultureId: string = '1') =>
-    `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Promo_Coupons_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'',''`,
+  GET_PROMO_CODES_LIST: (cultureId: string = '1') => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_Promo_Coupons_List','','','','','',${cultureId},3044,''`,
   
   // Category queries
   GET_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') => 
