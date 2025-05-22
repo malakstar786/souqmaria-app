@@ -37,6 +37,7 @@ export const ENDPOINTS = {
   // Data fetching
   GET_DATA_JSON: '/getData_JSON/',
   GET_ALL_PRODUCT_LIST_DIRECT: 'Get_AllProduct_List',
+  GET_ALL_PRODUCT_LIST_FILTER: 'Get_AllProduct_List_FilterApply',
   // Add other endpoints here
   GET_MENU_SUB_CATEGORIES: 'Get_Menu_SubCategory_List_ByCategory',
   SEARCH_ITEMS: 'getData_JSON/',
@@ -142,6 +143,10 @@ export const SP_QUERIES = {
   GET_ORDER_DETAILS: (userId: string, orderNo: string, cultureId: string = '1') => 
     `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child','${userId}','${orderNo}','','CurrencyXName','CurrencyXCode',${COMMON_PARAMS.Company},${cultureId}`,
     
+  // Promo code queries
+  GET_PROMO_CODES_LIST: (cultureId: string = '1') =>
+    `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Promo_Coupons_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'',''`,
+  
   // Category queries
   GET_CATEGORY_LIST: (cultureId: string = '1', userId: string = '') => 
     `[Web].[Sp_Get_SM_Apps]'Get_HomePage_Category_List','','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,

@@ -1,13 +1,23 @@
 import { create } from 'zustand';
-import { applyPromoCode, removePromoCode, PromoCodeParams } from '../utils/api-service';
+import { 
+  applyPromoCode, 
+  removePromoCode, 
+  PromoCodeParams,
+  getPromoCodes,
+  PromoCodeItem 
+} from '../utils/api-service';
 import { RESPONSE_CODES } from '../utils/api-config';
+import useCartStore from './cart-store';
 
 // Define the store state interface
 interface PromoState {
   appliedPromoCode: string | null;
+  promoName: string | null;
   discountAmount: number;
   isApplying: boolean;
   isRemoving: boolean;
+  isFetchingCodes: boolean;
+  promoCodes: PromoCodeItem[];
   error: string | null;
   success: boolean;
   
@@ -26,17 +36,23 @@ interface PromoState {
     buyNow: string
   ) => Promise<boolean>;
   
+  fetchPromoCodes: () => Promise<PromoCodeItem[]>;
+  
   clearPromo: () => void;
   clearError: () => void;
+  clearPromoError: () => void;
 }
 
 // Create the store
 const usePromoStore = create<PromoState>((set, get) => ({
   // Initial state
   appliedPromoCode: null,
+  promoName: null,
   discountAmount: 0,
   isApplying: false,
   isRemoving: false,
+  isFetchingCodes: false,
+  promoCodes: [],
   error: null,
   success: false,
   
@@ -66,9 +82,39 @@ const usePromoStore = create<PromoState>((set, get) => ({
       
       // Check for success - API returns '2' as success code for applying promo
       if (response.ResponseCode === RESPONSE_CODES.PROMO_APPLY_SUCCESS) {
+        // Find the promo name if available
+        let promoName = null;
+        const promoCodes = get().promoCodes;
+        const matchingPromo = promoCodes.find(p => p.XCode === promoCode);
+        if (matchingPromo) {
+          promoName = matchingPromo.XName;
+        }
+        
+        // If we haven't fetched promo codes yet, fetch them now
+        if (promoCodes.length === 0) {
+          const codes = await get().fetchPromoCodes();
+          const foundPromo = codes.find(p => p.XCode === promoCode);
+          if (foundPromo) {
+            promoName = foundPromo.XName;
+          }
+        }
+        
+        // Now we need to refresh the cart to get the discount amount
+        const refreshCart = useCartStore.getState().fetchCartItems;
+        await refreshCart();
+        
+        // After refreshing the cart, get the cart totals
+        const cartItems = useCartStore.getState().cartItems;
+        const subtotal = cartItems.reduce((sum: number, item: any) => sum + (item.Price * item.Quantity), 0);
+        const total = useCartStore.getState().totalAmount;
+        
+        // Calculate the discount amount (subtotal - total)
+        const discountAmount = Math.max(0, subtotal - total);
+        
         set({ 
           appliedPromoCode: promoCode,
-          discountAmount: response.Data?.DiscountAmount || 0, // Assuming DiscountAmount is returned
+          promoName,
+          discountAmount,
           isApplying: false,
           error: null,
           success: true
@@ -114,8 +160,13 @@ const usePromoStore = create<PromoState>((set, get) => ({
       
       // Check for success - API returns '2' as success code for removing promo
       if (response.ResponseCode === RESPONSE_CODES.PROMO_REMOVE_SUCCESS) {
+        // Refresh cart to update totals
+        const refreshCart = useCartStore.getState().fetchCartItems;
+        await refreshCart();
+        
         set({ 
           appliedPromoCode: null,
+          promoName: null,
           discountAmount: 0,
           isRemoving: false,
           error: null,
@@ -141,10 +192,33 @@ const usePromoStore = create<PromoState>((set, get) => ({
     }
   },
   
+  // Fetch available promo codes
+  fetchPromoCodes: async () => {
+    set({ isFetchingCodes: true });
+    
+    try {
+      const response = await getPromoCodes();
+      
+      if (response.StatusCode === 200 && response.Data?.success === 1 && response.Data.row?.length > 0) {
+        const promoCodes = response.Data.row;
+        set({ promoCodes, isFetchingCodes: false });
+        return promoCodes;
+      } else {
+        set({ promoCodes: [], isFetchingCodes: false });
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching promo codes:', error);
+      set({ promoCodes: [], isFetchingCodes: false });
+      return [];
+    }
+  },
+  
   // Clear promo state
   clearPromo: () => {
     set({
       appliedPromoCode: null,
+      promoName: null,
       discountAmount: 0,
       error: null,
       success: false
@@ -153,6 +227,11 @@ const usePromoStore = create<PromoState>((set, get) => ({
   
   // Clear error state
   clearError: () => {
+    set({ error: null });
+  },
+  
+  // Alias for clearError for compatibility
+  clearPromoError: () => {
     set({ error: null });
   }
 }));

@@ -18,10 +18,15 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '../../theme';
 import {
   getAllProductsDirectly,
+  getFilteredProducts,
+  ProductFilterParams,
+  ProductFilterResponse,
   AllProductsDirectResponse,
   SearchItem,
+  FilterOption,
 } from '../../utils/api-service';
 import ProductCard from '../../components/ProductCard';
+import ProductFilters from '../../components/ProductFilters';
 import useAuthStore from '../../store/auth-store';
 import useSearchStore from '../../store/search-store';
 import { RESPONSE_CODES, COMMON_PARAMS as API_COMMON_PARAMS, CULTURE_IDS } from '../../utils/api-config';
@@ -49,6 +54,37 @@ export default function ProductListScreen() {
   const [error, setError] = useState<string | null>(null);
   
   const [localSearchText, setLocalSearchText] = useState(params.searchName || '');
+  
+  // Filter state
+  const [filterOptions, setFilterOptions] = useState<{
+    brands: FilterOption[];
+    categories: FilterOption[];
+    subCategories: FilterOption[];
+    sortOptions: FilterOption[];
+    minPrice: number;
+    maxPrice: number;
+  }>({
+    brands: [],
+    categories: [],
+    subCategories: [],
+    sortOptions: [],
+    minPrice: 0,
+    maxPrice: 1000,
+  });
+  
+  const [activeFilters, setActiveFilters] = useState<{
+    brands: string[];
+    categories: string[];
+    subCategories: string[];
+    priceRange: [number, number];
+    sortBy: string;
+  }>({
+    brands: [],
+    categories: [],
+    subCategories: [],
+    priceRange: [0, 1000],
+    sortBy: 'Srt_Dflt', // Default sorting
+  });
   
   // Use a ref to track if initial load has happened
   const initialLoadDone = useRef(false);
@@ -157,48 +193,70 @@ export default function ProductListScreen() {
         return;
       }
 
-      const productListResponse: AllProductsDirectResponse = await getAllProductsDirectly(apiParams);
-      console.log('Product List API response:', {
-        responseCode: productListResponse.ResponseCode,
-        message: productListResponse.Message,
-        hasData: productListResponse.List ? true : false,
-        listType: Array.isArray(productListResponse.List) ? 'Array' : typeof productListResponse.List,
-        count: productListResponse.List ? 
-          (Array.isArray(productListResponse.List) ? productListResponse.List.length : 
-           (typeof productListResponse.List === 'object' && productListResponse.List !== null && 'Productlist' in productListResponse.List ? (productListResponse.List as any).Productlist.length : 'N/A')) 
-          : 0
+      // Use the filter API instead to get both products and filter options
+      const filterParams: ProductFilterParams = {
+        ...apiParams,
+        Arry_Category: [],
+        Arry_SubCategory: [],
+        Arry_Brand: [],
+        Arry_Color: [],
+        MinPrice: 0,
+        MaxPrice: 1000,
+        SortBy: 'Srt_Dflt', // Default sorting
+      };
+
+      const filterResponse: ProductFilterResponse = await getFilteredProducts(filterParams);
+      console.log('Product Filter API response:', {
+        responseCode: filterResponse.ResponseCode,
+        message: filterResponse.Message,
+        hasData: filterResponse.List ? true : false,
+        productCount: filterResponse.List?.Productlist?.length || 0,
+        brandCount: filterResponse.List?.li_Brand_List?.length || 0,
+        categoryCount: filterResponse.List?.li_Category_List?.length || 0,
       });
 
-      let productArray: any[] = [];
-      if (String(productListResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
-          String(productListResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
-        if (productListResponse.List && Array.isArray(productListResponse.List)) {
-          productArray = productListResponse.List;
-        } else if (
-          productListResponse.List &&
-          typeof productListResponse.List === 'object' &&
-          productListResponse.List !== null &&
-          'Productlist' in productListResponse.List &&
-          Array.isArray((productListResponse.List as any).Productlist)
-        ) {
-          productArray = (productListResponse.List as any).Productlist;
-        }
+      if (String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
+          String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
+        
+        // Set filter options
+        setFilterOptions({
+          brands: filterResponse.List?.li_Brand_List || [],
+          categories: filterResponse.List?.li_Category_List || [],
+          subCategories: filterResponse.List?.li_SubCategory_List || [],
+          sortOptions: filterResponse.List?.li_SortBy_List || [],
+          minPrice: filterResponse.List?.MinPrice || 0,
+          maxPrice: filterResponse.List?.MaxPrice || 1000,
+        });
+        
+        // Reset active filters
+        setActiveFilters({
+          brands: [],
+          categories: [],
+          subCategories: [],
+          priceRange: [
+            filterResponse.List?.MinPrice || 0, 
+            filterResponse.List?.MaxPrice || 1000
+          ],
+          sortBy: 'Srt_Dflt', // Default sorting
+        });
+        
+        // Map products to the correct format
+        const productArray = filterResponse.List?.Productlist || [];
+        const mappedProducts = productArray.map((item) => ({
+          ItemCode: item.Item_XCode,
+          ItemName: item.Item_XName,
+          OldPrice: item.OldPrice,
+          Price: item.NewPrice,
+          ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
+        }));
+        
+        setAllProducts(mappedProducts);
+        setFilteredProducts(mappedProducts);
+        initialLoadDone.current = true;
       } else {
-        setError(productListResponse.Message || 'Failed to load products.');
-        console.error('Product list API error:', productListResponse.Message);
+        setError(filterResponse.Message || 'Failed to load products.');
+        console.error('Product filter API error:', filterResponse.Message);
       }
-      
-      const mappedProducts = productArray.map((item) => ({
-        ItemCode: item.Item_XCode,
-        ItemName: item.Item_XName,
-        OldPrice: item.OldPrice,
-        Price: item.NewPrice,
-        ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
-      }));
-      
-      setAllProducts(mappedProducts);
-      setFilteredProducts(mappedProducts);
-      initialLoadDone.current = true;
 
     } catch (e: any) {
       const errorMsg = e.message || 'An unexpected error occurred';
@@ -209,7 +267,6 @@ export default function ProductListScreen() {
     } finally {
       setIsLoading(false);
     }
-  // Use a stable reference to params by picking specific properties, not the entire params object
   }, [
     cultureId, 
     user, 
@@ -247,6 +304,109 @@ export default function ProductListScreen() {
 
   const handleProductPress = (product: any) => {
     router.push(`/product/${product.ItemCode}`);
+  };
+
+  const handleApplyFilters = async (filters: {
+    brands: string[];
+    categories: string[];
+    subCategories: string[];
+    priceRange: [number, number];
+    sortBy: string;
+  }) => {
+    setIsLoading(true);
+    
+    try {
+      // Prepare filter API parameters
+      let apiParams: any = {};
+      
+      if (params.pageCode === 'Srch' && params.searchName) {
+        apiParams = {
+          PageCode: 'Srch',
+          SearchName: params.searchName,
+          Category: '',
+          SubCategory: '',
+          HomePageCatSrNo: '',
+        };
+      } else if (params.homePageCatSrNo && params.pageCode) {
+        apiParams = {
+          PageCode: params.pageCode,
+          HomePageCatSrNo: params.homePageCatSrNo,
+          Category: '',
+          SubCategory: '',
+          SearchName: '',
+        };
+      } else if (params.pageCode === 'MN' && params.category) {
+        apiParams = {
+          PageCode: params.pageCode,
+          Category: params.category,
+          SubCategory: params.subCategory || '',
+          SearchName: '',
+          HomePageCatSrNo: '',
+        };
+      }
+      
+      const filterParams: ProductFilterParams = {
+        ...apiParams,
+        CultureId: cultureId,
+        UserId: user?.UserID || user?.id || '',
+        Company: API_COMMON_PARAMS.Company,
+        Arry_Category: filters.categories,
+        Arry_SubCategory: filters.subCategories,
+        Arry_Brand: filters.brands,
+        Arry_Color: [],
+        MinPrice: filters.priceRange[0],
+        MaxPrice: filters.priceRange[1],
+        SortBy: filters.sortBy,
+      };
+      
+      // Call the filter API
+      const filterResponse = await getFilteredProducts(filterParams);
+      
+      if (String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
+          String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
+        
+        // Update active filters
+        setActiveFilters(filters);
+        
+        // Map products to the correct format
+        const productArray = filterResponse.List?.Productlist || [];
+        const mappedProducts = productArray.map((item) => ({
+          ItemCode: item.Item_XCode,
+          ItemName: item.Item_XName,
+          OldPrice: item.OldPrice,
+          Price: item.NewPrice,
+          ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
+        }));
+        
+        setFilteredProducts(mappedProducts);
+      } else {
+        setError(filterResponse.Message || 'Failed to apply filters.');
+        console.error('Product filter API error:', filterResponse.Message);
+      }
+    } catch (e: any) {
+      const errorMsg = e.message || 'An unexpected error occurred while applying filters';
+      console.error('API error in handleApplyFilters:', errorMsg, e);
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetFilters = () => {
+    // Reset active filters to default
+    setActiveFilters({
+      brands: [],
+      categories: [],
+      subCategories: [],
+      priceRange: [
+        filterOptions.minPrice || 0, 
+        filterOptions.maxPrice || 1000
+      ],
+      sortBy: 'Srt_Dflt',
+    });
+    
+    // Load products again without filters
+    loadProducts();
   };
 
   if (isLoading && filteredProducts.length === 0) {
@@ -317,30 +477,21 @@ export default function ProductListScreen() {
           </Link>
         </View>
         
-        <View style={styles.filterContainer}>
-          <View style={styles.filterButtonsRow}>
-            <TouchableOpacity style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Sort By</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Category</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Price</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Brand</Text>
-            </TouchableOpacity>
-          </View>
-          
+        <ProductFilters
+          isLoading={isLoading}
+          filters={filterOptions}
+          activeFilters={activeFilters}
+          onApplyFilters={handleApplyFilters}
+          onReset={handleResetFilters}
+        />
+        
+        <View style={styles.productsContainer}>
           <Text style={styles.resultsText}>
             {filteredProducts.length > 0 
               ? `${filteredProducts.length} Result${filteredProducts.length === 1 ? '' : 's'} Found` 
               : (isLoading ? 'Loading...' : 'No Results Found')}
           </Text>
-        </View>
-        
-        <View style={styles.productsContainer}>
+          
           {isLoading && filteredProducts.length === 0 ? (
             <View style={styles.fullScreenLoaderOrEmptyContainer}>
               <ActivityIndicator size="large" color={colors.blue} />
@@ -444,41 +595,16 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     marginLeft: spacing.sm,
   },
-  filterContainer: {
-    backgroundColor: colors.lightBlue,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-    zIndex: 5,
-  },
-  filterButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  filterButton: {
+  productsContainer: {
+    flex: 1,
     backgroundColor: colors.white,
-    borderRadius: 20,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: colors.black,
-    fontWeight: '500',
   },
   resultsText: {
     fontSize: 13,
     color: colors.textGray,
     marginTop: spacing.xs,
-  },
-  productsContainer: {
-    flex: 1,
-    backgroundColor: colors.white,
+    marginLeft: spacing.md,
+    marginBottom: spacing.sm,
   },
   productList: {
     padding: spacing.sm,

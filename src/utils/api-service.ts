@@ -204,6 +204,49 @@ export interface ProductDetail {
   [key: string]: any;
 }
 
+// Interface for filter options
+export interface FilterOption {
+  XCode: string;
+  XName: string;
+  XMaster?: string;
+  XLink?: string | null;
+  IsSelected: boolean;
+}
+
+// Interface for product filter response
+export interface ProductFilterResponse {
+  List: {
+    Productlist: any[];
+    li_Brand_List: FilterOption[];
+    li_Category_List: FilterOption[];
+    li_SubCategory_List: FilterOption[];
+    li_SortBy_List: FilterOption[];
+    MinPrice: number;
+    MaxPrice: number;
+  };
+  ResponseCode: string;
+  Message: string;
+}
+
+// Interface for product filter request params
+export interface ProductFilterParams {
+  PageCode: string;
+  Category?: string;
+  SubCategory?: string;
+  SearchName?: string;
+  HomePageCatSrNo?: string;
+  UserId?: string;
+  Company: string | number;
+  CultureId: string | number;
+  Arry_Category: string[];
+  Arry_SubCategory: string[];
+  Arry_Brand: string[];
+  Arry_Color: string[];
+  MinPrice: number;
+  MaxPrice: number;
+  SortBy: string;
+}
+
 // Interfaces for promo code API requests
 export interface PromoCodeParams {
   PromoCode: string;
@@ -220,6 +263,19 @@ export interface PromoCodeResponse {
   Message: string;
   TrackId?: string | null;
   DiscountAmount?: number; // Added DiscountAmount for promo code responses
+}
+
+// Define interface for promo code item
+export interface PromoCodeItem {
+  XCode: string;
+  XName: string;
+}
+
+// Define interface for promo codes list response
+export interface PromoCodesListResponse {
+  success: number;
+  row: PromoCodeItem[];
+  Message: string;
 }
 
 /**
@@ -1398,6 +1454,105 @@ export const removePromoCode = async (params: PromoCodeParams): Promise<ApiRespo
       Message: error.message || 'Failed to remove promo code',
       TrackId: null,
       DiscountAmount: 0
+    };
+  }
+};
+
+/**
+ * Get list of available promo codes
+ */
+export const getPromoCodes = async (
+  cultureId: string = '1'
+): Promise<ApiResponse<PromoCodesListResponse>> => {
+  try {
+    const strQuery = SP_QUERIES.GET_PROMO_CODES_LIST(cultureId);
+    console.log('Get promo codes - Request:', JSON.stringify({ strQuery }, null, 2));
+    
+    const response = await apiRequest<PromoCodesListResponse>(
+      ENDPOINTS.GET_DATA_JSON,
+      'POST',
+      { strQuery }
+    );
+    
+    console.log('Get promo codes - Response:', JSON.stringify({
+      statusCode: response.StatusCode,
+      success: response.Data?.success === 1,
+      message: response.Message,
+      promoCount: response.Data?.row?.length || 0,
+    }, null, 2));
+    
+    return response;
+  } catch (error) {
+    console.error('Error getting promo codes:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch promo codes. Please try again.',
+      Data: { success: 0, row: [], Message: 'An error occurred' } as PromoCodesListResponse
+    };
+  }
+};
+
+/**
+ * Get list of products using the filter API endpoint.
+ */
+export const getFilteredProducts = async (
+  params: ProductFilterParams
+): Promise<ProductFilterResponse> => {
+  try {
+    const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_FILTER}`;
+    console.log('Filter API request:', JSON.stringify(params, null, 2));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching filtered products: ${response.status}`);
+      return {
+        List: {
+          Productlist: [],
+          li_Brand_List: [],
+          li_Category_List: [],
+          li_SubCategory_List: [],
+          li_SortBy_List: [],
+          MinPrice: 0,
+          MaxPrice: 0,
+        },
+        ResponseCode: String(response.status),
+        Message: `HTTP error ${response.status}`,
+      };
+    }
+
+    const data: ProductFilterResponse = await response.json();
+    console.log('Filter API response:', {
+      responseCode: data.ResponseCode,
+      message: data.Message,
+      productsCount: data.List?.Productlist?.length || 0,
+      brandsCount: data.List?.li_Brand_List?.length || 0,
+      categoriesCount: data.List?.li_Category_List?.length || 0,
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Network error in getFilteredProducts:', error);
+    return {
+      List: {
+        Productlist: [],
+        li_Brand_List: [],
+        li_Category_List: [],
+        li_SubCategory_List: [],
+        li_SortBy_List: [],
+        MinPrice: 0,
+        MaxPrice: 0,
+      },
+      ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
+      Message: 'Network request failed. Please check your connection.',
     };
   }
 };

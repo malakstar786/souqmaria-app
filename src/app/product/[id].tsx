@@ -13,7 +13,8 @@ import {
   Alert,
   Modal,
   FlatList,
-  Linking
+  Linking,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -298,116 +299,157 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
           
           <TouchableOpacity 
-              style={styles.cartButton}
-              accessibilityRole="button"
-              accessibilityLabel="View cart"
-              onPress={() => router.push('/(shop)/cart')}
-            >
-              <HeaderCartIcon color={colors.black} />
-            </TouchableOpacity>
+            style={styles.cartButton}
+            accessibilityRole="button"
+            accessibilityLabel="View cart"
+            onPress={() => router.push('/(shop)/cart')}
+          >
+            <HeaderCartIcon color={colors.black} />
+          </TouchableOpacity>
         </View>
         
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Barcode */}
-          {product.Barcode && (
-            <Text style={styles.barcode}>BARCODE: {product.Barcode}</Text>
-          )}
-          
-          {/* Product Image Slider */}
-          {productImages.length > 0 ? (
-            <View style={styles.sliderContainer}>
-              <FlatList
-                ref={flatListRef}
-                data={productImages}
-                renderItem={renderImageItem}
-                keyExtractor={(item, index) => index.toString()}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-              />
+        {/* Main Content Scroll View */}
+        <View style={styles.contentContainer}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Barcode */}
+            {product.Barcode && (
+              <Text style={styles.barcode}>BARCODE: {product.Barcode}</Text>
+            )}
+            
+            {/* Product Image Slider */}
+            {productImages.length > 0 ? (
+              <View style={styles.sliderContainer}>
+                <FlatList
+                  ref={flatListRef}
+                  data={productImages}
+                  renderItem={renderImageItem}
+                  keyExtractor={(item, index) => index.toString()}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                />
+                
+                {/* Dots Indicator */}
+                {productImages.length > 1 && (
+                  <View style={styles.dotsContainer}>
+                    {productImages.map((_, index) => (
+                      <View 
+                        key={index} 
+                        style={[
+                          styles.dot, 
+                          index === activeImageIndex ? styles.activeDot : {}
+                        ]} 
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.noImageContainer}>
+                <FontAwesome name="image" size={50} color={colors.lightGray} />
+                <Text style={styles.noImageText}>No image available</Text>
+              </View>
+            )}
+            
+            {/* Product Information */}
+            <View style={styles.productInfo}>
+              {/* Product Brand */}
+              {product.ProductBrand && (
+                <Text style={styles.productBrand}>{product.ProductBrand}</Text>
+              )}
               
-              {/* Dots Indicator */}
-              {productImages.length > 1 && (
-                <View style={styles.dotsContainer}>
-                  {productImages.map((_, index) => (
-                    <View 
+              {/* Product Name */}
+              <Text style={styles.productName}>{product.ItemName}</Text>
+              
+              {/* Price Section */}
+              <View style={styles.priceContainer}>
+                {product.OldPrice > 0 && (
+                  <Text style={styles.oldPrice}>{product.OldPrice.toFixed(2)} KD</Text>
+                )}
+                <Text style={styles.price}>{product.NewPrice ? product.NewPrice.toFixed(2) : '0.00'} KD</Text>
+              </View>
+              
+              {/* Stock Information - Only show if out of stock */}
+              {product.StockQty <= 0 && (
+                <Text style={styles.outOfStock}>Out Of Stock</Text>
+              )}
+              
+              {/* Product Description with Read More */}
+              {product.Description && (
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.descriptionTitle}>DESCRIPTION</Text>
+                  <View>
+                    <Text style={styles.descriptionText} numberOfLines={isDescriptionExpanded ? undefined : 2}>
+                      {product.Description}
+                    </Text>
+                    {product.Description.length > 100 && (
+                      <TouchableOpacity onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                        <Text style={styles.readMoreText}>
+                          {isDescriptionExpanded ? 'Read Less' : 'Read More'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
+              
+              {/* Special Descriptions Section */}
+              {specialDescriptions.length > 0 && (
+                <View style={styles.specialDescriptionContainer}>
+                  <Text style={styles.sectionTitle}>KEY FEATURES</Text>
+                  <View style={styles.featuresList}>
+                    {specialDescriptions.map((item, index) => (
+                      <View key={index} style={styles.featureItem}>
+                        <FontAwesome name="check-circle" size={16} color={colors.blue} style={styles.featureIcon} />
+                        <Text style={styles.featureText}>{item.Data}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+            
+            {/* Related Products Section */}
+            {relatedProducts.length > 0 && (
+              <View style={styles.relatedProductsContainer}>
+                <Text style={styles.relatedProductsTitle}>RELATED PRODUCTS</Text>
+                <ScrollView 
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.relatedProductsScrollContent}
+                >
+                  {relatedProducts.map((item, index) => (
+                    <TouchableOpacity 
                       key={index} 
-                      style={[
-                        styles.dot, 
-                        index === activeImageIndex ? styles.activeDot : {}
-                      ]} 
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.noImageContainer}>
-              <FontAwesome name="image" size={50} color={colors.lightGray} />
-              <Text style={styles.noImageText}>No image available</Text>
-            </View>
-          )}
-          
-          {/* Product Information */}
-          <View style={styles.productInfo}>
-            {/* Product Brand */}
-            {product.ProductBrand && (
-              <Text style={styles.productBrand}>{product.ProductBrand}</Text>
-            )}
-            
-            {/* Product Name */}
-            <Text style={styles.productName}>{product.ItemName}</Text>
-            
-            {/* Price Section */}
-            <View style={styles.priceContainer}>
-              {product.OldPrice > 0 && (
-                <Text style={styles.oldPrice}>{product.OldPrice.toFixed(2)} KD</Text>
-              )}
-              <Text style={styles.price}>{product.NewPrice ? product.NewPrice.toFixed(2) : '0.00'} KD</Text>
-            </View>
-            
-            {/* Stock Information - Only show if out of stock */}
-            {product.StockQty <= 0 && (
-              <Text style={styles.outOfStock}>Out Of Stock</Text>
-            )}
-            
-            {/* Product Description with Read More */}
-            {product.Description && (
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionTitle}>DESCRIPTION</Text>
-                <View>
-                  <Text style={styles.descriptionText} numberOfLines={isDescriptionExpanded ? undefined : 2}>
-                    {product.Description}
-                  </Text>
-                  {product.Description.length > 100 && (
-                    <TouchableOpacity onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                      <Text style={styles.readMoreText}>
-                        {isDescriptionExpanded ? 'Read Less' : 'Read More'}
-                      </Text>
+                      style={styles.relatedProductItem}
+                      onPress={() => {
+                        if (item.ItemCode !== id) {
+                          router.push(`/product/${item.ItemCode}`);
+                        }
+                      }}
+                    >
+                      <Image 
+                        source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.ItemImage}` }}
+                        style={styles.relatedProductImage}
+                        resizeMode="contain"
+                      />
+                      <Text style={styles.relatedProductName} numberOfLines={2}>{item.ItemName}</Text>
+                      <Text style={styles.relatedProductPrice}>{item.NewPrice.toFixed(2)} KD</Text>
                     </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            )}
-            
-            {/* Special Descriptions Section */}
-            {specialDescriptions.length > 0 && (
-              <View style={styles.specialDescriptionContainer}>
-                <Text style={styles.sectionTitle}>KEY FEATURES</Text>
-                <View style={styles.featuresList}>
-                  {specialDescriptions.map((item, index) => (
-                    <View key={index} style={styles.featureItem}>
-                      <FontAwesome name="check-circle" size={16} color={colors.blue} style={styles.featureIcon} />
-                      <Text style={styles.featureText}>{item.Data}</Text>
-                    </View>
                   ))}
-                </View>
+                </ScrollView>
               </View>
             )}
-          </View>
-          
+          </ScrollView>
+        </View>
+        
+        {/* Fixed Bottom Action Bar */}
+        <View style={styles.fixedBottomContainer}>
           {/* Quantity Selector and Add to Cart Section */}
           <View style={styles.bottomActionContainer}>
             {/* Quantity Selector */}
@@ -453,39 +495,7 @@ export default function ProductDetailScreen() {
             <FontAwesome name="whatsapp" size={20} color={colors.white} style={styles.whatsappIcon} />
             <Text style={styles.whatsappButtonText}>ORDER ON WHATSAPP</Text>
           </TouchableOpacity>
-          
-          {/* Related Products Section */}
-          {relatedProducts.length > 0 && (
-            <View style={styles.relatedProductsContainer}>
-              <Text style={styles.relatedProductsTitle}>RELATED PRODUCTS</Text>
-              <ScrollView 
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.relatedProductsScrollContent}
-              >
-                {relatedProducts.map((item, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    style={styles.relatedProductItem}
-                    onPress={() => {
-                      if (item.ItemCode !== id) {
-                        router.push(`/product/${item.ItemCode}`);
-                      }
-                    }}
-                  >
-                    <Image 
-                      source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.ItemImage}` }}
-                      style={styles.relatedProductImage}
-                      resizeMode="contain"
-                    />
-                    <Text style={styles.relatedProductName} numberOfLines={2}>{item.ItemName}</Text>
-                    <Text style={styles.relatedProductPrice}>{item.NewPrice.toFixed(2)} KD</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </ScrollView>
+        </View>
         
         {/* Add to Cart Success Modal */}
         <Modal
@@ -561,8 +571,11 @@ const styles = StyleSheet.create({
   cartButton: {
     padding: spacing.sm,
   },
+  contentContainer: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: spacing.xl,
+    paddingBottom: 16,
   },
   barcode: {
     fontSize: 12,
@@ -667,7 +680,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   specialDescriptionContainer: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
   sectionTitle: {
     fontSize: 16,
@@ -696,8 +709,8 @@ const styles = StyleSheet.create({
   bottomActionContainer: {
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -738,8 +751,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: spacing.md,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
@@ -841,5 +853,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: colors.blue,
+  },
+  fixedBottomContainer: {
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+    paddingTop: spacing.sm,
+    paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5,
   },
 }); 
