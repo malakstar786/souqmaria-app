@@ -13,6 +13,7 @@ import {
   Alert,
   Modal,
   FlatList,
+  Linking
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ import { colors, spacing, radii, typography } from '../../theme';
 import {
   getProductDetailsByItemCode,
   getSpecialDescriptionListByItemCode,
+  getRelatedProductsListByItemCode,
   addToCart,
   AddToCartParams,
 } from '../../utils/api-service';
@@ -66,7 +68,8 @@ export default function ProductDetailScreen() {
   const cultureId = CULTURE_IDS.ENGLISH;
   
   const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [specialDescriptions, setSpecialDescriptions] = useState<SpecialDescription[]>([]);
+  const [specialDescriptions, setSpecialDescriptions] = useState<{Data: string}[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -83,119 +86,92 @@ export default function ProductDetailScreen() {
   const { uniqueId } = useCartStore();
 
   useEffect(() => {
-    const fetchProductDetails = async () => {
-      if (!id) {
-        setError('Product ID is missing');
-        setIsLoading(false);
-        return;
-      }
+    if (id) {
+      fetchProductDetails();
+    } else {
+      setError('Product ID is missing');
+      setIsLoading(false);
+    }
+  }, [id]);
 
-      console.log('Fetching product details for ID:', id);
+  const fetchProductDetails = async () => {
+    try {
       setIsLoading(true);
       setError(null);
-
-      try {
-        // Fetch product details
-        const detailsResponse = await getProductDetailsByItemCode(
-          id,
-          COMMON_PARAMS.Location,
-          cultureId,
-          user?.UserID || user?.id || ''
-        );
+      
+      // Fetch product details
+      const response = await getProductDetailsByItemCode(
+        id as string, 
+        COMMON_PARAMS.Location,
+        '1', // CultureId
+        user?.UserID || '' // UserId
+      );
+      
+      // Handle response
+      if (response.StatusCode === 200 && response.Data?.success === 1 && response.Data.row?.length > 0) {
+        const productData = response.Data.row[0];
+        setProduct(productData);
         
-        console.log('Product details API response:', {
-          status: detailsResponse.StatusCode,
-          responseCode: detailsResponse.ResponseCode,
-          success: detailsResponse.Data?.success,
-          message: detailsResponse.Data?.Message,
-          hasData: detailsResponse.Data?.row && detailsResponse.Data.row.length > 0,
-        });
+        // Get product images
+        const images: string[] = [];
+        if (productData.ImageUrl1) images.push(productData.ImageUrl1);
+        else if (productData.Image1) images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image1}`);
         
-        if (detailsResponse.Data?.success === 1 && Array.isArray(detailsResponse.Data.row) && detailsResponse.Data.row.length > 0) {
-          const productData = detailsResponse.Data.row[0];
-          console.log('Product data fields:', Object.keys(productData));
-          
-          // Format product data using the correct field names from API response
-          const formattedProduct: ProductDetail = {
-            ...productData,
-            // Make sure all required fields from the ProductDetail interface are present
-            ItemCode: productData.ItemCode || id,
-            ItemName: productData.ItemName || '',
-            Description: productData.Description || '',
-            Image1: productData.Image1 || '',
-            Image2: productData.Image2 || '',
-            Image3: productData.Image3 || '',
-            ProductBrand: productData.ProductBrand || '',
-            Barcode: productData.Barcode || '',
-            IsWishListItem: productData.IsWishListItem || false,
-            StockQty: productData.StockQty || 0,
-            OldPrice: productData.OldPrice || 0,
-            Discount: productData.Discount || 0,
-            NewPrice: productData.NewPrice || 0,
-            // Add the formatted image URLs
-            ImageUrl1: productData.Image1 
-              ? `${PRODUCT_IMAGE_BASE_URL}${productData.Image1}` 
-              : undefined,
-            ImageUrl2: productData.Image2 && productData.Image2 !== 'Default.jpg'
-              ? `${PRODUCT_IMAGE_BASE_URL}${productData.Image2}`
-              : undefined,
-            ImageUrl3: productData.Image3 && productData.Image3 !== 'Default.jpg'
-              ? `${PRODUCT_IMAGE_BASE_URL}${productData.Image3}`
-              : undefined,
-          };
-          
-          console.log('Formatted product image URLs:', {
-            image1: formattedProduct.ImageUrl1,
-            image2: formattedProduct.ImageUrl2,
-            image3: formattedProduct.ImageUrl3
-          });
-          
-          setProduct(formattedProduct);
-          
-          // Prepare product images array for the slider
-          const images = [];
-          if (formattedProduct.ImageUrl1) images.push(formattedProduct.ImageUrl1);
-          if (formattedProduct.ImageUrl2) images.push(formattedProduct.ImageUrl2);
-          if (formattedProduct.ImageUrl3) images.push(formattedProduct.ImageUrl3);
-          setProductImages(images);
-          
-          // Fetch product special descriptions
-          const descriptionResponse = await getSpecialDescriptionListByItemCode(
-            id, 
-            cultureId,
-            user?.UserID || user?.id || ''
-          );
-          
-          console.log('Special Description API response:', {
-            status: descriptionResponse.StatusCode,
-            responseCode: descriptionResponse.ResponseCode,
-            success: descriptionResponse.Data?.success,
-            message: descriptionResponse.Data?.Message,
-            hasData: descriptionResponse.Data?.row && Array.isArray(descriptionResponse.Data.row) && descriptionResponse.Data.row.length > 0,
-          });
-          
-          if (descriptionResponse.Data?.success === 1 && Array.isArray(descriptionResponse.Data.row) && descriptionResponse.Data.row.length > 0) {
-            console.log('Special Description items:', descriptionResponse.Data.row.length);
-            console.log('First description item fields:', 
-              descriptionResponse.Data.row[0] ? Object.keys(descriptionResponse.Data.row[0]) : 'No fields');
-            
-            setSpecialDescriptions(descriptionResponse.Data.row);
-          } else {
-            console.log('No special description data found');
-          }
-        } else {
-          setError('Product not found');
-        }
-      } catch (e: any) {
-        console.error('Error fetching product details:', e);
-        setError(e.message || 'An error occurred while loading product details');
-      } finally {
-        setIsLoading(false);
+        if (productData.ImageUrl2) images.push(productData.ImageUrl2);
+        else if (productData.Image2) images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image2}`);
+        
+        if (productData.ImageUrl3) images.push(productData.ImageUrl3);
+        else if (productData.Image3) images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image3}`);
+        
+        setProductImages(images);
+        
+        // Fetch special descriptions
+        fetchSpecialDescriptions(id as string);
+        
+        // Fetch related products
+        fetchRelatedProducts(id as string);
+      } else {
+        setError(response.Message || 'Product not found');
       }
-    };
+    } catch (e: any) {
+      console.error('Error fetching product details:', e);
+      setError(e.message || 'An error occurred while fetching product details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchProductDetails();
-  }, [id, cultureId, user]);
+  const fetchSpecialDescriptions = async (itemCode: string) => {
+    try {
+      const response = await getSpecialDescriptionListByItemCode(
+        itemCode,
+        '1', // CultureId
+        user?.UserID || '' // UserId
+      );
+      
+      if (response.StatusCode === 200 && response.Data?.success === 1 && response.Data.row?.length > 0) {
+        setSpecialDescriptions(response.Data.row);
+      }
+    } catch (error) {
+      console.error('Error fetching special descriptions:', error);
+    }
+  };
+  
+  const fetchRelatedProducts = async (itemCode: string) => {
+    try {
+      const response = await getRelatedProductsListByItemCode(
+        itemCode,
+        '1', // CultureId
+        user?.UserID || '' // UserId
+      );
+      
+      if (response.StatusCode === 200 && response.Data?.success === 1 && response.Data.row?.length > 0) {
+        setRelatedProducts(response.Data.row);
+      }
+    } catch (error) {
+      console.error('Error fetching related products:', error);
+    }
+  };
 
   const handleAddToCart = useCallback(async () => {
     if (!product) return;
@@ -215,28 +191,28 @@ export default function ProductDetailScreen() {
         Location: COMMON_PARAMS.Location,
         Qty: quantity
       };
-
-      console.log('Adding to cart with params:', params);
+      
+      console.log('Add to cart params:', JSON.stringify(params, null, 2));
       
       const response = await addToCart(params);
       
-      console.log('Add to cart response:', response);
+      console.log('Add to cart response:', JSON.stringify(response, null, 2));
       
       if (response.ResponseCode === RESPONSE_CODES.SUCCESS || 
           response.ResponseCode === RESPONSE_CODES.SUCCESS_ALT ||
           response.ResponseCode === '2' || 
-          response.ResponseCode === 2) {
+          response.ResponseCode === 2 ||
+          response.ResponseCode === 4 || 
+          response.ResponseCode === '4') {
         // Success
-        setShowSuccessModal(true);
-      } else if (response.ResponseCode === 4 || response.ResponseCode === '4') {
-        // Updated quantity
+        await useCartStore.getState().fetchCartItems(user?.UserID || user?.id || '');
         setShowSuccessModal(true);
       } else if (response.ResponseCode === -4 || response.ResponseCode === '-4') {
         // No stock
         Alert.alert('Stock Unavailable', 'Sorry, this product is currently out of stock.');
       } else {
         // Other error
-        Alert.alert('Error', response.Message || 'Failed to add item to cart. Please try again.');
+        Alert.alert('Error', response.Message || 'Failed to add product to cart. Please try again.');
       }
     } catch (e: any) {
       console.error('Error adding to cart:', e);
@@ -245,59 +221,6 @@ export default function ProductDetailScreen() {
       setIsAddingToCart(false);
     }
   }, [product, quantity, user, uniqueId]);
-
-  const handleBuyNow = async () => {
-    if (!product) return;
-    
-    try {
-      // First add the item to cart
-      const params: AddToCartParams = {
-        ItemCode: product.ItemCode,
-        NewPrice: product.NewPrice || 0,
-        OldPrice: product.OldPrice || 0,
-        Discount: product.Discount || 0,
-        UserId: user?.UserID || user?.id || '',
-        UniqueId: uniqueId,
-        IpAddress: '127.0.0.1', // Simplified for mobile app
-        Company: COMMON_PARAMS.Company,
-        Location: COMMON_PARAMS.Location,
-        Qty: quantity
-      };
-
-      console.log('Buy Now - Adding to cart with params:', params);
-      
-      const response = await addToCart(params);
-      
-      console.log('Buy Now - Add to cart response:', response);
-      
-      if (response.ResponseCode === RESPONSE_CODES.SUCCESS || 
-          response.ResponseCode === RESPONSE_CODES.SUCCESS_ALT ||
-          response.ResponseCode === '2' || 
-          response.ResponseCode === 2 ||
-          response.ResponseCode === 4 || 
-          response.ResponseCode === '4') {
-        // Success - refresh cart and navigate to checkout
-        await useCartStore.getState().fetchCartItems(user?.UserID || user?.id || '');
-        router.push('/checkout');
-      } else if (response.ResponseCode === -4 || response.ResponseCode === '-4') {
-        // No stock
-        Alert.alert('Stock Unavailable', 'Sorry, this product is currently out of stock.');
-      } else {
-        // Other error
-        Alert.alert('Error', response.Message || 'Failed to process your order. Please try again.');
-      }
-    } catch (e: any) {
-      console.error('Error in Buy Now flow:', e);
-      Alert.alert('Error', e.message || 'An unexpected error occurred');
-    }
-  };
-
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(prev => prev - 1);
-    }
-  };
 
   const handleViewCart = () => {
     setShowSuccessModal(false);
@@ -323,6 +246,18 @@ export default function ProductDetailScreen() {
     
     if (index !== activeImageIndex) {
       setActiveImageIndex(index);
+    }
+  };
+
+  // Handle WhatsApp order
+  const handleOrderOnWhatsApp = useCallback(() => {
+    Linking.openURL('https://wa.me/+96598900952');
+  }, []);
+
+  const incrementQuantity = () => setQuantity(prev => prev + 1);
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(prev => prev - 1);
     }
   };
 
@@ -460,17 +395,20 @@ export default function ProductDetailScreen() {
             {/* Special Descriptions Section */}
             {specialDescriptions.length > 0 && (
               <View style={styles.specialDescriptionContainer}>
-                {specialDescriptions.map((item, index) => (
-                  <View key={index} style={styles.specialDescriptionItem}>
-                    <Text style={styles.specialDescriptionTitle}>{item.Title}</Text>
-                    <Text style={styles.specialDescriptionText}>{item.Description}</Text>
-                  </View>
-                ))}
+                <Text style={styles.sectionTitle}>KEY FEATURES</Text>
+                <View style={styles.featuresList}>
+                  {specialDescriptions.map((item, index) => (
+                    <View key={index} style={styles.featureItem}>
+                      <FontAwesome name="check-circle" size={16} color={colors.blue} style={styles.featureIcon} />
+                      <Text style={styles.featureText}>{item.Data}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
           </View>
           
-          {/* Bottom Action Section */}
+          {/* Quantity Selector and Add to Cart Section */}
           <View style={styles.bottomActionContainer}>
             {/* Quantity Selector */}
             <View style={styles.quantityContainer}>
@@ -493,28 +431,60 @@ export default function ProductDetailScreen() {
               </TouchableOpacity>
             </View>
             
-            {/* Buy Now button */}
+            {/* Add To Cart Button (partial width) */}
             <TouchableOpacity 
-              style={styles.buyNowButton}
-              onPress={handleBuyNow}
-              disabled={product.StockQty <= 0}
+              style={[styles.addToCartButton, styles.inlineButton]}
+              onPress={handleAddToCart}
+              disabled={isAddingToCart || product.StockQty <= 0}
             >
-              <Text style={styles.buyNowText}>BUY NOW</Text>
+              {isAddingToCart ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>ADD TO CART</Text>
+              )}
             </TouchableOpacity>
           </View>
           
-          {/* Add To Cart Button */}
+          {/* Order on WhatsApp Button (full width) */}
           <TouchableOpacity 
-            style={styles.addToCartButton}
-            onPress={handleAddToCart}
-            disabled={isAddingToCart || product.StockQty <= 0}
+            style={styles.whatsappButton}
+            onPress={handleOrderOnWhatsApp}
           >
-            {isAddingToCart ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>ADD TO CART</Text>
-            )}
+            <FontAwesome name="whatsapp" size={20} color={colors.white} style={styles.whatsappIcon} />
+            <Text style={styles.whatsappButtonText}>ORDER ON WHATSAPP</Text>
           </TouchableOpacity>
+          
+          {/* Related Products Section */}
+          {relatedProducts.length > 0 && (
+            <View style={styles.relatedProductsContainer}>
+              <Text style={styles.relatedProductsTitle}>RELATED PRODUCTS</Text>
+              <ScrollView 
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.relatedProductsScrollContent}
+              >
+                {relatedProducts.map((item, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.relatedProductItem}
+                    onPress={() => {
+                      if (item.ItemCode !== id) {
+                        router.push(`/product/${item.ItemCode}`);
+                      }
+                    }}
+                  >
+                    <Image 
+                      source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.ItemImage}` }}
+                      style={styles.relatedProductImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.relatedProductName} numberOfLines={2}>{item.ItemName}</Text>
+                    <Text style={styles.relatedProductPrice}>{item.NewPrice.toFixed(2)} KD</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </ScrollView>
         
         {/* Add to Cart Success Modal */}
@@ -539,7 +509,7 @@ export default function ProductDetailScreen() {
                 <View style={styles.modalDivider} />
                 
                 <TouchableOpacity style={styles.modalButton} onPress={handleContinueShopping}>
-                  <Text style={styles.modalButtonText}>CHECKOUT</Text>
+                  <Text style={styles.modalButtonText}>CONTINUE SHOPPING</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -699,16 +669,26 @@ const styles = StyleSheet.create({
   specialDescriptionContainer: {
     marginTop: spacing.lg,
   },
-  specialDescriptionItem: {
-    marginBottom: spacing.md,
-  },
-  specialDescriptionTitle: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.black,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
   },
-  specialDescriptionText: {
+  featuresList: {
+    marginBottom: spacing.md,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+    alignItems: 'flex-start',
+  },
+  featureIcon: {
+    marginRight: spacing.sm,
+    marginTop: 2,
+  },
+  featureText: {
+    flex: 1,
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
@@ -743,26 +723,34 @@ const styles = StyleSheet.create({
     minWidth: 20,
     textAlign: 'center',
   },
-  buyNowButton: {
-    flex: 1,
-    backgroundColor: colors.black,
-    borderRadius: 8,
-    paddingVertical: spacing.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buyNowText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   addToCartButton: {
     backgroundColor: colors.blue,
     borderRadius: 8,
     paddingVertical: spacing.md,
-    marginHorizontal: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  inlineButton: {
+    flex: 1,
+  },
+  whatsappButton: {
+    backgroundColor: '#25D366', // WhatsApp green
+    borderRadius: 8,
+    paddingVertical: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  whatsappIcon: {
+    marginRight: spacing.sm,
+  },
+  whatsappButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   buttonText: {
     color: colors.white,
@@ -816,5 +804,42 @@ const styles = StyleSheet.create({
   modalDivider: {
     width: 1,
     backgroundColor: colors.borderLight,
+  },
+  relatedProductsContainer: {
+    padding: spacing.lg,
+    backgroundColor: colors.veryLightGray,
+  },
+  relatedProductsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.black,
+    marginBottom: spacing.md,
+  },
+  relatedProductsScrollContent: {
+    paddingBottom: spacing.sm,
+  },
+  relatedProductItem: {
+    width: 150,
+    marginRight: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    overflow: 'hidden',
+    padding: spacing.sm,
+  },
+  relatedProductImage: {
+    width: '100%',
+    height: 120,
+    marginBottom: spacing.sm,
+  },
+  relatedProductName: {
+    fontSize: 14,
+    color: colors.black,
+    marginBottom: spacing.xs,
+    height: 40,
+  },
+  relatedProductPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.blue,
   },
 }); 

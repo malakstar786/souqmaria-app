@@ -47,10 +47,11 @@ const radii = {
 import useCartStore from '../store/cart-store';
 import useAuthStore from '../store/auth-store';
 import useAddressStore, { Address } from '../store/address-store';
+import usePromoStore from '../store/promo-store'; // Import the promo store
 import CheckoutAddressModal from '../components/CheckoutAddressModal';
 import CheckoutAddressFormModal from '../components/CheckoutAddressFormModal';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -58,6 +59,17 @@ export default function CheckoutScreen() {
   const { cartItems, totalAmount, isLoading: cartLoading, refreshCartItems } = useCartStore();
   const { user, isLoggedIn } = useAuthStore();
   const { billingAddresses, shippingAddresses, fetchUserAddresses } = useAddressStore();
+  const { 
+    appliedPromoCode, 
+    discountAmount, 
+    isApplying, 
+    isRemoving, 
+    error: promoError, 
+    success: promoSuccess,
+    applyPromo,
+    removePromo,
+    clearError: clearPromoError
+  } = usePromoStore();
   
   // State
   const [promoCode, setPromoCode] = useState('');
@@ -72,13 +84,17 @@ export default function CheckoutScreen() {
   const [showAddShippingModal, setShowAddShippingModal] = useState(false);
   const [useShippingAsBilling, setUseShippingAsBilling] = useState(false);
   
+  // Get uniqueId and BuyNow from local storage or params
+  const uniqueId = params.uniqueId as string || useCartStore(state => state.uniqueId);
+  const buyNow = ''; // Always empty since users can only checkout from cart now
+  
   // Calculate correct total based on items in cart
   const correctTotalAmount = cartItems.reduce((total, item) => 
     total + (item.Price * item.Quantity), 0);
   
   // Constants for checkout calculations
   const shippingFee = 5.00;
-  const discount = 0.00;
+  const discount = discountAmount || 0.00;
   const grandTotal = correctTotalAmount + shippingFee - discount;
   
   // Log for debugging
@@ -86,11 +102,13 @@ export default function CheckoutScreen() {
     console.log('Checkout - Cart Items:', cartItems.length);
     console.log('Checkout - CartStore totalAmount:', totalAmount);
     console.log('Checkout - Calculated correctTotalAmount:', correctTotalAmount);
+    console.log('Checkout - Applied Promo Code:', appliedPromoCode);
+    console.log('Checkout - Discount Amount:', discountAmount);
     console.log('Checkout - Grand Total:', grandTotal);
     
     // Refresh cart totals on mount to ensure they're correct
     refreshCartItems();
-  }, [cartItems]);
+  }, [cartItems, appliedPromoCode, discountAmount]);
   
   // Fetch user addresses when component mounts
   useEffect(() => {
@@ -119,12 +137,40 @@ export default function CheckoutScreen() {
   };
   
   // Apply promo code
-  const handleApplyPromoCode = () => {
+  const handleApplyPromoCode = async () => {
     if (!promoCode.trim()) {
       Alert.alert('Error', 'Please enter a promo code');
       return;
     }
-    Alert.alert('Promo Code', `Promo code ${promoCode} applied!`);
+    
+    const userId = user?.UserID || '';
+    const result = await applyPromo(promoCode, userId, uniqueId, buyNow);
+    
+    if (result) {
+      // Success - Promo code was applied
+      // (No need for alert here as the UI will update to show the applied promo)
+    } else if (promoError) {
+      // Show error message
+      Alert.alert('Error', promoError);
+      clearPromoError();
+    }
+  };
+  
+  // Remove promo code
+  const handleRemovePromoCode = async () => {
+    if (!appliedPromoCode) return;
+    
+    const userId = user?.UserID || '';
+    const result = await removePromo(appliedPromoCode, userId, uniqueId, buyNow);
+    
+    if (result) {
+      // Success - Promo code was removed
+      setPromoCode(''); // Clear the input field
+    } else if (promoError) {
+      // Show error message
+      Alert.alert('Error', promoError);
+      clearPromoError();
+    }
   };
   
   // Navigate to see all promo codes
@@ -223,7 +269,15 @@ export default function CheckoutScreen() {
   
   // Format address for display
   const formatAddressForDisplay = (address: Address) => {
-    return `${address.fullName}\n${address.block}, ${address.street}, ${address.house}${address.apartment ? `, ${address.apartment}` : ''}\n${address.cityName}, ${address.stateName}, ${address.countryName}`;
+    if (!address) return '';
+    
+    // If there's a combined address field from the API, use it
+    if (address.address) {
+      return `${address.fullName}, ${address.mobile}, ${address.address}`;
+    }
+    
+    // Otherwise build from individual fields
+    return `${address.fullName}, ${address.mobile}, ${address.countryName}, ${address.stateName}, ${address.cityName}, ${address.block}, ${address.street}, ${address.house}${address.apartment ? `, ${address.apartment}` : ''}`;
   };
   
   // Place order
@@ -248,30 +302,31 @@ export default function CheckoutScreen() {
           onPress: () => {
             Alert.alert('Success', 'Order placed successfully!');
             router.replace('/(shop)');
-          } 
+          }
         }
       ]
     );
   };
-  
-  // Render cart items horizontally
+
+  // Render cart items in horizontal scroll
   const renderCartItems = () => (
     <ScrollView 
-      horizontal
+      horizontal 
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.cartItemsContainer}
     >
-      {cartItems.map((item) => (
-        <View key={item.CartID} style={styles.cartItemCard}>
+      {cartItems.map((item, index) => (
+        <View key={index} style={styles.cartItemCard}>
           <Image
-            source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1}` }}
+            source={{ 
+              uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1 || 'placeholder.png'}` 
+            }}
             style={styles.cartItemImage}
             resizeMode="contain"
           />
           <View style={styles.cartItemDetails}>
             <Text style={styles.cartItemName} numberOfLines={2}>{item.ProductName}</Text>
-            <Text style={styles.cartItemPrice}>{item.Price.toFixed(2)} KD</Text>
-            <Text style={styles.cartItemQuantity}>x {item.Quantity}</Text>
+            <Text style={styles.cartItemQuantity}>x {item.Quantity} {item.Price.toFixed(2)} KD</Text>
           </View>
         </View>
       ))}
@@ -279,142 +334,126 @@ export default function CheckoutScreen() {
   );
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={isModalVisible}
-      onRequestClose={handleCloseModal}
-    >
-      <SafeAreaView style={styles.modalContainer}>
-        <StatusBar barStyle="dark-content" />
-        
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Checkout</Text>
-            <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
-              <FontAwesome name="times" size={20} color={colors.black} />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Cart Items */}
-            {cartLoading ? (
-              <View style={styles.loadingContainer}>
-                <Text>Loading cart items...</Text>
-              </View>
-            ) : cartItems.length > 0 ? (
-              renderCartItems()
-            ) : (
-              <View style={styles.emptyCartContainer}>
-                <Text style={styles.emptyCartText}>Your cart is empty</Text>
-              </View>
-            )}
-            
-            {/* Billing Address Section */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionIconContainer}>
-                <FontAwesome name="credit-card" size={20} color={colors.blue} />
-                <Text style={styles.sectionTitle}>Billing Address</Text>
-              </View>
-              
-              {isLoggedIn && selectedBillingAddress ? (
-                <TouchableOpacity 
-                  onPress={handleSelectBillingAddress} 
-                  style={styles.addressDisplayContainer}
-                >
-                  <Text style={styles.addressText}>
-                    {formatAddressForDisplay(selectedBillingAddress)}
-                  </Text>
-                  <FontAwesome name="angle-right" size={20} color={colors.black} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  onPress={handleSelectBillingAddress}
-                  style={styles.addAddressButton}
-                >
-                  <Text style={styles.addAddressText}>+ Add Billing Address</Text>
-                  <FontAwesome name="angle-right" size={20} color={colors.black} />
-                </TouchableOpacity>
-              )}
+    <>
+      <ExpoStatusBar style="dark" />
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={handleCloseModal}
+      >
+        <SafeAreaView style={styles.container}>
+          {/* Modal Content */}
+          <View style={styles.modalContainer}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Checkout</Text>
+              <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
+                <FontAwesome name="times" size={20} color={colors.black} />
+              </TouchableOpacity>
             </View>
             
-            {/* Shipping Address Section */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionIconContainer}>
-                <FontAwesome name="truck" size={20} color={colors.blue} />
-                <Text style={styles.sectionTitle}>Shipping Address</Text>
+            <ScrollView style={styles.scrollContent}>
+              {/* Cart Items */}
+              {renderCartItems()}
+              
+              {/* Address Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Address</Text>
+                {isLoggedIn && selectedShippingAddress ? (
+                  <TouchableOpacity 
+                    style={styles.addressCard}
+                    onPress={handleSelectShippingAddress}
+                  >
+                    <Text style={styles.addressText}>
+                      {formatAddressForDisplay(selectedShippingAddress)}
+                    </Text>
+                    <FontAwesome name="angle-right" size={20} color={colors.gray} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.addAddressButton}
+                    onPress={isLoggedIn ? handleSelectShippingAddress : handleLogin}
+                  >
+                    <Text style={styles.addAddressText}>
+                      {isLoggedIn ? '+ Add Address' : 'Login to add address'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               
-              {isLoggedIn && selectedShippingAddress ? (
-                <TouchableOpacity 
-                  onPress={handleSelectShippingAddress} 
-                  style={styles.addressDisplayContainer}
-                >
-                  <Text style={styles.addressText}>
-                    {formatAddressForDisplay(selectedShippingAddress)}
-                  </Text>
-                  <FontAwesome name="angle-right" size={20} color={colors.black} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  onPress={handleSelectShippingAddress}
-                  style={styles.addAddressButton}
-                >
-                  <Text style={styles.addAddressText}>+ Add Shipping Address</Text>
-                  <FontAwesome name="angle-right" size={20} color={colors.black} />
-                </TouchableOpacity>
-              )}
-            </View>
-            
-            {/* Promo Code Section */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.promoHeaderContainer}>
-                <View style={styles.sectionIconContainer}>
-                  <FontAwesome name="tag" size={20} color={colors.blue} />
+              {/* Promo Code Section */}
+              <View style={styles.section}>
+                <View style={styles.promoTitleRow}>
                   <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
+                  <TouchableOpacity onPress={handleSeePromoCodes}>
+                    <Text style={styles.seePromoCodesText}>See Promo Codes</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={handleSeePromoCodes}>
-                  <Text style={styles.seePromoCodesText}>See Promo Codes</Text>
-                </TouchableOpacity>
+                
+                {appliedPromoCode ? (
+                  <View style={styles.appliedPromoContainer}>
+                    <View style={styles.appliedPromoCode}>
+                      <Text style={styles.appliedPromoText}>{appliedPromoCode}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.removePromoButton}
+                      onPress={handleRemovePromoCode}
+                      disabled={isRemoving}
+                    >
+                      {isRemoving ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <Text style={styles.removePromoText}>Remove</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.promoInputContainer}>
+                    <TextInput
+                      style={styles.promoInput}
+                      placeholder="Enter Promo Code"
+                      value={promoCode}
+                      onChangeText={setPromoCode}
+                    />
+                    <TouchableOpacity 
+                      onPress={handleApplyPromoCode} 
+                      style={styles.applyButton}
+                      disabled={isApplying || !promoCode.trim()}
+                    >
+                      {isApplying ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <Text style={styles.applyButtonText}>Apply</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
               
-              <View style={styles.promoInputContainer}>
-                <TextInput
-                  style={styles.promoInput}
-                  placeholder="Enter Promo Code"
-                  value={promoCode}
-                  onChangeText={setPromoCode}
-                />
-                <TouchableOpacity onPress={handleApplyPromoCode} style={styles.applyButton}>
-                  <Text style={styles.applyButtonText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            {/* Payment Type Section */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionIconContainer}>
-                <FontAwesome name="credit-card" size={20} color={colors.blue} />
+              {/* Payment Type Section */}
+              <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Select Payment Type</Text>
+                <View style={styles.paymentTypeContainer}>
+                  <Text style={styles.paymentOption}>CASH</Text>
+                  <Image 
+                    source={require('../assets/payment_methods.png')} 
+                    style={styles.paymentMethodsImage}
+                    resizeMode="contain"
+                  />
+                </View>
               </View>
               
-              <View style={styles.paymentTypeContainer}>
-                <Text style={styles.paymentTypeText}>CASH</Text>
-              </View>
-            </View>
-            
-            {/* Order Summary */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionIconContainer}>
-                <FontAwesome name="list-alt" size={20} color={colors.blue} />
-                <Text style={styles.sectionTitle}>Order Summary</Text>
-              </View>
-              
-              <View style={styles.summaryContainer}>
+              {/* Order Summary */}
+              <View style={styles.section}>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Item Sub total</Text>
                   <Text style={styles.summaryValue}>{correctTotalAmount.toFixed(2)} KD</Text>
+                </View>
+                
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Discount</Text>
+                  <Text style={styles.summaryValue}>{discount.toFixed(2)} KD</Text>
                 </View>
                 
                 <View style={styles.summaryRow}>
@@ -422,88 +461,97 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryValue}>{shippingFee.toFixed(2)} KD</Text>
                 </View>
                 
-                {discount > 0 && (
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Discount</Text>
-                    <Text style={[styles.summaryValue, styles.discountText]}>
-                      -{discount.toFixed(2)} KD
-                    </Text>
-                  </View>
-                )}
-                
-                <View style={[styles.summaryRow, styles.totalRow]}>
-                  <Text style={styles.totalLabel}>Total Amount</Text>
-                  <Text style={styles.totalValue}>{grandTotal.toFixed(3)} KD</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, styles.grandTotalLabel]}>Grand Total</Text>
+                  <Text style={styles.grandTotalValue}>{grandTotal.toFixed(2)} KD</Text>
                 </View>
               </View>
-            </View>
-            
-            {/* Place Order Button */}
-            <TouchableOpacity 
-              style={styles.placeOrderButton} 
-              onPress={handlePlaceOrder}
-              disabled={cartItems.length === 0}
-            >
-              <Text style={styles.placeOrderButtonText}>Place Order</Text>
-            </TouchableOpacity>
-            
-            {/* Login Prompt for Guest Users */}
-            {!isLoggedIn && (
-              <View style={styles.loginPromptContainer}>
-                <Text style={styles.loginPromptText}>Already have an account?</Text>
-                <TouchableOpacity onPress={handleLogin}>
-                  <Text style={styles.loginButtonText}>Login</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </SafeAreaView>
-      
-      {/* Billing Address Selection Modal */}
-      <CheckoutAddressModal
-        isVisible={showBillingAddressModal}
-        onClose={() => setShowBillingAddressModal(false)}
-        addressType="billing"
-        onSelectAddress={handleBillingAddressSelected}
-        onAddNewAddress={handleAddNewBillingAddress}
-      />
-      
-      {/* Shipping Address Selection Modal */}
-      <CheckoutAddressModal
-        isVisible={showShippingAddressModal}
-        onClose={() => setShowShippingAddressModal(false)}
-        addressType="shipping"
-        onSelectAddress={handleShippingAddressSelected}
-        onAddNewAddress={handleAddNewShippingAddress}
-      />
-      
-      {/* Add Billing Address Modal */}
-      <CheckoutAddressFormModal
-        isVisible={showAddBillingModal}
-        onClose={() => setShowAddBillingModal(false)}
-        addressType="billing"
-        onSuccess={handleBillingAddressAdded}
-      />
-      
-      {/* Add Shipping Address Modal */}
-      <CheckoutAddressFormModal
-        isVisible={showAddShippingModal}
-        onClose={() => setShowAddShippingModal(false)}
-        addressType="shipping"
-        onSuccess={handleShippingAddressAdded}
-      />
-    </Modal>
+              
+              {/* Create Account Checkbox (only for guest users) */}
+              {!isLoggedIn && (
+                <View style={styles.createAccountSection}>
+                  <TouchableOpacity onPress={handleLogin}>
+                    <Text style={styles.createAccountText}>Create an Account?</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              {/* Terms & Conditions */}
+              <Text style={styles.termsText}>
+                By proceeding, I've read and accept the terms & conditions.
+              </Text>
+              
+              {/* Place Order Button */}
+              <TouchableOpacity 
+                style={styles.placeOrderButton}
+                onPress={handlePlaceOrder}
+              >
+                <Text style={styles.placeOrderButtonText}>Place Order</Text>
+              </TouchableOpacity>
+              
+              {/* Login prompt for guest users */}
+              {!isLoggedIn && (
+                <View style={styles.loginPrompt}>
+                  <Text style={styles.loginPromptText}>
+                    Are you a returning customer? {' '}
+                    <Text style={styles.loginPromptLink} onPress={handleLogin}>
+                      Login Here
+                    </Text>
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+        
+        {/* Address selection modals */}
+        <CheckoutAddressModal
+          isVisible={showBillingAddressModal}
+          onClose={() => setShowBillingAddressModal(false)}
+          addressType="billing"
+          onSelectAddress={handleBillingAddressSelected}
+          onAddNewAddress={handleAddNewBillingAddress}
+        />
+        
+        <CheckoutAddressModal
+          isVisible={showShippingAddressModal}
+          onClose={() => setShowShippingAddressModal(false)}
+          addressType="shipping"
+          onSelectAddress={handleShippingAddressSelected}
+          onAddNewAddress={handleAddNewShippingAddress}
+        />
+        
+        <CheckoutAddressFormModal
+          isVisible={showAddBillingModal}
+          onClose={() => setShowAddBillingModal(false)}
+          addressType="billing"
+          onSuccess={handleBillingAddressAdded}
+        />
+        
+        <CheckoutAddressFormModal
+          isVisible={showAddShippingModal}
+          onClose={() => setShowAddShippingModal(false)}
+          addressType="shipping"
+          onSuccess={handleShippingAddressAdded}
+        />
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalContent: {
-    flex: 1,
+  modalContainer: {
+    width: width * 0.9,
+    maxHeight: height * 0.85,
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -512,126 +560,93 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.lightGray,
-    backgroundColor: colors.lightBlue,
+    position: 'relative',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.blue,
+    color: colors.black,
   },
   closeButton: {
     position: 'absolute',
     right: spacing.md,
+    top: spacing.md,
     padding: spacing.xs,
+  },
+  scrollContent: {
+    padding: spacing.md,
   },
   cartItemsContainer: {
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
   },
   cartItemCard: {
-    backgroundColor: colors.white,
+    width: 120,
+    marginRight: spacing.md,
+    backgroundColor: colors.veryLightGray,
     borderRadius: radii.md,
     padding: spacing.sm,
-    marginRight: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    width: width / 2 - spacing.md * 1.5,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
+    alignItems: 'center',
   },
   cartItemImage: {
-    width: '100%',
-    height: 120,
-    marginBottom: spacing.sm,
-    borderRadius: radii.sm,
+    width: 80,
+    height: 80,
   },
   cartItemDetails: {
     alignItems: 'center',
+    marginTop: spacing.xs,
   },
   cartItemName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: spacing.xs,
+    fontSize: 12,
+    fontWeight: '500',
     textAlign: 'center',
-  },
-  cartItemPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.blue,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   cartItemQuantity: {
-    fontSize: 12,
-    color: colors.gray,
+    fontSize: 11,
+    color: colors.blue,
+    fontWeight: 'bold',
   },
-  loadingContainer: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyCartContainer: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyCartText: {
-    fontSize: 16,
-    color: colors.gray,
-  },
-  sectionContainer: {
-    padding: spacing.md,
-    backgroundColor: colors.white,
-    marginBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
-  },
-  sectionIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
+  section: {
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
+    marginBottom: spacing.sm,
     color: colors.black,
-    marginLeft: spacing.sm,
   },
-  addressDisplayContainer: {
-    backgroundColor: colors.veryLightGray,
-    borderRadius: radii.md,
-    padding: spacing.md,
+  addressCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: radii.md,
   },
   addressText: {
+    flex: 1,
     fontSize: 14,
     color: colors.black,
-    flex: 1,
   },
   addAddressButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    padding: spacing.md,
     backgroundColor: colors.veryLightGray,
     borderRadius: radii.md,
-    padding: spacing.md,
+    alignItems: 'center',
   },
   addAddressText: {
-    fontSize: 14,
     color: colors.blue,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
-  promoHeaderContainer: {
+  promoTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   seePromoCodesText: {
-    fontSize: 14,
     color: colors.blue,
+    fontSize: 14,
   },
   promoInputContainer: {
     flexDirection: 'row',
@@ -642,36 +657,67 @@ const styles = StyleSheet.create({
     height: 40,
     borderWidth: 1,
     borderColor: colors.lightGray,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   applyButton: {
-    backgroundColor: colors.blue,
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.black,
     paddingVertical: spacing.sm,
-    borderRadius: radii.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
   },
   applyButtonText: {
     color: colors.white,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
-  paymentTypeContainer: {
-    backgroundColor: colors.veryLightGray,
-    borderRadius: radii.md,
-    padding: spacing.md,
+  appliedPromoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  paymentTypeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  appliedPromoCode: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    marginRight: spacing.sm,
+    justifyContent: 'center',
+  },
+  appliedPromoText: {
     color: colors.black,
   },
-  summaryContainer: {
-    marginTop: spacing.md,
+  removePromoButton: {
+    backgroundColor: colors.red,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  removePromoText: {
+    color: colors.white,
+    fontWeight: '500',
+  },
+  paymentTypeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
     backgroundColor: colors.veryLightGray,
     borderRadius: radii.md,
-    padding: spacing.md,
+  },
+  paymentOption: {
+    fontWeight: 'bold',
+  },
+  paymentMethodsImage: {
+    height: 30,
+    width: 150,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -685,53 +731,51 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 14,
     color: colors.black,
+    fontWeight: '500',
   },
-  discountText: {
-    color: colors.red,
-  },
-  totalRow: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
-  },
-  totalLabel: {
-    fontSize: 16,
+  grandTotalLabel: {
     fontWeight: 'bold',
-    color: colors.black,
   },
-  totalValue: {
+  grandTotalValue: {
     fontSize: 16,
-    fontWeight: 'bold',
     color: colors.blue,
+    fontWeight: 'bold',
+  },
+  createAccountSection: {
+    marginBottom: spacing.lg,
+  },
+  createAccountText: {
+    color: colors.blue,
+    fontWeight: '500',
+  },
+  termsText: {
+    fontSize: 12,
+    color: colors.gray,
+    textAlign: 'center',
+    marginBottom: spacing.md,
   },
   placeOrderButton: {
     backgroundColor: colors.blue,
     padding: spacing.md,
-    alignItems: 'center',
     borderRadius: radii.md,
-    margin: spacing.md,
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   placeOrderButtonText: {
     color: colors.white,
     fontWeight: 'bold',
     fontSize: 16,
   },
-  loginPromptContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  loginPrompt: {
     alignItems: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   loginPromptText: {
     fontSize: 14,
     color: colors.black,
-    marginRight: spacing.xs,
   },
-  loginButtonText: {
+  loginPromptLink: {
     color: colors.blue,
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 }); 

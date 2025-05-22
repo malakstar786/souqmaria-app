@@ -17,6 +17,7 @@ export interface ApiResponse<T = any> {
   Message: string;
   Data?: T;
   TrackId?: string | null; // As seen in the log
+  DiscountAmount?: number; // Added for promo code responses
   UserDetails?: {
     UserID: string;
     FullName: string;
@@ -201,6 +202,24 @@ export interface ProductDetail {
   NewPrice: number;
   // Add any additional fields or computed properties
   [key: string]: any;
+}
+
+// Interfaces for promo code API requests
+export interface PromoCodeParams {
+  PromoCode: string;
+  UserId: string;
+  IpAddress: string;
+  UniqueId: string;
+  BuyNow: string;
+  Company: number;
+}
+
+export interface PromoCodeResponse {
+  StatusCode?: number;
+  ResponseCode: string | number;
+  Message: string;
+  TrackId?: string | null;
+  DiscountAmount?: number; // Added DiscountAmount for promo code responses
 }
 
 /**
@@ -887,7 +906,7 @@ export const getProductDetailsByItemCode = async (
 };
 
 /**
- * Get special description list for a specific product by its item code.
+ * Get special description details for a product
  */
 export const getSpecialDescriptionListByItemCode = async (
   itemCode: string,
@@ -907,6 +926,26 @@ export const getSpecialDescriptionListByItemCode = async (
   );
 };
 
+/**
+ * Get related products for a product
+ */
+export const getRelatedProductsListByItemCode = async (
+  itemCode: string,
+  cultureId: string = '1',
+  userId: string = ''
+): Promise<ApiResponse<{ success: number; row: any[]; Message: string }>> => {
+  const strQuery = SP_QUERIES.GET_RELATED_PRODUCTS_LIST_BY_ITEM_CODE(
+    itemCode,
+    cultureId,
+    userId
+  );
+  const payload: GetDataJsonPayload = { strQuery };
+  return apiRequest<{ success: number; row: any[]; Message: string }>(
+    ENDPOINTS.GET_DATA_JSON,
+    'POST',
+    payload
+  );
+};
 
 // Define interface for AddToCart request parameters
 export interface AddToCartParams {
@@ -1227,6 +1266,140 @@ export const deleteWishlistItem = async (itemCode: string, userId: string): Prom
   };
 
   return apiRequest(ENDPOINTS.CRUD_WISHLIST, 'POST', payload);
+};
+
+/**
+ * Apply a promo code to the user's cart
+ */
+export const applyPromoCode = async (params: PromoCodeParams): Promise<ApiResponse<PromoCodeResponse>> => {
+  try {
+    const ip = await getDeviceIpAddress();
+    const payload = {
+      ...params,
+      IpAddress: params.IpAddress || ip
+    };
+
+    console.log('Apply promo code payload:', JSON.stringify(payload, null, 2));
+    
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: `${API_BASE_URL}${ENDPOINTS.APPLY_PROMO_CODE}`,
+        data: payload
+      });
+
+      console.log('Apply promo code response:', JSON.stringify(response.data, null, 2));
+      
+      // Normalize response structure
+      return {
+        StatusCode: response.status,
+        ResponseCode: response.data.ResponseCode,
+        Message: response.data.Message,
+        Data: response.data,
+        TrackId: response.data.TrackId,
+        DiscountAmount: response.data.DiscountAmount || 0
+      };
+    } catch (axiosError: any) {
+      // Handle Axios errors (like 404, 500, etc.)
+      console.log('Promo code API error response:', JSON.stringify(axiosError.response?.data || {}, null, 2));
+      
+      if (axiosError.response?.data) {
+        // Return the error from the API if available
+        return {
+          StatusCode: axiosError.response.status,
+          ResponseCode: axiosError.response.data.ResponseCode || '-2',
+          Message: axiosError.response.data.Message || 'Failed to apply promo code',
+          TrackId: axiosError.response.data.TrackId || null,
+          DiscountAmount: 0
+        };
+      }
+      
+      // Handle network errors or other issues
+      return {
+        StatusCode: 500,
+        ResponseCode: RESPONSE_CODES.SERVER_ERROR_STR,
+        Message: axiosError.message || 'Failed to connect to server',
+        TrackId: null,
+        DiscountAmount: 0
+      };
+    }
+  } catch (error: any) {
+    console.error('Error applying promo code:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR_STR,
+      Message: error.message || 'Failed to apply promo code',
+      TrackId: null,
+      DiscountAmount: 0
+    };
+  }
+};
+
+/**
+ * Remove a previously applied promo code from the user's cart
+ */
+export const removePromoCode = async (params: PromoCodeParams): Promise<ApiResponse<PromoCodeResponse>> => {
+  try {
+    const ip = await getDeviceIpAddress();
+    const payload = {
+      ...params,
+      IpAddress: params.IpAddress || ip
+    };
+
+    console.log('Remove promo code payload:', JSON.stringify(payload, null, 2));
+    
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: `${API_BASE_URL}${ENDPOINTS.REMOVE_PROMO_CODE}`,
+        data: payload
+      });
+
+      console.log('Remove promo code response:', JSON.stringify(response.data, null, 2));
+      
+      // Normalize response structure
+      return {
+        StatusCode: response.status,
+        ResponseCode: response.data.ResponseCode,
+        Message: response.data.Message,
+        Data: response.data,
+        TrackId: response.data.TrackId,
+        DiscountAmount: 0 // When removing, reset discount amount
+      };
+    } catch (axiosError: any) {
+      // Handle Axios errors (like 404, 500, etc.)
+      console.log('Remove promo code API error response:', JSON.stringify(axiosError.response?.data || {}, null, 2));
+      
+      if (axiosError.response?.data) {
+        // Return the error from the API if available
+        return {
+          StatusCode: axiosError.response.status,
+          ResponseCode: axiosError.response.data.ResponseCode || '-2',
+          Message: axiosError.response.data.Message || 'Failed to remove promo code',
+          TrackId: axiosError.response.data.TrackId || null,
+          DiscountAmount: 0
+        };
+      }
+      
+      // Handle network errors or other issues
+      return {
+        StatusCode: 500,
+        ResponseCode: RESPONSE_CODES.SERVER_ERROR_STR,
+        Message: axiosError.message || 'Failed to connect to server',
+        TrackId: null,
+        DiscountAmount: 0
+      };
+    }
+  } catch (error: any) {
+    console.error('Error removing promo code:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR_STR,
+      Message: error.message || 'Failed to remove promo code',
+      TrackId: null,
+      DiscountAmount: 0
+    };
+  }
 };
 
 // Export other API functions here 

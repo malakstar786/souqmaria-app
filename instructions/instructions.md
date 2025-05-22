@@ -30,8 +30,8 @@ You will be using React Native, Expo, Supabase, Toast and Zustand.
     4. The user can add an item to their wishlist from the cart tab.
 
 4. Checkout flow.
-    1. The user can go to the checkout page by clicking on the 'Buy Now' present on individual product view.
-    2. The user can go to checkout from the cart tabe and clicking on checkout button. 
+    1. The user can go to the checkout page through the cart page.
+    2. User can also directly order through WhatsApp by clicking the "Order on WhatsApp" button on product page.
     3. Once checkout flow is triggered
         - Users will get an option to sign up / login if they have not already. 
         - If the user wishes to continue as a guest they can do so.
@@ -267,6 +267,49 @@ When a user clicks on any filter or sort button (Brand, Category, Price, Sort By
 - **Row height:** 48px per item.
 - **Section spacing:** 12px between sections.
 - **Rounded corners:** 16px on modal top, 0px on bottom.
+
+### 4. Product Detail View
+
+#### General Layout
+- **Background color:** `#FFFFFF` (white)
+- **Top bar:** White background, with back arrow (left) and cart icon (right).
+
+#### Header
+- **Back arrow:** Left, black (`#000000`), for navigation.
+- **Cart icon:** Top right, black (`#000000`), with badge for item count (if any).
+
+#### Product Images
+- **Image slider:** Horizontally scrollable, full width.
+- **Dots indicator:** Below slider, centered, dots for each image (active dot in blue, inactive in gray).
+
+#### Product Information
+- **Brand:** Gray text, smaller font.
+- **Product name:** Bold, black, larger font.
+- **Price section:** 
+  - Old price (if any): Gray, strikethrough.
+  - New price: Blue, bold, larger font.
+- **Out of stock indicator:** Red text (if applicable).
+
+#### Description Section
+- **Title:** "DESCRIPTION" in bold, black.
+- **Text:** Regular text with "Read More"/"Read Less" toggle if description is long.
+
+#### Key Features Section
+- **Title:** "KEY FEATURES" in bold, black.
+- **Features list:** Each feature with a blue check icon and descriptive text.
+
+#### Action Buttons
+- **Quantity selector:** "-" and "+" buttons with quantity number between.
+- **Add to cart button:** Blue background, white text, rounded corners.
+- **Order on WhatsApp button:** WhatsApp green background, white text, WhatsApp icon, rounded corners.
+- **Button position:** "Order on WhatsApp" button appears below the quantity selector and "Add to Cart" button.
+
+#### Related Products Section
+- **Title:** "RELATED PRODUCTS" in bold, black.
+- **Products list:** Horizontally scrollable row of product cards.
+- **Product card:** 
+  - Image, name (2 lines max), and price.
+  - Tapping navigates to that product's detail page.
 - **Dividers:** Thin, light gray (`#D9D9D9`).
 
 #### Example Flow
@@ -307,16 +350,16 @@ When a user clicks on any filter or sort button (Brand, Category, Price, Sort By
 
 #### Quantity Selector & Actions
 - **Quantity selector:**
-  - Below of "Add to Cart" button and left of "Buy Now" button.
+  - Left of "Add to Cart" button.
   - White background (`#FFFFFF`), black border (`#000000`), rounded corners (8px).
   - Plus/minus buttons: Black (`#000000`), centered.
   - Quantity number: Black (`#000000`).
 - **Add to Cart button:**
-  - Full width, blue background (`#00AEEF`), white text, bold, rounded corners (12px), large font.
+  - Right of quanitty control, blue background (`#00AEEF`), white text, bold, rounded corners (12px), large font.
   - Icon: Cart, white.
-- **Buy Now button:**
-  - Half width width, black background (`#000000`), white text, bold, rounded corners (12px), large font.
-  - Icon: Lightning bolt or similar, white.
+- **Order On WhatsApp button:**
+  - Full width below add to cart and quantity control, green background, white text, bold, rounded corners (12px), large font.
+  - Icon: WhatsApp vector icon or similar.
   - Positioned below "Add to Cart" button, with 8px spacing.
 
 #### Product Details
@@ -2968,5 +3011,367 @@ This should be used for rendering product images in the grid/list as per the UI 
   - Ensure the API returns properly-formatted image URLs with the base path: "https://api.souqmaria.com/ProductImages/".
   - Handle empty responses by showing a proper "Empty Wishlist" UI.
   - Use appropriate UI indicators (loading spinners, error messages) during data fetching.
+
+### Promo Code Management APIs
+
+#### 1. Apply Promo Code (`/Apply_PromoCode/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Applies a promo code to the user's cart for discount.
+- **Request Body:**
+  ```json
+  {
+    "PromoCode": "string (50)",
+    "UserId": "string (10)",
+    "IpAddress": "string (50)",
+    "UniqueId": "string (50)",
+    "BuyNow": "string (10)",
+    "Company": "int (3044)"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     | Required |
+|---|-----------|--------|--------|---------------------------------|----------|
+| 1 | PromoCode | String | 50     | Promo code to apply             | Yes      |
+| 2 | UserId    | String | 10     | User ID (empty for guest)       | Yes      |
+| 3 | IpAddress | String | 50     | User's IP address               | Yes      |
+| 4 | UniqueId  | String | 50     | Unique ID generated for the app | Yes      |
+| 5 | BuyNow    | String | 10     | Item code if buying directly, empty string if from cart | Yes |
+| 6 | Company   | int    | -      | Company ID (fixed: 3044)        | Yes      |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "StatusCode": "200",
+    "ResponseCode": "2",
+    "Message": "Promo apply successfully!!!",
+    "TrackId": null
+  }
+  ```
+
+- **Response Structure (Error Example):**
+  ```json
+  {
+    "StatusCode": "200",
+    "ResponseCode": "-12",
+    "Message": "Promo Code is invalid",
+    "TrackId": null
+  }
+  ```
+
+- **Response Codes:**
+
+| StatusCode | ResponseCode | Meaning |
+|------------|--------------|---------|
+| 200 | 2 | Promo apply successfully!!! |
+| 200 | -2 | Promo not apply successfully!!! |
+| 200 | -4 | You entered a invalid discount code |
+| 200 | -6 | You entered a invalid discount code |
+| 200 | -8 | Min Cart Value invalid |
+| 200 | -10 | Promo items not available in your Cart |
+| 200 | -12 | Promo Code is invalid |
+| 200 | -14 | Promo Code is invalid |
+| 200 | -16 | Need to Login first |
+| 200 | -18 | Cart item is not valid!!! |
+| 200 | -20 | Something went wrong...Please try again later!!! |
+| 400 | -6 | Server side validation error...Please try again later!!! |
+| 500 | -2 | Something went wrong...Please try again later!!! |
+
+- **Implementation Notes:**
+  - This endpoint is used to apply a promo code for discounts during checkout.
+  - The BuyNow parameter should contain the item code if the user is checking out directly from a product page. If checking out from the cart, this should be an empty string.
+  - UniqueId is the unique identifier generated for the app instance.
+  - Based on the response code, appropriate success or error messages should be displayed to the user.
+
+#### 2. Remove Promo Code (`/Remove_PromoCode/`)
+- **Method:** `POST` (FromBody)
+- **Description:** Removes a previously applied promo code from the user's cart.
+- **Request Body:**
+  ```json
+  {
+    "PromoCode": "string (50)",
+    "UserId": "string (10)",
+    "IpAddress": "string (50)",
+    "UniqueId": "string (50)",
+    "BuyNow": "string (10)",
+    "Company": "int (3044)"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     | Required |
+|---|-----------|--------|--------|---------------------------------|----------|
+| 1 | PromoCode | String | 50     | Promo code to remove            | Yes      |
+| 2 | UserId    | String | 10     | User ID (empty for guest)       | Yes      |
+| 3 | IpAddress | String | 50     | User's IP address               | Yes      |
+| 4 | UniqueId  | String | 50     | Unique ID generated for the app | Yes      |
+| 5 | BuyNow    | String | 10     | Item code if buying directly, empty string if from cart | Yes |
+| 6 | Company   | int    | -      | Company ID (fixed: 3044)        | Yes      |
+
+- **Response Structure (Success Example):**
+  ```json
+  {
+    "StatusCode": "200",
+    "ResponseCode": "2",
+    "Message": "Promo remove successfully!!!",
+    "TrackId": null
+  }
+  ```
+
+- **Response Structure (Error Example):**
+  ```json
+  {
+    "StatusCode": "200",
+    "ResponseCode": "-2",
+    "Message": "Promo not remove successfully!!!",
+    "TrackId": null
+  }
+  ```
+
+- **Response Codes:**
+
+| StatusCode | ResponseCode | Meaning |
+|------------|--------------|---------|
+| 200 | 2 | Promo remove successfully!!! |
+| 200 | -2 | Promo not remove successfully!!! |
+| 200 | -10 | Something went wrong...Please try again later!!! |
+| 400 | -6 | Server side validation error...Please try again later!!! |
+| 500 | -2 | Something went wrong...Please try again later!!! |
+
+- **Implementation Notes:**
+  - This endpoint is used to remove a previously applied promo code during checkout.
+  - The parameters are the same as the Apply Promo Code endpoint.
+  - The UI should be updated to reflect the removal of the promo code and recalculation of the order total.
+
+### Promo Code APIs
+
+#### 1. Apply Promo Code (`/Apply_PromoCode`)
+- **Method:** `POST`
+- **Description:** Applies a promo code to the user's cart for discount.
+- **Request Body:**
+  ```json
+  {
+    "PromoCode": "string (50)",
+    "UserId": "string (10)",
+    "IpAddress": "string (50)",
+    "UniqueId": "string (50)",
+    "BuyNow": "string (10)",
+    "Company": "int (3044)"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     | Required |
+|---|-----------|--------|--------|---------------------------------|----------|
+| 1 | PromoCode | String | 50     | Promo code to apply             | Yes      |
+| 2 | UserId    | String | 10     | User ID (empty for guest users) | No       |
+| 3 | IpAddress | String | 50     | IP address of the device        | Yes      |
+| 4 | UniqueId  | String | 50     | Unique device identifier        | Yes      |
+| 5 | BuyNow    | String | 10     | Item code if Buy Now, else empty| No       |
+| 6 | Company   | Int    | -      | Company ID (3044)               | Yes      |
+
+- **Response Body:**
+  ```json
+  {
+    "ResponseCode": "string",
+    "Message": "string",
+    "TrackId": "string",
+    "DiscountAmount": "number (optional)"
+  }
+  ```
+
+- **Response Codes:**
+
+| ResponseCode | Description |
+|--------------|-------------|
+| 2            | Success - Promo code applied successfully |
+| -2           | General failure applying promo code |
+| -4, -6       | Invalid discount code |
+| -8           | Minimum cart value requirement not met |
+| -10          | Promo items not available in cart |
+| -12, -14     | Invalid promo code |
+| -16          | Login required to use promo code |
+| -18          | Cart item is not valid |
+| -20          | General error in promo code application |
+
+#### 2. Remove Promo Code (`/Remove_PromoCode`)
+- **Method:** `POST`
+- **Description:** Removes a previously applied promo code from the user's cart.
+- **Request Body:**
+  ```json
+  {
+    "PromoCode": "string (50)",
+    "UserId": "string (10)",
+    "IpAddress": "string (50)",
+    "UniqueId": "string (50)",
+    "BuyNow": "string (10)",
+    "Company": "int (3044)"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Length | Description                     | Required |
+|---|-----------|--------|--------|---------------------------------|----------|
+| 1 | PromoCode | String | 50     | Promo code to remove            | Yes      |
+| 2 | UserId    | String | 10     | User ID (empty for guest users) | No       |
+| 3 | IpAddress | String | 50     | IP address of the device        | Yes      |
+| 4 | UniqueId  | String | 50     | Unique device identifier        | Yes      |
+| 5 | BuyNow    | String | 10     | Item code if Buy Now, else empty| No       |
+| 6 | Company   | Int    | -      | Company ID (3044)               | Yes      |
+
+- **Response Body:**
+  ```json
+  {
+    "ResponseCode": "string",
+    "Message": "string",
+    "TrackId": "string"
+  }
+  ```
+
+- **Response Codes:**
+
+| ResponseCode | Description |
+|--------------|-------------|
+| 2            | Success - Promo code removed successfully |
+| -2           | Failure removing promo code |
+| -10          | General error in promo code removal |
+
+- **Example Responses:**
+  - Cart item not valid:
+    ```json
+    {"ResponseCode":"-18","Message":"Cart item is not valid!!!","TrackId":null}
+    ```
+  - Minimum cart value not met:
+    ```json
+    {"ResponseCode":"-8","Message":"Min Cart Value invalid","TrackId":null}
+    ```
+
+- **Implementation Notes:**
+  - Before applying a promo code, ensure that the cart contains valid items.
+  - The BuyNow parameter should contain the item code if the user clicked "Buy Now" on a product page, otherwise it should be empty.
+  - When a promo code is successfully applied, it should return a DiscountAmount that can be used to update the cart total.
+  - Handle all error cases gracefully and display appropriate messages to the user.
+
+### Product Special Description and Related Products APIs
+
+#### 1. Get Special Description List (`/getData_JSON/`)
+- **Method:** `POST`
+- **Description:** Retrieves special description details for a product.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Get_SM_Apps] 'Get_Special_Description_List_ByItemCode','ITEM_CODE','','','','',1,3044,''"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Description                         | Required |
+|---|-----------|--------|-------------------------------------|----------|
+| 1 | strQuery  | String | Stored procedure query with item code | Yes    |
+
+- **Example strQuery format:**
+  ```
+  [Web].[Sp_Get_SM_Apps] 'Get_Special_Description_List_ByItemCode','IM31790047','','','','',1,3044,''
+  ```
+
+- **Response Body:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "Data": "Feature description 1"
+      },
+      {
+        "Data": "Feature description 2"
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Codes:**
+  - success: 1 (data found)
+  - success: 0 (no data found)
+
+- **Example Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {"Data": "6.56\" HD+ Waterdrop Notch Display: Enjoy vibrant visuals with a 6.56-inch HD+ display featuring a 1612x720 resolution, perfect for media, gaming, and browsing."},
+      {"Data": "IPX4 Water & IP5X Dust Resistance: Built to withstand splashes and dust, making it durable for everyday use in challenging conditions."}
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+#### 2. Get Related Products List (`/getData_JSON/`)
+- **Method:** `POST`
+- **Description:** Retrieves related products for a specific product.
+- **Request Body:**
+  ```json
+  {
+    "strQuery": "[Web].[Sp_Get_SM_Apps] 'Get_Related_Products_List_ByItemCode','ITEM_CODE','','','','',1,3044,''"
+  }
+  ```
+- **Request Parameters Table:**
+
+| # | Parameter | Type   | Description                         | Required |
+|---|-----------|--------|-------------------------------------|----------|
+| 1 | strQuery  | String | Stored procedure query with item code | Yes    |
+
+- **Example strQuery format:**
+  ```
+  [Web].[Sp_Get_SM_Apps] 'Get_Related_Products_List_ByItemCode','IM31790047','','','','',1,3044,''
+  ```
+
+- **Response Body:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ItemImage": "image_filename.png",
+        "ItemCode": "IM12345678",
+        "ItemName": "Product Name",
+        "OldPrice": 0.000,
+        "Discount": 0,
+        "NewPrice": 50.000,
+        "IsWishListItem": false
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Response Codes:**
+  - success: 1 (data found)
+  - success: 0 (no data found)
+
+- **Example Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ItemImage": "74ebc450_IM31110511_1.png",
+        "ItemCode": "IM31790047",
+        "ItemName": "oppo A77 (4GB RAM 128GB Storage) Sky Blue",
+        "OldPrice": 0.000,
+        "Discount": 0,
+        "NewPrice": 50.000,
+        "IsWishListItem": false
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
+
+- **Implementation Notes:**
+  - These endpoints use the existing `getData_JSON` endpoint with specific stored procedure queries.
+  - The `ITEM_CODE` parameter should be replaced with the actual product item code.
+  - The culture ID (1 for English, 2 for Arabic) can be changed if needed.
+  - The user ID can be provided if available, otherwise pass an empty string.
 
 

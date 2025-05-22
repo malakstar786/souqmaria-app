@@ -31,6 +31,9 @@ export const ENDPOINTS = {
   CRUD_SHIPPING_ADDRESS: '/CRUD_Shipping_Manage_Address/',
   // Wishlist
   CRUD_WISHLIST: '/CRUD_Wishlist/',
+  // Promo Code 
+  APPLY_PROMO_CODE: '/Apply_PromoCode/',
+  REMOVE_PROMO_CODE: '/Remove_PromoCode/',
   // Data fetching
   GET_DATA_JSON: '/getData_JSON/',
   GET_ALL_PRODUCT_LIST_DIRECT: 'Get_AllProduct_List',
@@ -66,6 +69,24 @@ export const RESPONSE_CODES = {
   CART_UPDATED: 4,         // Item already in cart, quantity updated
   CART_OUT_OF_STOCK: -4,   // Stock not available
   CART_ERROR: -10,         // General error in add to cart
+  
+  // Promo Code response codes
+  PROMO_APPLY_SUCCESS: '2',             // Promo code applied successfully
+  PROMO_APPLY_FAILURE: '-2',           // Promo code not applied
+  PROMO_INVALID_DISCOUNT: '-4',        // Invalid discount code
+  PROMO_INVALID_DISCOUNT_ALT: '-6',    // Invalid discount code (alternative)
+  PROMO_MIN_CART_VALUE: '-8',          // Minimum cart value requirement not met
+  PROMO_ITEMS_NOT_IN_CART: '-10',      // Promo items not available in cart
+  PROMO_INVALID_CODE: '-12',           // Invalid promo code
+  PROMO_INVALID_CODE_ALT: '-14',       // Invalid promo code (alternative)
+  PROMO_LOGIN_REQUIRED: '-16',         // Login required to use promo code
+  PROMO_CART_ITEM_INVALID: '-18',      // Cart item is not valid
+  PROMO_GENERAL_ERROR: '-20',          // General error in promo code application
+  
+  // Promo Code Remove response codes
+  PROMO_REMOVE_SUCCESS: '2',           // Promo code removed successfully
+  PROMO_REMOVE_FAILURE: '-2',          // Promo code not removed
+  PROMO_REMOVE_ERROR: '-10',           // General error in promo code removal
 
   // Other API-specific codes can be added here
   INVALID_CREDENTIALS: '-2',
@@ -162,6 +183,14 @@ export const SP_QUERIES = {
     userId: string = ''
   ) =>
     `[Web].[Sp_Get_SM_Apps]'Get_Special_Description_List_ByItemCode','${itemCode}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
+
+  // Related Products
+  GET_RELATED_PRODUCTS_LIST_BY_ITEM_CODE: (
+    itemCode: string,
+    cultureId: string = '1',
+    userId: string = ''
+  ) =>
+    `[Web].[Sp_Get_SM_Apps]'Get_Related_Products_List_ByItemCode','${itemCode}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
 
   // Cart queries
   GET_CART_PRODUCTS: (userId: string = '', uniqueId: string, cultureId: string = '1') => 
