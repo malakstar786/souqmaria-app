@@ -6,7 +6,10 @@ import {
   getDefaultShippingAddressByUserId,
   getAllBillingAddressesByUserId,
   getAllShippingAddressesByUserId,
-  ApiAddress
+  ApiAddress,
+  getOrderReviewCheckout,
+  OrderReviewCheckoutParams,
+  OrderReviewData
 } from '../utils/api-service';
 import { Platform } from 'react-native';
 import { RESPONSE_CODES } from '../utils/api-config';
@@ -50,6 +53,11 @@ interface CheckoutState {
   billingAddresses: ApiAddress[];
   shippingAddresses: ApiAddress[];
   
+  // Order review data
+  orderReviewData: OrderReviewData | null;
+  isLoadingOrderReview: boolean;
+  orderReviewError: string | null;
+  
   // UI state
   isLoading: boolean;
   error: string | null;
@@ -68,6 +76,10 @@ interface CheckoutState {
   fetchAllAddresses: (userId: string) => Promise<void>;
   setSelectedBillingAddressId: (id: number) => void;
   setSelectedShippingAddressId: (id: number) => void;
+  
+  // Order review actions
+  fetchOrderReview: (params: OrderReviewCheckoutParams) => Promise<boolean>;
+  clearOrderReviewError: () => void;
   
   clearError: () => void;
   reset: () => void;
@@ -99,6 +111,9 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
   selectedShippingAddressId: null,
   billingAddresses: [],
   shippingAddresses: [],
+  orderReviewData: null,
+  isLoadingOrderReview: false,
+  orderReviewError: null,
   isLoading: false,
   error: null,
 
@@ -306,6 +321,53 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
     set({ selectedShippingAddressId: id });
   },
 
+  fetchOrderReview: async (params: OrderReviewCheckoutParams) => {
+    set({ isLoadingOrderReview: true, orderReviewError: null });
+    
+    try {
+      const response = await getOrderReviewCheckout(params);
+      
+      if (response.Data && response.Data.ResponseCode === '2') {
+        // API call was successful
+        if (response.Data.li && response.Data.li.length > 0) {
+          // We have order review data
+          set({ 
+            orderReviewData: response.Data.li[0],
+            isLoadingOrderReview: false,
+            orderReviewError: null
+          });
+          return true;
+        } else {
+          // No data but API was successful (e.g., empty cart, no location codes)
+          // Don't show error, just clear the data
+          set({ 
+            orderReviewData: null,
+            isLoadingOrderReview: false,
+            orderReviewError: null
+          });
+          return true; // Still return true since API call was successful
+        }
+      } else {
+        // API returned an actual error
+        set({ 
+          isLoadingOrderReview: false, 
+          orderReviewError: response.Data?.Message || response.Message || 'Failed to fetch order review'
+        });
+        return false;
+      }
+    } catch (error) {
+      set({ 
+        isLoadingOrderReview: false, 
+        orderReviewError: error instanceof Error ? error.message : 'Failed to fetch order review'
+      });
+      return false;
+    }
+  },
+
+  clearOrderReviewError: () => {
+    set({ orderReviewError: null });
+  },
+
   clearError: () => {
     set({ error: null });
   },
@@ -323,6 +385,9 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
       selectedShippingAddressId: null,
       billingAddresses: [],
       shippingAddresses: [],
+      orderReviewData: null,
+      isLoadingOrderReview: false,
+      orderReviewError: null,
       isLoading: false,
       error: null,
     });

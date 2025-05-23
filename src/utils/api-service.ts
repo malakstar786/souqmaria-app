@@ -346,6 +346,14 @@ const apiRequest = async <T>(
     });
     
     const responseData = await httpResponse.json();
+    
+    // Log raw response data for checkout endpoints
+    if (endpoint === ENDPOINTS.SAVE_CHECKOUT) {
+      console.log('🛒 API RAW RESPONSE DATA:', JSON.stringify(responseData, null, 2));
+      console.log('🛒 API RAW RESPONSE - TrackId:', responseData.TrackId);
+      console.log('🛒 API RAW RESPONSE - ResponseCode:', responseData.ResponseCode);
+      console.log('🛒 API RAW RESPONSE - Message:', responseData.Message);
+    }
 
     if (!httpResponse.ok) {
       // For HTTP errors (4xx, 5xx), try to use the message from the API if available
@@ -354,6 +362,7 @@ const apiRequest = async <T>(
         ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.GENERAL_ERROR),
         Message: responseData.Message || `Request failed with status ${httpResponse.status}`,
         Data: responseData.Data || responseData, // Include data if present, or the whole body
+        TrackId: responseData.TrackId, // Preserve TrackId even in error cases
         UserDetails: responseData.UserDetails,
       };
     }
@@ -370,13 +379,22 @@ const apiRequest = async <T>(
     }
 
     // For other endpoints that are expected to return the full ApiResponse structure
-    return {
+    const apiResponse = {
       StatusCode: httpResponse.status,
       ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.SUCCESS),
       Message: responseData.Message || 'Request successful',
       Data: responseData.Data as T,
+      TrackId: responseData.TrackId, // Preserve TrackId from the API response
       UserDetails: responseData.UserDetails,
     };
+    
+    // Log the constructed API response for checkout endpoints
+    if (endpoint === ENDPOINTS.SAVE_CHECKOUT) {
+      console.log('🛒 API CONSTRUCTED RESPONSE:', JSON.stringify(apiResponse, null, 2));
+      console.log('🛒 API CONSTRUCTED - TrackId:', apiResponse.TrackId);
+    }
+    
+    return apiResponse;
 
   } catch (error) {
     console.error('API request failed:', endpoint, error);
@@ -1734,7 +1752,6 @@ export interface SaveCheckoutParams {
   Source: string;
   OrderNote: string;   // Always required (can be empty string)
   Salesman: string;    // Always required
-  CreateAccount?: number; // 1 for yes, 0 for no - Used for guest users
 }
 
 export interface SaveCheckoutResponse {
@@ -1767,7 +1784,6 @@ export async function saveCheckout(params: SaveCheckoutParams): Promise<ApiRespo
       Source: params.Source || (Platform.OS === 'ios' ? 'iOS' : 'Android'),
       OrderNote: params.OrderNote || '',
       Salesman: params.Salesman || '3044SMOL',
-      CreateAccount: params.CreateAccount || 0
     };
     
     const response = await apiRequest<SaveCheckoutResponse>(ENDPOINTS.SAVE_CHECKOUT, 'POST', payload);
@@ -1904,20 +1920,133 @@ export async function getAllShippingAddressesByUserId(userId: string): Promise<A
 }
 
 /**
- * Get order details for thank you page
+ * Get order details for thank you page using TrackId
  */
 export async function getOrderDetailsForThankYou(trackId: string): Promise<ApiResponse<any>> {
   try {
-    const data = {
-      strQuery: `[Web].[Sp_Template1_Get_OrderDetails_ThankYou_Apps] '${trackId}',3044`
-    };
-    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
+    // Use the correct stored procedure from the user's documentation
+    const strQuery = `[Web].[Sp_Template1_Get_OrderDetails_ThankYou_Apps] '${trackId}',3044`;
+    console.log('🎉 Fetching order details for thank you with TrackId:', trackId);
+    console.log('🎉 Using correct query:', strQuery);
+    
+    const response = await apiRequest<any>(
+      ENDPOINTS.GET_DATA_JSON,
+      'POST',
+      { strQuery }
+    );
+    
+    console.log('🎉 Thank you order details response:', JSON.stringify(response, null, 2));
+    
+    return response;
   } catch (error) {
-    console.error('Error fetching order details for thank you page:', error);
-    return {
-      StatusCode: 500,
-      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-      Message: 'Failed to fetch order details'
-    };
+    console.error('❌ Error getting order details for thank you:', error);
+    throw error;
+  }
+}
+
+/**
+ * ORDER REVIEW CHECKOUT API
+ * 
+ * This API calculates cart totals, shipping charges, and discounts based on delivery location.
+ * 
+ * GUEST CHECKOUT FLOW:
+ * 1. Initial call without location codes (Country="", State="", City="")
+ *    - Allows checkout page to load with basic cart information
+ *    - May return cart items without accurate shipping calculations
+ * 
+ * 2. Second call with location codes after guest adds address
+ *    - Returns complete pricing with shipping charges and discounts
+ *    - Used to update checkout page with accurate totals
+ * 
+ * LOGGED-IN USER FLOW:
+ * - Called with default address location codes immediately
+ * - Returns complete pricing information on first call
+ * 
+ * API Response Structure:
+ * Success: { li: [OrderReviewData], ResponseCode: "2", Message: "Success message" }
+ * Error: { li: null, ResponseCode: "-2", Message: "Cart is empty!!!" or other error }
+ * 
+ * Example Response Data:
+ * {
+ *   "li": [{
+ *     "CartItemsList": [...],
+ *     "CartCount": 2,
+ *     "SubTotal": 25.000,
+ *     "Discount": 2.000,
+ *     "ShippingCharge": 4.000,
+ *     "GrandTotal": 27.000,
+ *     "PromoCode": "SAVE10",
+ *     "PromoName": "10% Off",
+ *     "Percentage": "10"
+ *   }],
+ *   "ResponseCode": "2",
+ *   "Message": "Success"
+ * }
+ */
+
+// Order Review Checkout API interfaces and function
+export interface OrderReviewCheckoutParams {
+  Country: string;      // Country code (e.g., "69") - empty string for initial guest call
+  State: string;        // State code (e.g., "238") - empty string for initial guest call
+  City: string;         // City code (e.g., "1997") - empty string for initial guest call
+  UniqueId: string;     // Cart unique ID
+  IpAddress: string;    // Client IP address
+  CultureId: number;    // Culture ID (1 for English, 2 for Arabic)
+  Company: number;      // Company ID (3044)
+  UserId: string;       // User ID or empty string for guest
+  BuyNow: string;       // Buy now item code or empty string
+}
+
+export interface OrderReviewCartItem {
+  Sr: number;
+  CartId: number;
+  ItemCode: string;
+  ItemName: string;
+  Image1: string;
+  NewPrice: number;
+  Quantity: number;
+  SubTotal: number;
+}
+
+export interface OrderReviewData {
+  CartItemsList: OrderReviewCartItem[];
+  CartCount: number;
+  SubTotal: number;
+  Discount: number;
+  ShippingCharge: number;
+  GrandTotal: number;
+  PromoCode: string;
+  PromoName: string;
+  Percentage: string;
+}
+
+export interface OrderReviewCheckoutResponse {
+  li: OrderReviewData[];
+  ResponseCode: string;
+  Message: string;
+}
+
+export async function getOrderReviewCheckout(params: OrderReviewCheckoutParams): Promise<ApiResponse<OrderReviewCheckoutResponse>> {
+  try {
+    console.log('🛒 Order Review Checkout - Request:', JSON.stringify(params, null, 2));
+    
+    const response = await apiRequest<OrderReviewCheckoutResponse>(
+      ENDPOINTS.ORDER_REVIEW_CHECKOUT,
+      'POST',
+      params
+    );
+    
+    console.log('🛒 Order Review Checkout - Response:', JSON.stringify({
+      statusCode: response.StatusCode,
+      responseCode: response.ResponseCode,
+      message: response.Message,
+      hasData: !!response.Data?.li?.length,
+      itemCount: response.Data?.li?.[0]?.CartCount || 0
+    }, null, 2));
+    
+    return response;
+  } catch (error) {
+    console.error('❌ Error in getOrderReviewCheckout:', error);
+    throw error;
   }
 } 

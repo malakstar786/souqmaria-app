@@ -33,6 +33,7 @@ export const ENDPOINTS = {
   CRUD_SHIPPING_ADDRESS: '/CRUD_Shipping_Manage_Address/',
   // Checkout
   SAVE_CHECKOUT: '/Save_Checkout/',
+  ORDER_REVIEW_CHECKOUT: '/Order_Review_Checkout/',
   // Wishlist
   CRUD_WISHLIST: '/CRUD_Wishlist/',
   // Promo Code 

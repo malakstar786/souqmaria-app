@@ -12,12 +12,14 @@ import {
   Alert,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth-store';
 import { colors, spacing, radii } from '@theme';
 
-export default function SignupScreen() {
-  const router = useRouter();
+interface SignupScreenProps {
+  onSwitchToLogin?: () => void;
+}
+
+export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const { register, isLoading, error, clearError } = useAuthStore();
   
   // Form state
@@ -104,7 +106,7 @@ export default function SignupScreen() {
       Alert.alert(
         'Success',
         'Your account has been created successfully!',
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK', onPress: () => onSwitchToLogin?.() }]
       );
     }
   };
@@ -124,16 +126,6 @@ export default function SignupScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <View>
-              <FontAwesome name="arrow-left" size={20} color={colors.black} />
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sign Up</Text>
-          <View style={{ width: 20 }} />
-        </View>
-        
         <View style={styles.googleSignUpContainer}>
           <Text style={styles.googleSignUpText}>Auto SIGN-UP using Google Email</Text>
           <TouchableOpacity style={styles.googleButton}>
@@ -247,7 +239,7 @@ export default function SignupScreen() {
           {/* Login Link */}
           <TouchableOpacity 
             style={styles.loginContainer}
-            onPress={() => router.push('/auth')}
+            onPress={onSwitchToLogin}
           >
             <Text style={styles.loginText}>Already have account? </Text>
             <Text style={styles.loginLink}>Login</Text>
@@ -262,22 +254,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-    backgroundColor: colors.lightBlue,
-  },
-  backButton: {
-    width: 40,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.blue,
   },
   googleSignUpContainer: {
     paddingHorizontal: spacing.lg,

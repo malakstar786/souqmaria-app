@@ -9,156 +9,201 @@ import {
   Image,
   SafeAreaView,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getOrderDetailsForThankYou } from '../utils/api-service';
 
+const { width } = Dimensions.get('window');
+
 interface OrderDetails {
-  OrderNo: string;
-  PaymentId: string;
-  PaymentStatus: string;
-  TransactionId: string;
-  OrderAmount: string;
+  TrackId: string;
+  PayStatus: string;
+  Total: number;
 }
 
 export default function ThankYouScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const trackId = params.trackId as string;
-  
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  
+  const status = params.status as string;
+  const trackId = params.trackId as string;
+  const errorMessage = params.errorMessage as string;
+  
+  const isSuccess = status === 'success';
+  
   useEffect(() => {
-    if (trackId) {
-      fetchOrderDetails();
-    } else {
-      setError('Order tracking ID is missing');
-      setIsLoading(false);
-    }
-  }, [trackId]);
-
-  const fetchOrderDetails = async () => {
-    try {
-      setIsLoading(true);
-      const response = await getOrderDetailsForThankYou(trackId);
+    const fetchOrderDetails = async () => {
+      console.log('🎉 Thank You Page - Received params:', { status, trackId, errorMessage });
       
-      if (response.Data && response.Data.success === 1 && response.Data.row.length > 0) {
-        const orderData = response.Data.row[0];
-        setOrderDetails(orderData);
+      if (trackId && trackId !== 'ORDER_SUCCESS' && trackId !== 'ORDER_FAILED') {
+        try {
+          console.log('🎉 Attempting to fetch order details for trackId:', trackId);
+          const response = await getOrderDetailsForThankYou(trackId);
+          
+          console.log('🎉 Order details API response:', JSON.stringify(response, null, 2));
+          
+          if (response.Data && response.Data.success === 1 && response.Data.row && response.Data.row.length > 0) {
+            const orderData = response.Data.row[0];
+            console.log('🎉 Found order data:', orderData);
+            setOrderDetails({
+              TrackId: orderData.TrackId || trackId,
+              PayStatus: orderData.PayStatus || 'SUCCESS',
+              Total: orderData.Total || 0
+            });
+          } else {
+            console.log('🎉 No order data found, using TrackId as fallback');
+            // Use TrackId as fallback if API doesn't return details
+            setOrderDetails({
+              TrackId: trackId,
+              PayStatus: 'SUCCESS',
+              Total: 0
+            });
+          }
+        } catch (error) {
+          console.error('🎉 Error fetching order details:', error);
+          console.log('🎉 Using TrackId as fallback due to error');
+          // Fallback to using TrackId
+          setOrderDetails({
+            TrackId: trackId,
+            PayStatus: 'SUCCESS',
+            Total: 0
+          });
+        }
       } else {
-        // Even if no details found, show success message with basic info
+        console.log('🎉 No valid TrackId provided, using default values');
+        // For generated TrackIds or fallback cases
         setOrderDetails({
-          OrderNo: trackId,
-          PaymentId: '22123323',
-          PaymentStatus: 'Successfully Captured',
-          TransactionId: 'TKD000393',
-          OrderAmount: '5.500 KWD'
+          TrackId: trackId || '#234567890000',
+          PayStatus: 'SUCCESS',
+          Total: 0
         });
       }
-    } catch (error) {
-      console.error('Error fetching order details:', error);
-      setError('Failed to load order details');
-    } finally {
       setIsLoading(false);
-    }
-  };
-
+    };
+    
+    fetchOrderDetails();
+  }, [trackId]);
+  
   const handleContinueShopping = () => {
-    router.replace('/');
+    router.push('/(tabs)/home');
   };
-
-  if (isLoading) {
+  
+  const handleTryAgain = () => {
+    router.back();
+  };
+  
+  if (isLoading && trackId && trackId !== 'ORDER_SUCCESS' && trackId !== 'ORDER_FAILED') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00AEEF" />
+          <ActivityIndicator size="large" color="#0063B1" />
           <Text style={styles.loadingText}>Loading order details...</Text>
         </View>
       </SafeAreaView>
     );
   }
-
-  if (error) {
+  
+  if (isSuccess) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <Text style={styles.brandName}>Marie Glam</Text>
+            <Text style={styles.brandSubtitle}>cosmetics</Text>
+          </View>
+          
+          <View style={styles.imageContainer}>
+            <Image 
+              source={require('../assets/order_succesful_image.png')} 
+              style={styles.successImage}
+              resizeMode="contain"
+            />
+          </View>
+          
+          <Text style={styles.successTitle}>Order Successful</Text>
+          <Text style={styles.successSubtitle}>
+            You will be receiving a confirmation email with order details.
+          </Text>
+          
+          <View style={styles.orderCard}>
+            <View style={styles.orderDetailRow}>
+              <Text style={styles.orderDetailLabel}>Track Id</Text>
+              <Text style={styles.orderDetailValue}>
+                {orderDetails?.TrackId || '#234567890000'}
+              </Text>
+            </View>
+            
+            <View style={styles.orderDetailRow}>
+              <Text style={styles.orderDetailLabel}>Pay Status</Text>
+              <Text style={styles.orderDetailValue}>
+                {orderDetails?.PayStatus || 'SUCCESS'}
+              </Text>
+            </View>
+            
+            <View style={styles.orderDetailRow}>
+              <Text style={styles.orderDetailLabel}>Total</Text>
+              <Text style={styles.orderDetailValue}>
+                {orderDetails?.Total ? `${orderDetails.Total.toFixed(3)} KWD` : '0.000 KWD'}
+              </Text>
+            </View>
+          </View>
+          
+          <Text style={styles.contactText}>
+            Your Order has been placed successfully. For any assistance contact here: 
+            <Text style={styles.phoneNumber}> +965-60840404</Text>
+          </Text>
+          
           <TouchableOpacity style={styles.continueButton} onPress={handleContinueShopping}>
             <Text style={styles.continueButtonText}>Continue Shopping</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Success Illustration */}
-        <View style={styles.illustrationContainer}>
-          <View style={styles.celebrationBackground}>
-            {/* Character with hands up in celebration */}
-            <View style={styles.character}>
-              <View style={styles.characterHead} />
-              <View style={styles.characterBody} />
-              <View style={[styles.characterArm, styles.leftArm]} />
-              <View style={[styles.characterArm, styles.rightArm]} />
-            </View>
-            
-            {/* Confetti/decorations */}
-            <View style={[styles.confetti, styles.confetti1]} />
-            <View style={[styles.confetti, styles.confetti2]} />
-            <View style={[styles.confetti, styles.confetti3]} />
-            <View style={[styles.confetti, styles.confetti4]} />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.brandName}>Marie Glam</Text>
+          <Text style={styles.brandSubtitle}>cosmetics</Text>
+        </View>
+        
+        <View style={styles.imageContainer}>
+          <Image 
+            source={require('../assets/order_failed_image.png')} 
+            style={styles.failureImage}
+            resizeMode="contain"
+          />
+        </View>
+        
+        <Text style={styles.failureTitle}>Oops! Something went wrong.</Text>
+        <Text style={styles.failureSubtitle}>
+          {errorMessage || 'Your Order was not placed please try again'}
+        </Text>
+        
+        <View style={styles.orderCard}>
+          <View style={styles.orderDetailRow}>
+            <Text style={styles.orderDetailLabel}>Track Id</Text>
+            <Text style={styles.orderDetailValue}>#23456789000</Text>
+          </View>
+          
+          <View style={styles.orderDetailRow}>
+            <Text style={styles.orderDetailLabel}>Pay Status</Text>
+            <Text style={styles.orderDetailValue}>Failed</Text>
+          </View>
+          
+          <View style={styles.orderDetailRow}>
+            <Text style={styles.orderDetailLabel}>Total</Text>
+            <Text style={styles.orderDetailValue}>5.500 KWD</Text>
           </View>
         </View>
         
-        {/* Success Message */}
-        <Text style={styles.successTitle}>Order Successful</Text>
-        <Text style={styles.successSubtitle}>
-          You will be receiving a confirmation email with order details.
-        </Text>
-        
-        {/* Order Details */}
-        {orderDetails && (
-          <View style={styles.orderDetailsContainer}>
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Order No.</Text>
-              <Text style={styles.orderDetailValue}>#{orderDetails.OrderNo}</Text>
-            </View>
-            
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Payment Id</Text>
-              <Text style={styles.orderDetailValue}>{orderDetails.PaymentId}</Text>
-            </View>
-            
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Payment Status</Text>
-              <Text style={styles.orderDetailValue}>{orderDetails.PaymentStatus}</Text>
-            </View>
-            
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Transaction Id</Text>
-              <Text style={styles.orderDetailValue}>{orderDetails.TransactionId}</Text>
-            </View>
-            
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Order Amount</Text>
-              <Text style={styles.orderDetailValue}>{orderDetails.OrderAmount}</Text>
-            </View>
-          </View>
-        )}
-        
-        {/* Help Text */}
-        <Text style={styles.helpText}>
-          Your Order has been placed successfully. For any assistance contact here: +965-60840404
-        </Text>
-        
-        {/* Continue Shopping Button */}
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinueShopping}>
-          <Text style={styles.continueButtonText}>Continue Shopping</Text>
+        <TouchableOpacity style={styles.tryAgainButton} onPress={handleTryAgain}>
+          <Text style={styles.tryAgainButtonText}>Try again</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -173,7 +218,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingVertical: 60,
     alignItems: 'center',
   },
   loadingContainer: {
@@ -186,109 +231,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  header: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#FF0000',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  illustrationContainer: {
     marginBottom: 40,
+  },
+  brandName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  brandSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
+  },
+  imageContainer: {
+    marginBottom: 30,
     alignItems: 'center',
   },
-  celebrationBackground: {
-    width: 200,
-    height: 200,
-    backgroundColor: '#E8F4FD',
-    borderRadius: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+  successImage: {
+    width: width * 0.8,
+    height: width * 0.6,
+    maxWidth: 300,
+    maxHeight: 225,
   },
-  character: {
-    alignItems: 'center',
-  },
-  characterHead: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFD4A3',
-    marginBottom: 5,
-  },
-  characterBody: {
-    width: 60,
-    height: 80,
-    backgroundColor: '#FFA726',
-    borderRadius: 30,
-  },
-  characterArm: {
-    position: 'absolute',
-    width: 15,
-    height: 40,
-    backgroundColor: '#FFD4A3',
-    borderRadius: 8,
-    top: 45,
-  },
-  leftArm: {
-    left: -20,
-    transform: [{ rotate: '-45deg' }],
-  },
-  rightArm: {
-    right: -20,
-    transform: [{ rotate: '45deg' }],
-  },
-  confetti: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  confetti1: {
-    backgroundColor: '#FF6B6B',
-    top: 20,
-    left: 30,
-  },
-  confetti2: {
-    backgroundColor: '#4ECDC4',
-    top: 40,
-    right: 25,
-  },
-  confetti3: {
-    backgroundColor: '#45B7D1',
-    bottom: 30,
-    left: 20,
-  },
-  confetti4: {
-    backgroundColor: '#96CEB4',
-    bottom: 50,
-    right: 30,
+  failureImage: {
+    width: width * 0.8,
+    height: width * 0.6,
+    maxWidth: 300,
+    maxHeight: 225,
   },
   successTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#00AEEF',
-    marginBottom: 8,
     textAlign: 'center',
+    marginBottom: 8,
   },
   successSubtitle: {
     fontSize: 14,
     color: '#666666',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
     lineHeight: 20,
   },
-  orderDetailsContainer: {
-    width: '100%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 20,
+  failureTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FF0000',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  failureSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
     marginBottom: 30,
+    lineHeight: 20,
+  },
+  orderCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 20,
+    width: '100%',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   orderDetailRow: {
     flexDirection: 'row',
@@ -301,31 +309,51 @@ const styles = StyleSheet.create({
   orderDetailLabel: {
     fontSize: 14,
     color: '#666666',
-    fontWeight: '500',
+    flex: 1,
   },
   orderDetailValue: {
     fontSize: 14,
     color: '#000000',
-    fontWeight: '600',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
   },
-  helpText: {
+  contactText: {
     fontSize: 12,
     color: '#666666',
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 18,
+    paddingHorizontal: 10,
+  },
+  phoneNumber: {
+    color: '#00AEEF',
+    fontWeight: '500',
   },
   continueButton: {
     backgroundColor: '#00AEEF',
-    borderRadius: 8,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 40,
+    borderRadius: 25,
     width: '100%',
     alignItems: 'center',
   },
   continueButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  tryAgainButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    width: '100%',
+    alignItems: 'center',
+  },
+  tryAgainButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

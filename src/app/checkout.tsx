@@ -50,8 +50,6 @@ import useAuthStore from '../store/auth-store';
 import useAddressStore, { Address } from '../store/address-store';
 import usePromoStore from '../store/promo-store';
 import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
-import CheckoutAddressModal from '../components/CheckoutAddressModal';
-import CheckoutAddressFormModal from '../components/CheckoutAddressFormModal';
 import GuestCheckoutAddressForm from '../components/GuestCheckoutAddressForm';
 import GuestCheckoutShippingForm from '../components/GuestCheckoutShippingForm';
 import { 
@@ -63,7 +61,8 @@ import {
   getDefaultShippingAddressByUserId,
   getAllBillingAddressesByUserId,
   getAllShippingAddressesByUserId,
-  ApiAddress
+  ApiAddress,
+  OrderReviewCheckoutParams
 } from '../utils/api-service';
 import { Address as StoreAddress } from '../store/address-store';
 import PromoCodeModal from '../components/PromoCodeModal';
@@ -159,6 +158,11 @@ export default function CheckoutScreen() {
     selectedShippingAddressId,
     setSelectedBillingAddressId,
     setSelectedShippingAddressId,
+    orderReviewData,
+    isLoadingOrderReview,
+    orderReviewError,
+    fetchOrderReview,
+    clearOrderReviewError,
   } = useCheckoutStore();
   
   // State
@@ -264,6 +268,57 @@ export default function CheckoutScreen() {
     fetchPaymentMethods();
   }, []);
   
+  // Fetch order review data when cart or addresses change
+  useEffect(() => {
+    const fetchOrderReviewData = async () => {
+      // Only fetch if we have cart items
+      if (!cartItems.length) return;
+      
+      // Determine location parameters
+      let country = '';
+      let state = '';
+      let city = '';
+      
+      if (isLoggedIn) {
+        // For logged-in users, try to get location from selected billing address
+        const selectedBilling = getSelectedBillingAddress();
+        if (selectedBilling) {
+          country = selectedBilling.CountryId?.toString() || '';
+          state = selectedBilling.StateId?.toString() || '';
+          city = selectedBilling.CityId?.toString() || '';
+        }
+      } else {
+        // For guest users - GUEST CHECKOUT FLOW:
+        // 1. First call without location codes (when user clicks checkout)
+        // 2. Second call with location codes (after guest adds address)
+        if (guestBillingAddress) {
+          country = guestBillingAddress.country?.XCode.toString() || '';
+          state = guestBillingAddress.state?.XCode.toString() || '';
+          city = guestBillingAddress.city?.XCode.toString() || '';
+        }
+        // For guests, we call order review even without location codes
+        // This allows the initial checkout page to load
+      }
+      
+      const params: OrderReviewCheckoutParams = {
+        Country: country,
+        State: state,
+        City: city,
+        UniqueId: uniqueId,
+        IpAddress: '127.0.0.1',
+        CultureId: 1,
+        Company: 3044,
+        UserId: isLoggedIn ? (user?.UserID || '') : '',
+        BuyNow: buyNow
+      };
+      
+      console.log('🛒 Fetching order review with params:', params);
+      await fetchOrderReview(params);
+    };
+    
+    fetchOrderReviewData();
+  }, [cartItems.length, selectedBillingAddressId, guestBillingAddress, isLoggedIn, user?.UserID, uniqueId]);
+  
   // Function to fetch payment methods
   const fetchPaymentMethods = async () => {
     setIsLoadingPaymentMethods(true);
@@ -364,6 +419,28 @@ export default function CheckoutScreen() {
   const handleGuestBillingComplete = (shipToDifferentAddress: boolean) => {
     setShowGuestBillingForm(false);
     
+    // Trigger order review with the new address location codes
+    const fetchOrderReviewWithNewAddress = async () => {
+      if (guestBillingAddress) {
+        const params: OrderReviewCheckoutParams = {
+          Country: guestBillingAddress.country?.XCode.toString() || '',
+          State: guestBillingAddress.state?.XCode.toString() || '',
+          City: guestBillingAddress.city?.XCode.toString() || '',
+          UniqueId: uniqueId,
+          IpAddress: '127.0.0.1',
+          CultureId: 1,
+          Company: 3044,
+          UserId: '',
+          BuyNow: buyNow
+        };
+        
+        console.log('🛒 Guest billing complete - fetching order review with location codes:', params);
+        await fetchOrderReview(params);
+      }
+    };
+    
+    fetchOrderReviewWithNewAddress();
+    
     if (shipToDifferentAddress) {
       // Show shipping address form
       setShowGuestShippingForm(true);
@@ -376,6 +453,29 @@ export default function CheckoutScreen() {
   // Handle guest shipping address submission
   const handleGuestShippingComplete = () => {
     setShowGuestShippingForm(false);
+    
+    // Trigger order review with the shipping address location codes
+    const fetchOrderReviewWithShippingAddress = async () => {
+      if (guestShippingAddress) {
+        const params: OrderReviewCheckoutParams = {
+          Country: guestShippingAddress.country?.XCode.toString() || '',
+          State: guestShippingAddress.state?.XCode.toString() || '',
+          City: guestShippingAddress.city?.XCode.toString() || '',
+          UniqueId: uniqueId,
+          IpAddress: '127.0.0.1',
+          CultureId: 1,
+          Company: 3044,
+          UserId: '',
+          BuyNow: buyNow
+        };
+        
+        console.log('🛒 Guest shipping complete - fetching order review with shipping location codes:', params);
+        await fetchOrderReview(params);
+      }
+    };
+    
+    fetchOrderReviewWithShippingAddress();
+    
     // Continue to payment
     setCurrentStep('payment');
   };
@@ -650,8 +750,7 @@ export default function CheckoutScreen() {
         PaymentMode: selectedPaymentMethod.XCode,
         Source: Platform.OS === 'ios' ? 'iOS' : 'Android',
         OrderNote: '',
-        Salesman: '3044SMOL',
-        CreateAccount: !isLoggedIn && createAccount ? 1 : 0
+        Salesman: '3044SMOL'
       };
       
       console.log('Placing order with params:', JSON.stringify(checkoutParams, null, 2));
@@ -659,22 +758,50 @@ export default function CheckoutScreen() {
       // Call the checkout API
       const response = await saveCheckout(checkoutParams);
       
+      // Log the complete response for debugging
+      console.log('🛒 SAVE CHECKOUT API RESPONSE - COMPLETE:', JSON.stringify(response, null, 2));
+      console.log('🛒 SAVE CHECKOUT - Response Code:', response.ResponseCode);
+      console.log('🛒 SAVE CHECKOUT - Status Code:', response.StatusCode);
+      console.log('🛒 SAVE CHECKOUT - Message:', response.Message);
+      console.log('🛒 SAVE CHECKOUT - Data Field:', response.Data);
+      console.log('🛒 SAVE CHECKOUT - TrackId from Data:', response.Data?.TrackId);
+      console.log('🛒 SAVE CHECKOUT - TrackId from Root:', response.TrackId);
+      console.log('🛒 SAVE CHECKOUT - Raw Response Keys:', Object.keys(response));
+      
       if (response.ResponseCode === '2' || response.ResponseCode === 2) {
         // Successful order placement
-        setOrderPlacedTrackId(response.TrackId || null);
+        // First check root level TrackId, then Data field
+        let trackId = response.TrackId || response.Data?.TrackId;
         
-        // Navigate to thank you page
-        if (response.TrackId) {
-          router.push({
-            pathname: '/thank-you',
-            params: { trackId: response.TrackId }
-          });
-        } else {
-          Alert.alert('Order Placed', 'Your order has been placed successfully!');
-          router.push('/');
+        console.log('🛒 SAVE CHECKOUT - SUCCESS! Extracted TrackId:', trackId);
+        
+        // If no TrackId returned, generate one based on user type and timestamp
+        if (!trackId) {
+          const timestamp = new Date().getTime();
+          if (isLoggedIn && user?.UserID) {
+            // For logged-in users, use user ID + timestamp
+            trackId = `ORD_${user.UserID}_${timestamp}`;
+          } else {
+            // For guest users, use uniqueId + timestamp
+            trackId = `ORD_GUEST_${uniqueId}_${timestamp}`;
+          }
+          console.log('🛒 SAVE CHECKOUT - Generated fallback TrackId:', trackId);
         }
+        
+        console.log('🛒 SAVE CHECKOUT - Final TrackId for navigation:', trackId);
+        setOrderPlacedTrackId(trackId || null);
+        
+        // Navigate to success page
+        router.push({
+          pathname: '/thank-you',
+          params: { 
+            trackId: trackId,
+            status: 'success'
+          }
+        });
       } else {
         // Error handling for different response codes
+        console.log('🛒 ORDER FAILED with response code:', response.ResponseCode);
         let errorMessage = 'Failed to place order. Please try again.';
         
         if (response.ResponseCode === '-4') {
@@ -687,7 +814,15 @@ export default function CheckoutScreen() {
           errorMessage = 'One or more items in your cart are not available in the requested quantity.';
         }
         
-        Alert.alert('Checkout Error', errorMessage);
+        // Navigate to failure page
+        router.push({
+          pathname: '/thank-you',
+          params: { 
+            trackId: 'ORDER_FAILED',
+            status: 'failed',
+            errorMessage: errorMessage
+          }
+        });
       }
     } catch (error) {
       console.error('Error placing order:', error);
@@ -698,25 +833,74 @@ export default function CheckoutScreen() {
   };
   
   // Render cart items
-  const renderCartItems = () => (
-    <View style={styles.cartItems}>
-      {cartItems.map((item, index) => (
-        <View key={index} style={styles.cartItem}>
-          <Image 
-            source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1}` }} 
-            style={styles.cartItemImage} 
-            resizeMode="contain"
-          />
-          <View style={styles.cartItemDetails}>
-            <Text style={styles.cartItemName} numberOfLines={2}>{item.ProductName}</Text>
-            <Text style={styles.cartItemPrice}>
-              <Text style={styles.itemQuantity}>x {item.Quantity}</Text> {item.Price.toFixed(2)} KD
-            </Text>
+  const renderCartItems = () => {
+    // Use order review data if available, otherwise fall back to cart items
+    const itemsToRender = orderReviewData?.CartItemsList || cartItems;
+    const isUsingOrderReview = !!orderReviewData?.CartItemsList;
+    
+    return (
+      <View style={styles.cartItems}>
+        {isLoadingOrderReview && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.blue} />
+            <Text style={styles.loadingText}>Loading order details...</Text>
           </View>
-        </View>
-      ))}
-    </View>
-  );
+        )}
+        
+        {itemsToRender.map((item, index) => {
+          // Handle different property names between CartItem and OrderReviewCartItem
+          const itemName = isUsingOrderReview 
+            ? (item as any).ItemName 
+            : (item as any).ProductName || (item as any).ItemName;
+          const quantity = isUsingOrderReview 
+            ? (item as any).Quantity 
+            : (item as any).Qty || (item as any).Quantity;
+          const price = isUsingOrderReview 
+            ? (item as any).NewPrice 
+            : (item as any).Price;
+          const imageUrl = isUsingOrderReview 
+            ? (item as any).Image1 
+            : (item as any).Image1 || (item as any).Image;
+          
+          return (
+            <View key={index} style={styles.cartItem}>
+              <Image 
+                source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${imageUrl}` }} 
+                style={styles.cartItemImage} 
+                resizeMode="contain"
+              />
+              <View style={styles.cartItemDetails}>
+                <Text style={styles.cartItemName} numberOfLines={2}>
+                  {itemName}
+                </Text>
+                <Text style={styles.cartItemPrice}>
+                  <Text style={styles.itemQuantity}>x {quantity}</Text> {' '}
+                  {price.toFixed(2)} KD
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+        
+        {/* Order Review Summary if available */}
+        {orderReviewData && (
+          <View style={styles.orderReviewSummary}>
+            <Text style={styles.orderReviewTitle}>Order Review Details</Text>
+            <View style={styles.orderReviewDetails}>
+              <Text style={styles.orderReviewText}>Cart Count: {orderReviewData.CartCount}</Text>
+              <Text style={styles.orderReviewText}>Sub Total: KD {orderReviewData.SubTotal.toFixed(2)}</Text>
+              <Text style={styles.orderReviewText}>Discount: KD {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) ? orderReviewData.Discount?.toFixed(2) || '0.00' : promoDiscount.toFixed(2)}</Text>
+              <Text style={styles.orderReviewText}>Shipping: KD {orderReviewData.ShippingCharge.toFixed(2)}</Text>
+              <Text style={styles.orderReviewTotal}>Grand Total: KD {orderReviewData.GrandTotal.toFixed(2)}</Text>
+              {orderReviewData.PromoCode && (
+                <Text style={styles.orderReviewPromo}>Promo: {orderReviewData.PromoCode} ({orderReviewData.Percentage}%)</Text>
+              )}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   // Render appropriate address section based on logged-in status and step
   const renderAddressSection = () => {
@@ -1002,22 +1186,38 @@ export default function CheckoutScreen() {
                     <Text style={styles.sectionTitle}>Order Summary</Text>
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryLabel}>Item Sub total</Text>
-                      <Text style={styles.summaryValue}>KD {correctTotalAmount.toFixed(2)}</Text>
+                      <Text style={styles.summaryValue}>
+                        KD {orderReviewData ? orderReviewData.SubTotal.toFixed(2) : correctTotalAmount.toFixed(2)}
+                      </Text>
                     </View>
-                    {promoDiscount > 0 && (
+                    {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) && (
                       <View style={styles.summaryItem}>
                         <Text style={styles.summaryLabel}>Discount</Text>
-                        <Text style={[styles.summaryValue, styles.discountValue]}>KD {promoDiscount.toFixed(2)}</Text>
+                        <Text style={[styles.summaryValue, styles.discountValue]}>
+                          KD {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) ? orderReviewData?.Discount?.toFixed(2) || '0.00' : promoDiscount.toFixed(2)}
+                        </Text>
                       </View>
                     )}
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryLabel}>Shipping Fee</Text>
-                      <Text style={styles.summaryValue}>KD {shippingFee.toFixed(2)}</Text>
+                      <Text style={styles.summaryValue}>
+                        KD {orderReviewData ? orderReviewData.ShippingCharge.toFixed(2) : shippingFee.toFixed(2)}
+                      </Text>
                     </View>
                     <View style={[styles.summaryItem, styles.totalItem]}>
                       <Text style={styles.totalLabel}>Grand Total</Text>
-                      <Text style={styles.totalValue}>KD {grandTotal.toFixed(2)}</Text>
+                      <Text style={styles.totalValue}>
+                        KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
+                      </Text>
                     </View>
+                    {orderReviewData?.PromoCode && (
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Applied Promo</Text>
+                        <Text style={styles.summaryValue}>
+                          {orderReviewData.PromoCode} ({orderReviewData.Percentage}% off)
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   
                   {/* Create Account Checkbox */}
@@ -1065,7 +1265,7 @@ export default function CheckoutScreen() {
                       <ActivityIndicator size="small" color={colors.white} />
                     ) : (
                       <Text style={styles.placeOrderButtonText}>
-                        Place Order • KD {grandTotal.toFixed(2)}
+                        Place Order • KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -1536,5 +1736,43 @@ const styles = StyleSheet.create({
   },
   arrowIcon: {
     color: colors.blue,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.blue,
+    marginTop: 10,
+  },
+  orderReviewSummary: {
+    marginTop: 10,
+    padding: spacing.md,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: radii.md,
+  },
+  orderReviewTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: spacing.sm,
+    color: colors.black,
+  },
+  orderReviewDetails: {
+    marginBottom: spacing.sm,
+  },
+  orderReviewText: {
+    fontSize: 14,
+    color: colors.black,
+  },
+  orderReviewTotal: {
+    fontSize: 16,
+    color: colors.blue,
+    fontWeight: 'bold',
+  },
+  orderReviewPromo: {
+    fontSize: 14,
+    color: colors.gray,
   },
 }); 

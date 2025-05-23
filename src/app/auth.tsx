@@ -187,7 +187,7 @@ const Auth = () => {
         </View>
 
         <View style={styles.tabContent}>
-          {isLoginTab ? <LoginFormComponent /> : <SignupScreen />}
+          {isLoginTab ? <LoginFormComponent /> : <SignupScreen onSwitchToLogin={() => setTab('login')} />}
         </View>
       </View>
     </KeyboardAvoidingView>
