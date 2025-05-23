@@ -208,35 +208,53 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // Fetch default billing address
-      const billingResponse = await getDefaultBillingAddressByUserId(userId);
-      console.log('Default billing address response:', billingResponse);
-      if (billingResponse.Data?.row && billingResponse.Data.row.length > 0) {
-        const defaultBilling = billingResponse.Data.row[0];
+      console.log('🏠 fetchDefaultAddresses called for user:', userId);
+      
+      // Since the default address APIs return no data, we'll fetch all addresses 
+      // and use the ones marked as default
+      await get().fetchAllAddresses(userId);
+      
+      const { billingAddresses, shippingAddresses } = get();
+      console.log('🏠 After fetchAllAddresses - billingAddresses:', billingAddresses.length, 'shippingAddresses:', shippingAddresses.length);
+      
+      // Find default billing address
+      const defaultBilling = billingAddresses.find(addr => addr.IsDefault === true || addr.IsDefault === 1);
+      console.log('🏠 Default billing address found:', !!defaultBilling);
+      if (defaultBilling) {
         const billingId = defaultBilling.BillingAddressId || null;
-        console.log('Setting default billing address ID to:', billingId);
+        console.log('🏠 Setting default billing address ID to:', billingId);
+        set({ selectedBillingAddressId: billingId });
+      } else if (billingAddresses.length > 0) {
+        // If no default, use the first one
+        const billingId = billingAddresses[0].BillingAddressId || null;
+        console.log('🏠 No default billing found, using first address:', billingId);
         set({ selectedBillingAddressId: billingId });
       } else {
-        console.log('No default billing address found');
+        console.log('🏠 No billing addresses found');
         set({ selectedBillingAddressId: null });
       }
       
-      // Fetch default shipping address  
-      const shippingResponse = await getDefaultShippingAddressByUserId(userId);
-      console.log('Default shipping address response:', shippingResponse);
-      if (shippingResponse.Data?.row && shippingResponse.Data.row.length > 0) {
-        const defaultShipping = shippingResponse.Data.row[0];
+      // Find default shipping address
+      const defaultShipping = shippingAddresses.find(addr => addr.IsDefault === true || addr.IsDefault === 1);
+      console.log('🏠 Default shipping address found:', !!defaultShipping);
+      if (defaultShipping) {
         const shippingId = defaultShipping.ShippingAddressId || null;
-        console.log('Setting default shipping address ID to:', shippingId);
+        console.log('🏠 Setting default shipping address ID to:', shippingId);
+        set({ selectedShippingAddressId: shippingId });
+      } else if (shippingAddresses.length > 0) {
+        // If no default, use the first one
+        const shippingId = shippingAddresses[0].ShippingAddressId || null;
+        console.log('🏠 No default shipping found, using first address:', shippingId);
         set({ selectedShippingAddressId: shippingId });
       } else {
-        console.log('No default shipping address found');
+        console.log('🏠 No shipping addresses found');
         set({ selectedShippingAddressId: null });
       }
       
       set({ isLoading: false });
+      console.log('🏠 fetchDefaultAddresses completed');
     } catch (error) {
-      console.error('Error fetching default addresses:', error);
+      console.error('🏠 Error fetching default addresses:', error);
       set({ 
         isLoading: false, 
         error: 'Failed to fetch default addresses' 
@@ -248,21 +266,31 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // Fetch all billing addresses
+      console.log('🏠 Fetching all addresses for user:', userId);
+      
+      // Use the corrected checkout-specific APIs with proper parameter structure
+      console.log('🏠 Fetching billing addresses...');
       const billingResponse = await getAllBillingAddressesByUserId(userId);
+      console.log('🏠 Billing addresses response:', JSON.stringify(billingResponse, null, 2));
       const billingAddresses = billingResponse.Data?.row || [];
+      console.log('🏠 Found', billingAddresses.length, 'billing addresses');
       
       // Fetch all shipping addresses
+      console.log('🏠 Fetching shipping addresses...');
       const shippingResponse = await getAllShippingAddressesByUserId(userId);
+      console.log('🏠 Shipping addresses response:', JSON.stringify(shippingResponse, null, 2));
       const shippingAddresses = shippingResponse.Data?.row || [];
+      console.log('🏠 Found', shippingAddresses.length, 'shipping addresses');
       
       set({ 
         billingAddresses,
         shippingAddresses,
         isLoading: false 
       });
+      
+      console.log('🏠 Addresses stored in checkout store');
     } catch (error) {
-      console.error('Error fetching all addresses:', error);
+      console.error('🏠 Error fetching all addresses:', error);
       set({ 
         isLoading: false, 
         error: 'Failed to fetch addresses' 

@@ -68,6 +68,7 @@ import {
 import { Address as StoreAddress } from '../store/address-store';
 import PromoCodeModal from '../components/PromoCodeModal';
 import ChangeAddressModal from '../components/ChangeAddressModal';
+import AddAddressModal from '../components/AddAddressModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -100,7 +101,25 @@ function addressToApiAddress(address: any): ApiAddress {
 
 function apiAddressToAddress(api: ApiAddress): any {
   return {
+    // Preserve the original ID fields that ChangeAddressModal expects
+    BillingAddressId: api.BillingAddressId,
+    ShippingAddressId: api.ShippingAddressId,
+    // Keep the legacy id field for backwards compatibility
     id: api.BillingAddressId || api.ShippingAddressId || 0,
+    FullName: api.FullName,
+    Email: api.Email,
+    Mobile: api.Mobile,
+    Address2: api.Address2 || '',
+    Address: api.Address || '',
+    Country: api.Country || '',
+    State: api.State || '',
+    City: api.City || '',
+    Block: api.Block || '',
+    Street: api.Street || '',
+    House: api.House || '',
+    Apartment: api.Apartment || '',
+    IsDefault: typeof api.IsDefault === 'boolean' ? api.IsDefault : !!api.IsDefault,
+    // Also keep the original field names for consistency
     fullName: api.FullName,
     email: api.Email,
     mobile: api.Mobile,
@@ -120,9 +139,8 @@ function apiAddressToAddress(api: ApiAddress): any {
 export default function CheckoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { cartItems, totalAmount, isLoading: cartLoading, refreshCartItems } = useCartStore();
+  const { refreshCartItems, cartItems, totalAmount } = useCartStore();
   const { user, isLoggedIn } = useAuthStore();
-  const { billingAddresses, shippingAddresses, fetchUserAddresses } = useAddressStore();
   const promoStore = usePromoStore();
   const {
     billingAddress: guestBillingAddress,
@@ -133,8 +151,8 @@ export default function CheckoutScreen() {
     billingAddressId: guestBillingAddressId,
     shippingAddressId: guestShippingAddressId,
     isLoading: checkoutLoading,
-    fetchDefaultAddresses: fetchCheckoutDefaultAddresses,
-    fetchAllAddresses: fetchCheckoutAllAddresses,
+    fetchDefaultAddresses,
+    fetchAllAddresses,
     billingAddresses: checkoutBillingAddresses,
     shippingAddresses: checkoutShippingAddresses,
     selectedBillingAddressId,
@@ -146,15 +164,10 @@ export default function CheckoutScreen() {
   // State
   const [promoCode, setPromoCode] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(true);
-  const [selectedBillingAddress, setSelectedBillingAddress] = useState<ApiAddress | null>(null);
-  const [selectedShippingAddress, setSelectedShippingAddress] = useState<ApiAddress | null>(null);
   
   // State for address modals
-  const [showBillingAddressModal, setShowBillingAddressModal] = useState(false);
-  const [showShippingAddressModal, setShowShippingAddressModal] = useState(false);
   const [showAddBillingModal, setShowAddBillingModal] = useState(false);
   const [showAddShippingModal, setShowAddShippingModal] = useState(false);
-  const [useShippingAsBilling, setUseShippingAsBilling] = useState(false);
   
   // State for guest checkout flow
   const [showGuestBillingForm, setShowGuestBillingForm] = useState(false);
@@ -195,25 +208,32 @@ export default function CheckoutScreen() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderPlacedTrackId, setOrderPlacedTrackId] = useState<string | null>(null);
   
-  // State for address management
-  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
-  const [defaultBillingAddress, setDefaultBillingAddress] = useState<ApiAddress | null>(null);
-  const [defaultShippingAddress, setDefaultShippingAddress] = useState<ApiAddress | null>(null);
-  const [loggedInUserBillingAddresses, setLoggedInUserBillingAddresses] = useState<ApiAddress[]>([]);
-  const [loggedInUserShippingAddresses, setLoggedInUserShippingAddresses] = useState<ApiAddress[]>([]);
+  // State for change address modals
   const [showChangeBillingModal, setShowChangeBillingModal] = useState(false);
   const [showChangeShippingModal, setShowChangeShippingModal] = useState(false);
   
-  // Add useEffect to fetch addresses for logged-in users
+  // Add state for shipping different address
+  const [shipToDifferentAddress, setShipToDifferentAddress] = useState(false);
+  
+  // MAIN useEffect to fetch addresses for logged-in users
   useEffect(() => {
+    console.log('🏠 Checkout useEffect triggered - isLoggedIn:', isLoggedIn, 'user:', user?.UserID);
     if (isLoggedIn && user && user.UserID) {
-      // Fetch default addresses first for immediate display
-      fetchCheckoutDefaultAddresses(user.UserID);
-      
-      // Fetch all addresses for the selection modals
-      fetchCheckoutAllAddresses(user.UserID);
+      console.log('🏠 Fetching addresses for user:', user.UserID);
+      // Fetch default addresses which will also fetch all addresses internally
+      fetchDefaultAddresses(user.UserID);
     }
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user?.UserID]);
+  
+  // Log checkout store state for debugging
+  useEffect(() => {
+    console.log('🏠 Checkout Store State Update:');
+    console.log('🏠 - selectedBillingAddressId:', selectedBillingAddressId);
+    console.log('🏠 - selectedShippingAddressId:', selectedShippingAddressId);
+    console.log('🏠 - checkoutBillingAddresses length:', checkoutBillingAddresses.length);
+    console.log('🏠 - checkoutShippingAddresses length:', checkoutShippingAddresses.length);
+    console.log('🏠 - checkoutLoading:', checkoutLoading);
+  }, [selectedBillingAddressId, selectedShippingAddressId, checkoutBillingAddresses, checkoutShippingAddresses, checkoutLoading]);
   
   // Determine if we need to show the guest checkout form initially
   useEffect(() => {
@@ -238,26 +258,6 @@ export default function CheckoutScreen() {
     // Refresh cart totals on mount to ensure they're correct
     refreshCartItems();
   }, [cartItems, appliedPromo, promoDiscount, isLoggedIn, guestTrackId]);
-  
-  // Fetch user addresses when component mounts
-  useEffect(() => {
-    if (isLoggedIn && user?.UserID) {
-      fetchUserAddresses(user.UserID);
-    }
-  }, [isLoggedIn, user]);
-  
-  // Set default addresses when addresses are loaded
-  useEffect(() => {
-    if (billingAddresses.length > 0 && !selectedBillingAddress) {
-      const defaultBillingAddress = billingAddresses.find(addr => addr.isDefault) || billingAddresses[0];
-      setSelectedBillingAddress(addressToApiAddress(defaultBillingAddress));
-    }
-    
-    if (shippingAddresses.length > 0 && !selectedShippingAddress) {
-      const defaultShippingAddress = shippingAddresses.find(addr => addr.isDefault) || shippingAddresses[0];
-      setSelectedShippingAddress(addressToApiAddress(defaultShippingAddress));
-    }
-  }, [billingAddresses, shippingAddresses]);
   
   // Fetch payment methods when the component mounts
   useEffect(() => {
@@ -394,7 +394,13 @@ export default function CheckoutScreen() {
       return;
     }
     
-    setShowBillingAddressModal(true);
+    console.log('🏠 handleSelectBillingAddress called');
+    console.log('🏠 checkoutBillingAddresses:', checkoutBillingAddresses);
+    console.log('🏠 checkoutBillingAddresses length:', checkoutBillingAddresses.length);
+    console.log('🏠 selectedBillingAddressId:', selectedBillingAddressId);
+    console.log('🏠 Mapped addresses:', checkoutBillingAddresses.map(apiAddressToAddress));
+    
+    setShowChangeBillingModal(true);
   };
   
   // Show the shipping address selection modal for logged-in users
@@ -411,48 +417,58 @@ export default function CheckoutScreen() {
       return;
     }
     
-    setShowShippingAddressModal(true);
+    console.log('🏠 handleSelectShippingAddress called');
+    console.log('🏠 checkoutShippingAddresses:', checkoutShippingAddresses);
+    console.log('🏠 checkoutShippingAddresses length:', checkoutShippingAddresses.length);
+    console.log('🏠 selectedShippingAddressId:', selectedShippingAddressId);
+    console.log('🏠 Mapped addresses:', checkoutShippingAddresses.map(apiAddressToAddress));
+    
+    setShowChangeShippingModal(true);
   };
   
   // Handle billing address selected from modal
   const handleBillingAddressSelected = (address: any) => {
-    setSelectedBillingAddress(addressToApiAddress(address));
-    setShowBillingAddressModal(false);
+    console.log('🏠 handleBillingAddressSelected called with address:', address);
+    const addressId = address.BillingAddressId || 0;
+    console.log('🏠 Setting billing address ID to:', addressId);
+    setSelectedBillingAddressId(addressId);
+    setShowChangeBillingModal(false);
   };
   
   // Handle shipping address selected from modal
   const handleShippingAddressSelected = (address: any) => {
-    setSelectedShippingAddress(addressToApiAddress(address));
-    setShowShippingAddressModal(false);
+    console.log('🏠 handleShippingAddressSelected called with address:', address);
+    const addressId = address.ShippingAddressId || 0;
+    console.log('🏠 Setting shipping address ID to:', addressId);
+    setSelectedShippingAddressId(addressId);
+    setShowChangeShippingModal(false);
   };
   
   // Show add new billing address modal
   const handleAddNewBillingAddress = () => {
-    setShowBillingAddressModal(false);
     setShowAddBillingModal(true);
   };
   
   // Show add new shipping address modal
   const handleAddNewShippingAddress = () => {
-    setShowShippingAddressModal(false);
     setShowAddShippingModal(true);
   };
   
   // Handle new billing address added
   const handleBillingAddressAdded = () => {
+    // Refresh the addresses and close modal
     if (user?.UserID) {
-      fetchUserAddresses(user.UserID);
+      fetchAllAddresses(user.UserID);
     }
-    
     setShowAddBillingModal(false);
   };
   
   // Handle new shipping address added
   const handleShippingAddressAdded = () => {
+    // Refresh the addresses and close modal  
     if (user?.UserID) {
-      fetchUserAddresses(user.UserID);
+      fetchAllAddresses(user.UserID);
     }
-    
     setShowAddShippingModal(false);
   };
   
@@ -461,19 +477,43 @@ export default function CheckoutScreen() {
     router.push('/auth');
   };
   
-  // Format address for display
+  // Get selected addresses for display
+  const getSelectedBillingAddress = () => {
+    console.log('🏠 getSelectedBillingAddress: selectedBillingAddressId =', selectedBillingAddressId);
+    console.log('🏠 getSelectedBillingAddress: checkoutBillingAddresses.length =', checkoutBillingAddresses.length);
+    if (!selectedBillingAddressId) return null;
+    const address = checkoutBillingAddresses.find(addr => addr.BillingAddressId === selectedBillingAddressId);
+    console.log('🏠 getSelectedBillingAddress: found address =', !!address);
+    return address || null;
+  };
+
+  const getSelectedShippingAddress = () => {
+    console.log('🏠 getSelectedShippingAddress: selectedShippingAddressId =', selectedShippingAddressId);
+    console.log('🏠 getSelectedShippingAddress: checkoutShippingAddresses.length =', checkoutShippingAddresses.length);
+    if (!selectedShippingAddressId) return null;
+    const address = checkoutShippingAddresses.find(addr => addr.ShippingAddressId === selectedShippingAddressId);
+    console.log('🏠 getSelectedShippingAddress: found address =', !!address);
+    return address || null;
+  };
+
+  // Format address for display from API address
+  const formatApiAddressForDisplay = (address: ApiAddress) => {
+    return `${address.FullName}\n${address.Address}\n${address.City}, ${address.State}\n${address.Country}`;
+  };
+
+  // Format address for display from checkout store addresses  
   const formatAddressForDisplay = (address: Address) => {
     return `${address.fullName}, ${address.mobile}\n${address.block}, ${address.street}, ${address.house}${address.apartment ? ', ' + address.apartment : ''}\n${address.city}, ${address.state}, ${address.country}`;
   };
   
   // Function to handle address selection callbacks
   const handleChangeBillingAddress = (address: ApiAddress) => {
-    setDefaultBillingAddress(address);
+    setSelectedBillingAddressId(address.BillingAddressId || address.ShippingAddressId || 0);
     setShowChangeBillingModal(false);
   };
 
   const handleChangeShippingAddress = (address: ApiAddress) => {
-    setDefaultShippingAddress(address);
+    setSelectedShippingAddressId(address.ShippingAddressId || address.BillingAddressId || 0);
     setShowChangeShippingModal(false);
   };
 
@@ -529,22 +569,67 @@ export default function CheckoutScreen() {
       let billingAddressId = 0;
       let shippingAddressId = 0;
       let differentAddress = false;
+      let sCountry = '';
+      let sState = '';
+      let sCity = '';
       
       if (isLoggedIn) {
         // Logged-in user - use selected address IDs from checkout store
         const { selectedBillingAddressId, selectedShippingAddressId } = useCheckoutStore.getState();
         
-        billingAddressId = selectedBillingAddressId || (defaultBillingAddress?.BillingAddressId || 0);
+        billingAddressId = selectedBillingAddressId || (getSelectedBillingAddress()?.BillingAddressId || 0);
         
-        // Check if using different shipping address
-        differentAddress = !!(selectedShippingAddressId && selectedShippingAddressId !== selectedBillingAddressId);
+        // For logged-in users, if shipToDifferentAddress is checked and we have a shipping address, use different addresses
+        if (shipToDifferentAddress && selectedShippingAddressId) {
+          differentAddress = true;
+          shippingAddressId = selectedShippingAddressId;
+          
+          // Get shipping address details for SCountry, SState, SCity
+          const shippingAddress = getSelectedShippingAddress();
+          if (shippingAddress) {
+            // Convert address location names to codes (you may need to map these)
+            sCountry = shippingAddress.CountryId?.toString() || '';
+            sState = shippingAddress.StateId?.toString() || '';
+            sCity = shippingAddress.CityId?.toString() || '';
+          }
+        } else {
+          // Use same address for both billing and shipping
+          differentAddress = false;
+          shippingAddressId = billingAddressId;
+          
+          // Use billing address location for shipping
+          const billingAddress = getSelectedBillingAddress();
+          if (billingAddress) {
+            sCountry = billingAddress.CountryId?.toString() || '';
+            sState = billingAddress.StateId?.toString() || '';
+            sCity = billingAddress.CityId?.toString() || '';
+          }
+        }
         
-        shippingAddressId = differentAddress ? (selectedShippingAddressId || 0) : 0;
+        console.log('🏠 Checkout Logic - billingAddressId:', billingAddressId);
+        console.log('🏠 Checkout Logic - shippingAddressId:', shippingAddressId);
+        console.log('🏠 Checkout Logic - differentAddress:', differentAddress);
+        console.log('🏠 Checkout Logic - shipToDifferentAddress:', shipToDifferentAddress);
+        console.log('🏠 Checkout Logic - sCountry:', sCountry);
+        console.log('🏠 Checkout Logic - sState:', sState);
+        console.log('🏠 Checkout Logic - sCity:', sCity);
       } else {
         // Guest user - use address IDs from checkout store
         billingAddressId = guestBillingAddressId;
         differentAddress = !!(guestShippingAddress);
-        shippingAddressId = differentAddress ? guestShippingAddressId : 0;
+        shippingAddressId = differentAddress ? guestShippingAddressId : billingAddressId;
+        
+        if (differentAddress && guestShippingAddress) {
+          // Use guest shipping address location
+          sCountry = guestShippingAddress.country?.XCode.toString() || '';
+          sState = guestShippingAddress.state?.XCode.toString() || '';
+          sCity = guestShippingAddress.city?.XCode.toString() || '';
+        } else if (guestBillingAddress) {
+          // Use guest billing address location for shipping
+          sCountry = guestBillingAddress.country?.XCode.toString() || '';
+          sState = guestBillingAddress.state?.XCode.toString() || '';
+          sCity = guestBillingAddress.city?.XCode.toString() || '';
+        }
       }
       
       // Create checkout parameters
@@ -558,18 +643,16 @@ export default function CheckoutScreen() {
         Location: '304401HO',
         DifferentAddress: differentAddress,
         BillingAddressId: billingAddressId,
+        ShippingAddressId: shippingAddressId, // Always include ShippingAddressId
+        SCountry: sCountry,
+        SState: sState,
+        SCity: sCity,
         PaymentMode: selectedPaymentMethod.XCode,
         Source: Platform.OS === 'ios' ? 'iOS' : 'Android',
+        OrderNote: '',
         Salesman: '3044SMOL',
         CreateAccount: !isLoggedIn && createAccount ? 1 : 0
       };
-      
-      // For guest users with different shipping address, add country/state/city codes
-      if (!isLoggedIn && differentAddress && guestShippingAddress) {
-        checkoutParams.SCountry = guestShippingAddress.country?.XCode.toString() || '';
-        checkoutParams.SState = guestShippingAddress.state?.XCode.toString() || '';
-        checkoutParams.SCity = guestShippingAddress.city?.XCode.toString() || '';
-      }
       
       console.log('Placing order with params:', JSON.stringify(checkoutParams, null, 2));
       
@@ -647,89 +730,78 @@ export default function CheckoutScreen() {
           <View style={styles.addressContainer}>
             <Text style={styles.addressTitle}>Billing Address</Text>
             {(() => {
-              const selectedBilling = checkoutBillingAddresses.find(addr => addr.BillingAddressId === selectedBillingAddressId);
-              return selectedBilling ? (
-                <View style={styles.selectedAddress}>
-                  <Text style={styles.addressText}>
-                    {selectedBilling.FullName}, {selectedBilling.Mobile}{'\n'}
-                    {[selectedBilling.Block, selectedBilling.Street, selectedBilling.House]
-                      .filter(Boolean).join(', ')}{'\n'}
-                    {[selectedBilling.City, selectedBilling.State, selectedBilling.Country]
-                      .filter(Boolean).join(', ')}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.changeButton}
-                    onPress={() => setShowChangeBillingModal(true)}
+              const selectedBilling = getSelectedBillingAddress();
+              console.log('🏠 renderAddressSection: selectedBilling =', !!selectedBilling);
+              if (selectedBilling) {
+                console.log('🏠 renderAddressSection: showing selected billing address');
+                return (
+                  <View style={styles.selectedAddress}>
+                    <Text style={styles.addressText}>
+                      {formatApiAddressForDisplay(selectedBilling)}
+                    </Text>
+                    <TouchableOpacity 
+                      style={styles.changeButton}
+                      onPress={() => setShowChangeBillingModal(true)}
+                    >
+                      <Text style={styles.changeButtonText}>Change</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              } else {
+                console.log('🏠 renderAddressSection: showing add billing address button');
+                return (
+                  <TouchableOpacity 
+                    style={styles.addButton}
+                    onPress={handleAddNewBillingAddress}
                   >
-                    <Text style={styles.changeButtonText}>Change</Text>
+                    <FontAwesome name="plus" size={16} color={colors.blue} />
+                    <Text style={styles.addButtonText}>Add Billing Address</Text>
                   </TouchableOpacity>
-                </View>
-              ) : checkoutLoading ? (
-                <ActivityIndicator size="small" color={colors.blue} />
-              ) : (
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => setShowChangeBillingModal(true)}
-                >
-                  <FontAwesome name="plus" size={16} color="#0063B1" />
-                  <Text style={styles.addButtonText}>Add Billing Address</Text>
-                </TouchableOpacity>
-              );
+                );
+              }
             })()}
           </View>
           
-          {/* Shipping Address */}
-          <View style={styles.addressContainer}>
-            <View style={styles.shippingHeader}>
+          {/* Ship to Different Address Checkbox */}
+          <View style={styles.shippingCheckboxContainer}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setShipToDifferentAddress(!shipToDifferentAddress)}
+            >
+              <View style={[styles.checkboxSquare, shipToDifferentAddress && styles.checkboxSquareSelected]}>
+                {shipToDifferentAddress && <FontAwesome name="check" size={12} color={colors.white} />}
+              </View>
+              <Text style={styles.checkboxLabel}>Ship to different address</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Shipping Address - only show if different address is selected */}
+          {shipToDifferentAddress && (
+            <View style={styles.addressContainer}>
               <Text style={styles.addressTitle}>Shipping Address</Text>
-              <TouchableOpacity 
-                style={styles.checkbox}
-                onPress={() => {
-                  if (selectedShippingAddressId) {
-                    setSelectedShippingAddressId(0);
-                  } else if (checkoutShippingAddresses.length > 0) {
-                    setSelectedShippingAddressId(checkoutShippingAddresses[0].ShippingAddressId || 0);
-                  }
-                }}
-              >
-                                 <View style={[styles.checkboxInner, selectedShippingAddressId ? styles.checkboxSelected : null]}>
-                  {selectedShippingAddressId && <FontAwesome name="check" size={12} color="white" />}
-                </View>
-                <Text style={styles.checkboxLabel}>Ship to different address</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {selectedShippingAddressId ? (() => {
-              const selectedShipping = checkoutShippingAddresses.find(addr => addr.ShippingAddressId === selectedShippingAddressId);
-              return selectedShipping ? (
+              {getSelectedShippingAddress() ? (
                 <View style={styles.selectedAddress}>
                   <Text style={styles.addressText}>
-                    {selectedShipping.FullName}, {selectedShipping.Mobile}{'\n'}
-                    {[selectedShipping.Block, selectedShipping.Street, selectedShipping.House]
-                      .filter(Boolean).join(', ')}{'\n'}
-                    {[selectedShipping.City, selectedShipping.State, selectedShipping.Country]
-                      .filter(Boolean).join(', ')}
+                    {formatApiAddressForDisplay(getSelectedShippingAddress()!)}
                   </Text>
-                  <TouchableOpacity
+                  <TouchableOpacity 
                     style={styles.changeButton}
                     onPress={() => setShowChangeShippingModal(true)}
                   >
                     <Text style={styles.changeButtonText}>Change</Text>
                   </TouchableOpacity>
                 </View>
-              ) : checkoutLoading ? (
-                <ActivityIndicator size="small" color={colors.blue} />
               ) : (
-                <TouchableOpacity
+                <TouchableOpacity 
                   style={styles.addButton}
-                  onPress={() => setShowChangeShippingModal(true)}
+                  onPress={handleAddNewShippingAddress}
                 >
-                  <FontAwesome name="plus" size={16} color="#0063B1" />
+                  <FontAwesome name="plus" size={16} color={colors.blue} />
                   <Text style={styles.addButtonText}>Add Shipping Address</Text>
                 </TouchableOpacity>
-              );
-            })() : null}
-          </View>
+              )}
+            </View>
+          )}
         </View>
       );
     } else {
@@ -804,55 +876,6 @@ export default function CheckoutScreen() {
   // Add handler for terms and conditions checkbox
   const handleTermsToggle = () => {
     setAcceptTerms(!acceptTerms);
-  };
-
-  // Add function to fetch default addresses
-  const fetchDefaultAddresses = async (userId: string) => {
-    setIsLoadingAddresses(true);
-    try {
-      // Fetch default billing address
-      const billingResponse = await getDefaultBillingAddressByUserId(userId);
-      console.log('Default billing address response:', billingResponse);
-      
-      if (billingResponse.Data?.success === 1 && billingResponse.Data.row?.length > 0) {
-        setDefaultBillingAddress(billingResponse.Data.row[0]);
-      }
-      
-      // Fetch default shipping address
-      const shippingResponse = await getDefaultShippingAddressByUserId(userId);
-      console.log('Default shipping address response:', shippingResponse);
-      
-      if (shippingResponse.Data?.success === 1 && shippingResponse.Data.row?.length > 0) {
-        setDefaultShippingAddress(shippingResponse.Data.row[0]);
-      }
-    } catch (error) {
-      console.error('Error fetching default addresses:', error);
-    } finally {
-      setIsLoadingAddresses(false);
-    }
-  };
-
-  // Add function to fetch all addresses
-  const fetchAllAddresses = async (userId: string) => {
-    try {
-      // Fetch all billing addresses
-      const billingResponse = await getAllBillingAddressesByUserId(userId);
-      console.log('All billing addresses response:', billingResponse);
-      
-      if (billingResponse.Data?.success === 1 && billingResponse.Data.row?.length > 0) {
-        setLoggedInUserBillingAddresses(billingResponse.Data.row);
-      }
-      
-      // Fetch all shipping addresses
-      const shippingResponse = await getAllShippingAddressesByUserId(userId);
-      console.log('All shipping addresses response:', shippingResponse);
-      
-      if (shippingResponse.Data?.success === 1 && shippingResponse.Data.row?.length > 0) {
-        setLoggedInUserShippingAddresses(shippingResponse.Data.row);
-      }
-    } catch (error) {
-      console.error('Error fetching all addresses:', error);
-    }
   };
 
   return (
@@ -1004,8 +1027,8 @@ export default function CheckoutScreen() {
                         style={styles.checkboxContainer}
                         onPress={handleCreateAccountToggle}
                       >
-                        <View style={[styles.checkbox, createAccount && styles.checkboxChecked]}>
-                          {createAccount && <FontAwesome name="check" size={14} color={colors.white} />}
+                        <View style={[styles.checkboxSquare, createAccount && styles.checkboxSquareSelected]}>
+                          {createAccount && <FontAwesome name="check" size={12} color={colors.white} />}
                         </View>
                         <Text style={styles.checkboxLabel}>Create an Account?</Text>
                       </TouchableOpacity>
@@ -1018,8 +1041,8 @@ export default function CheckoutScreen() {
                       style={styles.checkboxContainer}
                       onPress={handleTermsToggle}
                     >
-                      <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
-                        {acceptTerms && <FontAwesome name="check" size={14} color={colors.white} />}
+                      <View style={[styles.checkboxSquare, acceptTerms && styles.checkboxSquareSelected]}>
+                        {acceptTerms && <FontAwesome name="check" size={12} color={colors.white} />}
                       </View>
                       <Text style={styles.termsText}>
                         By proceeding, I've read and accept the <Text style={styles.termsLink}>terms & conditions</Text>.
@@ -1059,39 +1082,17 @@ export default function CheckoutScreen() {
               </>
             )}
             
-            {/* Address Selection Modals for Logged In Users */}
-            <CheckoutAddressModal
-              isVisible={showBillingAddressModal}
-              onClose={() => setShowBillingAddressModal(false)}
-              addresses={billingAddresses}
-              selectedAddress={billingAddresses.find(addr => 
-                addr.id === (defaultBillingAddress?.BillingAddressId || 0)
-              ) || null}
-              onSelectAddress={handleBillingAddressSelected}
-              onAddNew={handleAddNewBillingAddress}
-              addressType="billing"
-            />
+            {/* Address Selection Modals for Logged In Users - Removed due to type conflicts */}
             
-            <CheckoutAddressModal
-              isVisible={showShippingAddressModal}
-              onClose={() => setShowShippingAddressModal(false)}
-              addresses={shippingAddresses}
-              selectedAddress={shippingAddresses.find(addr => 
-                addr.id === (defaultShippingAddress?.ShippingAddressId || 0)
-              ) || null}
-              onSelectAddress={handleShippingAddressSelected}
-              onAddNew={handleAddNewShippingAddress}
-              addressType="shipping"
-            />
-            
-            <CheckoutAddressFormModal
+            {/* Add Address Modals */}
+            <AddAddressModal
               isVisible={showAddBillingModal}
               onClose={() => setShowAddBillingModal(false)}
               addressType="billing"
               onSuccess={handleBillingAddressAdded}
             />
             
-            <CheckoutAddressFormModal
+            <AddAddressModal
               isVisible={showAddShippingModal}
               onClose={() => setShowAddShippingModal(false)}
               addressType="shipping"
@@ -1102,10 +1103,7 @@ export default function CheckoutScreen() {
             <ChangeAddressModal
               isVisible={showChangeBillingModal}
               onClose={() => setShowChangeBillingModal(false)}
-              onSelectAddress={address => {
-                setSelectedBillingAddressId(address.BillingAddressId || address.ShippingAddressId || 0);
-                setShowChangeBillingModal(false);
-              }}
+              onSelectAddress={handleBillingAddressSelected}
               addresses={checkoutBillingAddresses.map(apiAddressToAddress)}
               selectedAddressId={selectedBillingAddressId || undefined}
               addressType="billing"
@@ -1116,10 +1114,7 @@ export default function CheckoutScreen() {
             <ChangeAddressModal
               isVisible={showChangeShippingModal}
               onClose={() => setShowChangeShippingModal(false)}
-              onSelectAddress={address => {
-                setSelectedShippingAddressId(address.ShippingAddressId || address.BillingAddressId || 0);
-                setShowChangeShippingModal(false);
-              }}
+              onSelectAddress={handleShippingAddressSelected}
               addresses={checkoutShippingAddresses.map(apiAddressToAddress)}
               selectedAddressId={selectedShippingAddressId || undefined}
               addressType="shipping"
@@ -1399,8 +1394,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   createAccountContainer: {
-    marginVertical: 10,
+    marginVertical: 12,
     paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: radii.md,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -1410,6 +1408,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  checkboxSquare: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.gray,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxSquareSelected: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue,
   },
   checkboxInner: {
     width: 20,
@@ -1431,6 +1443,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.black,
   },
+  shippingCheckboxContainer: {
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: radii.md,
+  },
   shippingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1438,13 +1457,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   termsContainer: {
-    marginVertical: 10,
+    marginVertical: 16,
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
   },
   termsText: {
     fontSize: 14,
     color: colors.black,
     flexShrink: 1,
+    lineHeight: 20,
   },
   termsLink: {
     color: colors.blue,

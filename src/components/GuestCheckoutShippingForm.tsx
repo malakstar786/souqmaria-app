@@ -237,7 +237,7 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
         Street: street.trim(),
         House: house.trim(),
         Apartment: apartment.trim(),
-        IsDefault: true, // Set as default since it's the first address
+        IsDefault: 1, // 1 for true, 0 for false - must be number not boolean
         Command: 'Save',
         UserId: guestTrackId,
         CompanyId: 3044,

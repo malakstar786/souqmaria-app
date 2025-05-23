@@ -1726,14 +1726,14 @@ export interface SaveCheckoutParams {
   Location: string;
   DifferentAddress: boolean;
   BillingAddressId: number;
-  ShippingAddressId?: number;  // Optional if DifferentAddress is false
-  SCountry?: string;  // Only required if DifferentAddress is true
-  SState?: string;    // Only required if DifferentAddress is true
-  SCity?: string;     // Only required if DifferentAddress is true
+  ShippingAddressId: number;  // Always required
+  SCountry: string;    // Shipping Country Xcode - Always required
+  SState: string;      // Shipping State Xcode - Always required  
+  SCity: string;       // Shipping City Xcode - Always required
   PaymentMode: string;
   Source: string;
-  OrderNote?: string;
-  Salesman?: string;
+  OrderNote: string;   // Always required (can be empty string)
+  Salesman: string;    // Always required
   CreateAccount?: number; // 1 for yes, 0 for no - Used for guest users
 }
 
@@ -1748,17 +1748,26 @@ export async function saveCheckout(params: SaveCheckoutParams): Promise<ApiRespo
   try {
     console.log('Saving checkout with params:', JSON.stringify(params, null, 2));
     
-    // Construct the complete payload
+    // Construct the complete payload with all required parameters
     const payload = {
-      ...params,
+      UserID: params.UserID,
       IpAddress: params.IpAddress || '127.0.0.1',
-      Source: params.Source || Platform.OS === 'ios' ? 'iOS' : 'Android',
+      UniqueId: params.UniqueId,
       Company: params.Company || 3044,
       CultureId: params.CultureId || 1,
       BuyNow: params.BuyNow || '',
       Location: params.Location || '304401HO',
+      DifferentAddress: params.DifferentAddress,
+      BillingAddressId: params.BillingAddressId,
+      ShippingAddressId: params.ShippingAddressId,
+      SCountry: params.SCountry,
+      SState: params.SState,
+      SCity: params.SCity,
+      PaymentMode: params.PaymentMode,
+      Source: params.Source || (Platform.OS === 'ios' ? 'iOS' : 'Android'),
       OrderNote: params.OrderNote || '',
-      Salesman: params.Salesman || '3044SMOL'
+      Salesman: params.Salesman || '3044SMOL',
+      CreateAccount: params.CreateAccount || 0
     };
     
     const response = await apiRequest<SaveCheckoutResponse>(ENDPOINTS.SAVE_CHECKOUT, 'POST', payload);
@@ -1795,6 +1804,9 @@ export interface ApiAddress {
   Country: string;
   State: string;
   City: string;
+  CountryId?: number;  // Add CountryId for location codes
+  StateId?: number;    // Add StateId for location codes
+  CityId?: number;     // Add CityId for location codes
   Block?: string;
   Street?: string;
   House?: string;
@@ -1823,7 +1835,7 @@ export interface Address {
 export async function getDefaultBillingAddressByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','${userId}','','','','',1,3044,''`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','','','','','',1,3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -1841,7 +1853,7 @@ export async function getDefaultBillingAddressByUserId(userId: string): Promise<
 export async function getDefaultShippingAddressByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','${userId}','','','','',1,3044,''`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','','','','','',1,3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -1859,7 +1871,7 @@ export async function getDefaultShippingAddressByUserId(userId: string): Promise
 export async function getAllBillingAddressesByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','${userId}','','','','',1,3044,''`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','','','','','',1,3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -1877,7 +1889,7 @@ export async function getAllBillingAddressesByUserId(userId: string): Promise<Ap
 export async function getAllShippingAddressesByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','${userId}','','','','',1,3044,''`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','','','','','',1,3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;

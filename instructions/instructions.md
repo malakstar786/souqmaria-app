@@ -638,7 +638,7 @@ When a user clicks the "Add to Cart" button on the individual product page, a su
 - **Account options list:**
   - Each option is a row with icon (black, `#000000`), label (black, `#000000`), right arrow (gray, `#D9D9D9`), and divider below.
     - My Details
-    - My Address
+    - My Addresses
     - My Orders
     - Wishlist
     - Policies
@@ -3854,7 +3854,7 @@ The checkout process has two paths:
 - **Request Body:**
   ```json
   {
-    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','userId','','','','',1,3044,''"
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','','','','','',1,3044,'userId'"
   }
   ```
 - **Response:**
@@ -3863,19 +3863,20 @@ The checkout process has two paths:
     "success": 1,
     "row": [
       {
-        "BillingAddressId": 123,
-        "FullName": "John Doe",
-        "Email": "john@example.com",
-        "Mobile": "12345678",
+        "BillingAddressId": 659,
+        "FullName": "HUssain test",
+        "Mobile": "67753850",
+        "Address": "Block - 1, Street - 1, House/Building - 1, Apartment No. - 1",
         "Address2": "",
-        "Country": "KWT",
-        "State": "KW01",
-        "City": "KW0101",
-        "Block": "Block 1",
-        "Street": "Street 1",
-        "House": "House 1",
-        "Apartment": "Apt 101",
-        "IsDefault": true
+        "Country": "Kuwait",
+        "State": "Jahra",
+        "City": "East Tayma ",
+        "IsDefault": true,
+        "CountryId": 69,
+        "StateId": 241,
+        "CityId": 2054,
+        "MobileForReg": "67753850",
+        "Email": "hb@test.com"
       }
     ],
     "Message": "Data found."
@@ -3888,10 +3889,32 @@ The checkout process has two paths:
 - **Request Body:**
   ```json
   {
-    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','userId','','','','',1,3044,''"
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','','','','','',1,3044,'userId'"
   }
   ```
-- **Response Format:** Same as default billing address endpoint
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ShippingAddressId": 334,
+        "FullName": "Hussain test",
+        "Mobile": "67753850",
+        "Address": "Block - 1, Street - 1, House/Building - 1, Apartment No. - 1",
+        "Address2": "",
+        "Country": "Kuwait",
+        "State": "Farwaniya",
+        "City": "Abraq Khaitan",
+        "IsDefault": true,
+        "CountryId": 69,
+        "StateId": 239,
+        "CityId": 2007
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
 
 #### Get All Billing Addresses by UserID
 - **Method:** `POST` to `/getData_JSON`
@@ -3899,10 +3922,32 @@ The checkout process has two paths:
 - **Request Body:**
   ```json
   {
-    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','userId','','','','',1,3044,''"
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','','','','','',1,3044,'userId'"
   }
   ```
-- **Response Format:** Similar to default address but with multiple addresses in the `row` array
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "BillingAddressId": 659,
+        "FullName": "HUssain test",
+        "Mobile": "67753850",
+        "Address": "Block - 1, Street - 1, House/Building - 1, Apartment No. - 1",
+        "Address2": "",
+        "Country": "Kuwait",
+        "State": "Jahra",
+        "City": "East Tayma ",
+        "IsDefault": true,
+        "CountryId": 69,
+        "StateId": 241,
+        "CityId": 2054
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
 
 #### Get All Shipping Addresses by UserID
 - **Method:** `POST` to `/getData_JSON`
@@ -3910,10 +3955,32 @@ The checkout process has two paths:
 - **Request Body:**
   ```json
   {
-    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','userId','','','','',1,3044,''"
+    "strQuery": "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','','','','','',1,3044,'userId'"
   }
   ```
-- **Response Format:** Similar to default address but with multiple addresses in the `row` array
+- **Response:**
+  ```json
+  {
+    "success": 1,
+    "row": [
+      {
+        "ShippingAddressId": 334,
+        "FullName": "Hussain test",
+        "Mobile": "67753850",
+        "Address": "Block - 1, Street - 1, House/Building - 1, Apartment No. - 1",
+        "Address2": "",
+        "Country": "Kuwait",
+        "State": "Farwaniya",
+        "City": "Abraq Khaitan",
+        "IsDefault": true,
+        "CountryId": 69,
+        "StateId": 239,
+        "CityId": 2007
+      }
+    ],
+    "Message": "Data found."
+  }
+  ```
 
 ## SouqMaria Mobile App Implementation Details
 
