@@ -473,7 +473,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.white, // Light blue background like in the provided design
+    backgroundColor: colors.white, 
   },
   headerContainer: {
     flexDirection: 'row',
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.red,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
@@ -587,6 +587,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderColor: colors.white,
     marginRight: 12,
+    marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'flex-start',
     shadowColor: colors.black,
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
   },
   bannerSection: {
     marginTop: 12,
-    marginBottom: 0,
+    marginBottom: 10,
     height: BANNER_HEIGHT,
     backgroundColor: 'transparent',
     marginHorizontal: spacing.lg,

@@ -329,18 +329,27 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView style={styles.scrollView}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => onComplete(false)}
+        >
+          <FontAwesome name="arrow-left" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Billing address</Text>
+        <View style={styles.headerRight} />
+      </View>
+      
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
-          <Text style={styles.title}>Billing Address</Text>
-          
           {/* Full Name */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Full Name *</Text>
             <TextInput
               style={[styles.input, formErrors.fullName && styles.inputError]}
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Enter your full name"
+              placeholder="Full Name"
               placeholderTextColor="#999"
             />
             {formErrors.fullName && (
@@ -350,12 +359,11 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
           
           {/* Email */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Email *</Text>
             <TextInput
               style={[styles.input, formErrors.email && styles.inputError]}
               value={email}
               onChangeText={setEmail}
-              placeholder="Enter your email"
+              placeholder="Email"
               placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -367,12 +375,11 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
           
           {/* Mobile */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Mobile *</Text>
             <TextInput
               style={[styles.input, formErrors.mobile && styles.inputError]}
               value={mobile}
               onChangeText={setMobile}
-              placeholder="Enter your mobile number"
+              placeholder="Mobile No."
               placeholderTextColor="#999"
               keyboardType="phone-pad"
             />
@@ -383,13 +390,12 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
           
           {/* Country Dropdown */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Country *</Text>
             <TouchableOpacity
               style={[styles.dropdown, formErrors.country && styles.inputError]}
               onPress={() => setShowCountryModal(true)}
             >
               <Text style={country ? styles.dropdownText : styles.placeholderText}>
-                {country ? country.XName : 'Select Country'}
+                {country ? country.XName : 'Country'}
               </Text>
               <FontAwesome name="chevron-down" size={16} color="#666" />
             </TouchableOpacity>
@@ -398,122 +404,136 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
             )}
           </View>
           
-          {/* State Dropdown */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>State *</Text>
-            <TouchableOpacity
-              style={[styles.dropdown, formErrors.state && styles.inputError]}
-              onPress={() => setShowStateModal(true)}
-              disabled={!country}
-            >
-              <Text style={state ? styles.dropdownText : styles.placeholderText}>
-                {state ? state.XName : country ? 'Select State' : 'Select Country First'}
-              </Text>
-              <FontAwesome name="chevron-down" size={16} color="#666" />
-            </TouchableOpacity>
-            {formErrors.state && (
-              <Text style={styles.errorText}>{formErrors.state}</Text>
-            )}
+          {/* Row for City and Area (State) */}
+          <View style={styles.rowContainer}>
+            {/* City Dropdown */}
+            <View style={[styles.formGroup, styles.halfWidth, { marginRight: 8 }]}>
+              <TouchableOpacity
+                style={[styles.dropdown, formErrors.city && styles.inputError]}
+                onPress={() => setShowCityModal(true)}
+                disabled={!state}
+              >
+                <Text style={city ? styles.dropdownText : styles.placeholderText}>
+                  {city ? city.XName : 'City'}
+                </Text>
+                <FontAwesome name="chevron-down" size={16} color="#666" />
+              </TouchableOpacity>
+              {formErrors.city && (
+                <Text style={styles.errorText}>{formErrors.city}</Text>
+              )}
+            </View>
+            
+            {/* Area (State) Dropdown */}
+            <View style={[styles.formGroup, styles.halfWidth, { marginLeft: 8 }]}>
+              <TouchableOpacity
+                style={[styles.dropdown, formErrors.state && styles.inputError]}
+                onPress={() => setShowStateModal(true)}
+                disabled={!country}
+              >
+                <Text style={state ? styles.dropdownText : styles.placeholderText}>
+                  {state ? state.XName : 'Area'}
+                </Text>
+                <FontAwesome name="chevron-down" size={16} color="#666" />
+              </TouchableOpacity>
+              {formErrors.state && (
+                <Text style={styles.errorText}>{formErrors.state}</Text>
+              )}
+            </View>
           </View>
           
-          {/* City Dropdown */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>City *</Text>
-            <TouchableOpacity
-              style={[styles.dropdown, formErrors.city && styles.inputError]}
-              onPress={() => setShowCityModal(true)}
-              disabled={!state}
-            >
-              <Text style={city ? styles.dropdownText : styles.placeholderText}>
-                {city ? city.XName : state ? 'Select City' : 'Select State First'}
-              </Text>
-              <FontAwesome name="chevron-down" size={16} color="#666" />
-            </TouchableOpacity>
-            {formErrors.city && (
-              <Text style={styles.errorText}>{formErrors.city}</Text>
-            )}
+          {/* Row for Block and Street */}
+          <View style={styles.rowContainer}>
+            {/* Block */}
+            <View style={[styles.formGroup, styles.halfWidth, { marginRight: 8 }]}>
+              <TextInput
+                style={[styles.input, formErrors.block && styles.inputError]}
+                value={block}
+                onChangeText={setBlock}
+                placeholder="Block"
+                placeholderTextColor="#999"
+              />
+              {formErrors.block && (
+                <Text style={styles.errorText}>{formErrors.block}</Text>
+              )}
+            </View>
+            
+            {/* Street */}
+            <View style={[styles.formGroup, styles.halfWidth, { marginLeft: 8 }]}>
+              <TextInput
+                style={[styles.input, formErrors.street && styles.inputError]}
+                value={street}
+                onChangeText={setStreet}
+                placeholder="Street"
+                placeholderTextColor="#999"
+              />
+              {formErrors.street && (
+                <Text style={styles.errorText}>{formErrors.street}</Text>
+              )}
+            </View>
           </View>
           
-          {/* Block */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Block *</Text>
-            <TextInput
-              style={[styles.input, formErrors.block && styles.inputError]}
-              value={block}
-              onChangeText={setBlock}
-              placeholder="Enter block"
-              placeholderTextColor="#999"
-            />
-            {formErrors.block && (
-              <Text style={styles.errorText}>{formErrors.block}</Text>
-            )}
+          {/* Row for House/Building and Apartment */}
+          <View style={styles.rowContainer}>
+            {/* House */}
+            <View style={[styles.formGroup, styles.halfWidth, { marginRight: 8 }]}>
+              <TextInput
+                style={[styles.input, formErrors.house && styles.inputError]}
+                value={house}
+                onChangeText={setHouse}
+                placeholder="House/ Building"
+                placeholderTextColor="#999"
+              />
+              {formErrors.house && (
+                <Text style={styles.errorText}>{formErrors.house}</Text>
+              )}
+            </View>
+            
+            {/* Apartment */}
+            <View style={[styles.formGroup, styles.halfWidth, { marginLeft: 8 }]}>
+              <TextInput
+                style={styles.input}
+                value={apartment}
+                onChangeText={setApartment}
+                placeholder="Apartment No."
+                placeholderTextColor="#999"
+              />
+            </View>
           </View>
           
-          {/* Street */}
+          {/* Address Line 1 */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Street *</Text>
-            <TextInput
-              style={[styles.input, formErrors.street && styles.inputError]}
-              value={street}
-              onChangeText={setStreet}
-              placeholder="Enter street"
-              placeholderTextColor="#999"
-            />
-            {formErrors.street && (
-              <Text style={styles.errorText}>{formErrors.street}</Text>
-            )}
-          </View>
-          
-          {/* House */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>House *</Text>
-            <TextInput
-              style={[styles.input, formErrors.house && styles.inputError]}
-              value={house}
-              onChangeText={setHouse}
-              placeholder="Enter house"
-              placeholderTextColor="#999"
-            />
-            {formErrors.house && (
-              <Text style={styles.errorText}>{formErrors.house}</Text>
-            )}
-          </View>
-          
-          {/* Apartment */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Apartment</Text>
-            <TextInput
-              style={styles.input}
-              value={apartment}
-              onChangeText={setApartment}
-              placeholder="Enter apartment (optional)"
-              placeholderTextColor="#999"
-            />
-          </View>
-          
-          {/* Additional Address */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Additional Address Info</Text>
             <TextInput
               style={styles.input}
               value={address2}
               onChangeText={setAddress2}
-              placeholder="Enter additional address info (optional)"
+              placeholder="Address Line 1"
               placeholderTextColor="#999"
               multiline
               numberOfLines={3}
             />
           </View>
           
-          {/* Ship to Different Address Toggle */}
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>Ship to a different address?</Text>
-            <Switch
-              value={shipToDifferentAddress}
-              onValueChange={setShipToDifferentAddress}
-              trackColor={{ false: '#D9D9D9', true: '#8DC63F' }}
-              thumbColor={shipToDifferentAddress ? '#FFFFFF' : '#FFFFFF'}
-            />
+          {/* Checkboxes */}
+          <View style={styles.checkboxContainer}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setShipToDifferentAddress(!shipToDifferentAddress)}
+            >
+              <View style={[styles.checkbox, shipToDifferentAddress && styles.checkboxSelected]}>
+                {shipToDifferentAddress && <FontAwesome name="check" size={12} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Ship to Different Address?</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => {/* Handle set as default */}}
+            >
+              <View style={[styles.checkbox, styles.checkboxSelected]}>
+                <FontAwesome name="check" size={12} color="#FFFFFF" />
+              </View>
+              <Text style={styles.checkboxLabel}>Set as default</Text>
+            </TouchableOpacity>
           </View>
           
           {/* Save Button */}
@@ -525,7 +545,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
             {isSubmitting ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>SAVE</Text>
+              <Text style={styles.saveButtonText}>Save</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -576,7 +596,30 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00AEEF',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 40, // Same width as back button for centering
   },
   scrollView: {
     flex: 1,
@@ -584,29 +627,18 @@ const styles = StyleSheet.create({
   form: {
     padding: 16,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#00AEEF',
-  },
   formGroup: {
     marginBottom: 16,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#000000',
-  },
   input: {
     borderWidth: 1,
-    borderColor: '#D9D9D9',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
     color: '#000000',
     backgroundColor: '#FFFFFF',
+    minHeight: 56,
   },
   inputError: {
     borderColor: '#FF0000',
@@ -618,13 +650,14 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: '#D9D9D9',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 16,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 56,
   },
   dropdownText: {
     fontSize: 16,
@@ -634,28 +667,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999999',
   },
-  switchContainer: {
+  rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#F0F0F0',
   },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+  halfWidth: {
+    flex: 1,
+  },
+  checkboxContainer: {
+    marginVertical: 16,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#D9D9D9',
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#00AEEF',
+    borderColor: '#00AEEF',
+  },
+  checkboxLabel: {
+    fontSize: 14,
     color: '#000000',
   },
   saveButton: {
     backgroundColor: '#00AEEF',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 24,
+    minHeight: 56,
   },
   saveButtonText: {
     color: '#FFFFFF',

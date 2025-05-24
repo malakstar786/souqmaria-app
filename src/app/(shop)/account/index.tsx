@@ -8,15 +8,25 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/auth-store';
 import AuthModal from '../../../components/AuthModal';
+const preLoginAccountIcon = require('@assets/account_tab/pre_login.png');
+const languageIcon = require('@assets/account_tab/language_icon.png');
+const detailsIcon = require('@assets/account_tab/details_icon.png');
+const addressIcon = require('@assets/account_tab/location_icon.png');
+const ordersIcon = require('@assets/account_tab/orders_icon.png');
+const wishlistIcon = require('@assets/account_tab/wishlist_icon.png');
+const policiesIcon = require('@assets/account_tab/policies_icon.png');
+const facebookIcon = require('@assets/account_tab/facebook_icon.png');
+const tiktokIcon = require('@assets/account_tab/tiktok_icon.png');
+const instagramIcon = require('@assets/account_tab/instagram_icon.png');
+const whatsappIcon = require('@assets/account_tab/whatsapp_icon.png');
 
-// Define valid FontAwesome icon names
-type FontAwesomeIconName = React.ComponentProps<typeof FontAwesome>['name'];
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -60,41 +70,32 @@ export default function AccountScreen() {
   // Render account options when logged in
   const renderLoggedInView = () => (
     <>
-      {/* User Info */}
-      <View style={styles.userInfoContainer}>
-        <View style={styles.avatarContainer}>
-          <FontAwesome name="user-circle" size={80} color={colors.lightGray} />
-        </View>
-        <Text style={styles.userName}>{user?.fullName}</Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
-      </View>
-
       {/* Account Options */}
       <View style={styles.optionsContainer}>
         <AccountOption 
-          icon="user" 
           label="My Details" 
           onPress={() => handleOptionPress('/account/details')} 
+          iconSource={detailsIcon} 
         />
         <AccountOption 
-          icon="map-marker" 
           label="My Address" 
           onPress={() => handleOptionPress('/account/address')} 
+          iconSource={addressIcon} 
         />
         <AccountOption 
-          icon="shopping-basket" 
           label="My Orders" 
           onPress={() => handleOptionPress('/account/orders')} 
+          iconSource={ordersIcon} 
         />
         <AccountOption 
-          icon="heart" 
           label="Wishlist" 
           onPress={() => handleOptionPress('/account/wishlist')} 
+          iconSource={wishlistIcon} 
         />
         <AccountOption 
-          icon="file-text" 
           label="Policies" 
           onPress={() => handleOptionPress('/account/policies')} 
+          iconSource={policiesIcon} 
         />
       </View>
 
@@ -107,14 +108,17 @@ export default function AccountScreen() {
       <View style={styles.socialContainer}>
         <Text style={styles.socialTitle}>FOLLOW US</Text>
         <View style={styles.socialIcons}>
-          <TouchableOpacity style={styles.socialIcon}>
-            <FontAwesome name="facebook" size={24} color={colors.black} />
+          <TouchableOpacity style={styles.socialIcon} onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=61565804636382')}>
+            <Image source={facebookIcon} style={styles.socialIconImage} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialIcon}>
-            <FontAwesome name="instagram" size={24} color={colors.black} />
+          <TouchableOpacity style={styles.socialIcon} onPress={() => Linking.openURL('https://www.tiktok.com/@souqmaria2')}>
+            <Image source={tiktokIcon} style={styles.socialIconImage} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialIcon}>
-            <FontAwesome name="twitter" size={24} color={colors.black} />
+          <TouchableOpacity style={styles.socialIcon} onPress={() => Linking.openURL('https://www.instagram.com/souq.maria/?fbclid=IwZXh0bgNhZW0CMTEAAR1lDR7z4nWtp9V9GU04Oy0PmvIb2gYd2XtYwiA-S0JUpGnLtTheJs5QOF0_aem_fjNni9P5OS-AO52U4mgL8A')}>
+            <Image source={instagramIcon} style={styles.socialIconImage} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialIcon} onPress={() => Linking.openURL('https://wa.me/+96598900952')}>
+            <Image source={whatsappIcon} style={styles.socialIconImage} />
           </TouchableOpacity>
         </View>
       </View>
@@ -127,7 +131,7 @@ export default function AccountScreen() {
       {/* Illustration */}
       <View style={styles.illustrationContainer}>
         <Image 
-          source={require('@assets/pre_login_account.png')} 
+          source={preLoginAccountIcon} 
           style={styles.illustrationImage} 
           resizeMode="contain" 
         />
@@ -145,20 +149,27 @@ export default function AccountScreen() {
 
   return (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Account</Text>
+      </View>
+
       {/* Language Selector */}
-      <TouchableOpacity style={styles.languageSelectorRow} onPress={handleChangeLanguage}>
-        <View style={styles.languageSelectorContent}>
-          <FontAwesome name="language" size={24} color={colors.black} />
+      <View style={styles.languageRow}>
+        <View style={styles.languageLeft}>
+          <Image source={languageIcon} style={styles.languageIcon} />
           <Text style={styles.languageLabel}>Language</Text>
+          <Text style={styles.tapToChange} onPress={handleChangeLanguage}>
+        (Tap to change)
+          </Text>
         </View>
-        <View style={styles.languageSelectorContent}>
-          <Text style={styles.currentLanguage}>{currentLanguage}</Text>
-          <FontAwesome name="chevron-right" size={16} color={colors.lightGray} />
+        <View style={styles.languageRight}>
+          <TouchableOpacity style={styles.languageRight} onPress={handleChangeLanguage}>
+            <Text style={styles.currentLanguage}>{currentLanguage}</Text>
+          </TouchableOpacity>  
         </View>
-      </TouchableOpacity>
-      <Text style={styles.tapToChange} onPress={handleChangeLanguage}>
-        Tap to change
-      </Text>
+      </View>
+      
       <View style={styles.divider} />
 
       {/* Account Content - Switch based on login state */}
@@ -178,22 +189,17 @@ export default function AccountScreen() {
 }
 
 // Account option component
-function AccountOption({ 
-  icon, 
-  label, 
-  onPress 
-}: { 
-  icon: FontAwesomeIconName, 
+function AccountOption({ label, onPress, iconSource }: { 
   label: string, 
-  onPress: () => void 
+  onPress: () => void,
+  iconSource: any
 }) {
   return (
     <TouchableOpacity style={styles.optionRow} onPress={onPress}>
       <View style={styles.optionLeft}>
-        <FontAwesome name={icon} size={20} color={colors.black} style={styles.optionIcon} />
+        <Image source={iconSource} style={styles.optionIconImage} />
         <Text style={styles.optionLabel}>{label}</Text>
       </View>
-      <FontAwesome name="chevron-right" size={16} color={colors.lightGray} />
     </TouchableOpacity>
   );
 }
@@ -206,140 +212,176 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
-  languageSelectorRow: {
+  headerContainer: {
+    paddingTop: 36,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    backgroundColor: colors.white,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.blue,
+    textAlign: 'left',
+  },
+  languageRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    backgroundColor: colors.white,
   },
-  languageSelectorContent: {
+  languageLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   languageLabel: {
     fontSize: 16,
     color: colors.black,
-    marginLeft: spacing.md,
+    marginLeft: 8,
+    fontWeight: 'bold',
+  },
+  languageRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   currentLanguage: {
-    fontSize: 16,
     color: colors.blue,
-    marginRight: spacing.sm,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 4,
   },
   tapToChange: {
-    fontSize: 14,
     color: colors.blue,
-    alignSelf: 'flex-start',
-    marginLeft: spacing.md + 24 + spacing.md,
-    marginTop: -spacing.sm,
-    marginBottom: spacing.sm,
+    fontSize: 13,
+    marginLeft: 4,
+    marginTop: 6.5,
+    marginBottom: 8,
   },
   divider: {
     height: 1,
     backgroundColor: colors.lightGray,
-    marginVertical: spacing.md,
+    marginVertical: 18,
   },
-  // Guest view styles
   illustrationContainer: {
     alignItems: 'center',
-    marginVertical: spacing.xl,
+    marginTop: 100,
+    marginBottom: 16,
   },
   illustrationImage: {
     width: 200,
     height: 200,
-    marginBottom: spacing.md,
+    marginBottom: 12,
+    borderRadius: 0,
   },
   illustrationText: {
-    fontSize: 16,
     color: colors.blue,
+    fontSize: 15,
     textAlign: 'center',
+    marginBottom: 24,
   },
   loginButton: {
     backgroundColor: colors.black,
-    paddingVertical: spacing.md,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    alignSelf: 'center',
+    marginBottom: 32,
+    width: '80%',
   },
   loginButtonText: {
-    fontSize: 18,
     color: colors.white,
     fontWeight: 'bold',
-  },
-  // Logged-in view styles
-  userInfoContainer: {
-    alignItems: 'center',
-    marginVertical: spacing.xl,
-  },
-  avatarContainer: {
-    marginBottom: spacing.md,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.black,
-    marginBottom: spacing.xs,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: colors.textGray,
+    fontSize: 16,
+    textAlign: 'center',
   },
   optionsContainer: {
-    marginTop: spacing.lg,
+    backgroundColor: colors.white,
+    marginHorizontal: 0,
+    marginBottom: 24,
+    paddingVertical: 0,
+    borderRadius: 0,
+    shadowColor: 'transparent',
+    elevation: 0,
   },
   optionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    justifyContent: 'space-between',
+    paddingVertical: 18,
+    paddingHorizontal: 0,
     borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    borderColor: colors.lightGray,
+    marginHorizontal: 20,
   },
   optionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   optionIcon: {
-    width: 24,
-    textAlign: 'center',
-    marginRight: spacing.md,
+    marginRight: 16,
   },
   optionLabel: {
     fontSize: 16,
     color: colors.black,
+    fontWeight: 'bold',
   },
   logoutButton: {
-    backgroundColor: 'red',
-    paddingVertical: spacing.md,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.xl,
+    backgroundColor: colors.red,
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignSelf: 'center',
+    marginTop: 32,
+    marginBottom: 32,
+    width: '90%',
   },
   logoutButtonText: {
-    fontSize: 18,
     color: colors.white,
     fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center',
   },
   socialContainer: {
     alignItems: 'center',
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
+    marginTop: 8,
+    marginBottom: 24,
   },
   socialTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
     color: colors.black,
-    marginBottom: spacing.md,
+    fontWeight: 'bold',
+    fontSize: 12,
+    letterSpacing: 1,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   socialIcons: {
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   socialIcon: {
-    marginHorizontal: spacing.md,
+    marginHorizontal: 12,
+  },
+  socialIconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
+  languageIcon: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
+    marginRight: 8,
+  },
+  optionIconImage: {
+    width: 24,
+    height: 24,
+    marginRight: 16,
+    resizeMode: 'contain',
   },
 }); 

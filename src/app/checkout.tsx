@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   TextInput,
   Image,
   Modal,
@@ -19,17 +20,23 @@ import {
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { colors } from '@theme';
 // Directly define theme constants since @theme import is not working correctly
-const colors = {
-  white: '#FFFFFF',
-  lightBlue: '#E6F0FA',
-  blue: '#0063B1',
-  black: '#000000',
-  lightGray: '#E0E0E0',
-  veryLightGray: '#F5F5F5',
-  gray: '#888888',
-  red: '#FF0000',
-};
+// const colors = {
+//   white: '#FFFFFF',
+//   lightBlue: '#E6F0FA',
+//   blue: '#0063B1',
+//   black: '#000000',
+//   lightGray: '#E0E0E0',
+//   veryLightGray: '#F5F5F5',
+//   gray: '#888888',
+//   red: '#FF0000',
+//   textGray: '#808080', // For placeholder text or secondary info
+//   text: '#333333', // Primary text color
+//   border: '#CCCCCC', // Standard border color
+//   borderLight: '#EEEEEE', // Lighter border color for dividers
+//   backgroundLight: '#F9F9F9', // Light background color for content containers
+// };
 
 const spacing = {
   xs: 4,
@@ -910,8 +917,41 @@ export default function CheckoutScreen() {
     const itemsToRender = orderReviewData?.CartItemsList || cartItems;
     const isUsingOrderReview = !!orderReviewData?.CartItemsList;
     
+    const renderCartItem = ({ item, index }: { item: any; index: number }) => {
+      // Handle different property names between CartItem and OrderReviewCartItem
+      const itemName = isUsingOrderReview 
+        ? (item as any).ItemName 
+        : (item as any).ProductName || (item as any).ItemName;
+      const quantity = isUsingOrderReview 
+        ? (item as any).Quantity 
+        : (item as any).Qty || (item as any).Quantity;
+      const price = isUsingOrderReview 
+        ? (item as any).NewPrice 
+        : (item as any).Price;
+      const imageUrl = isUsingOrderReview 
+        ? (item as any).Image1 
+        : (item as any).Image1 || (item as any).Image;
+      
+      return (
+        <View style={styles.horizontalCartItem}>
+          <Image 
+            source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${imageUrl}` }} 
+            style={styles.horizontalCartItemImage} 
+            resizeMode="contain"
+          />
+          <View style={styles.horizontalCartItemDetails}>
+            <Text style={styles.horizontalCartItemName} numberOfLines={2}>
+              {itemName}
+            </Text>
+            <Text style={styles.horizontalCartItemQuantity}>x {quantity}</Text>
+            <Text style={styles.horizontalCartItemPrice}>{price.toFixed(2)} KD</Text>
+          </View>
+        </View>
+      );
+    };
+    
     return (
-      <View style={styles.cartItems}>
+      <View style={styles.cartItemsContainer}>
         {isLoadingOrderReview && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={colors.blue} />
@@ -919,40 +959,14 @@ export default function CheckoutScreen() {
           </View>
         )}
         
-        {itemsToRender.map((item, index) => {
-          // Handle different property names between CartItem and OrderReviewCartItem
-          const itemName = isUsingOrderReview 
-            ? (item as any).ItemName 
-            : (item as any).ProductName || (item as any).ItemName;
-          const quantity = isUsingOrderReview 
-            ? (item as any).Quantity 
-            : (item as any).Qty || (item as any).Quantity;
-          const price = isUsingOrderReview 
-            ? (item as any).NewPrice 
-            : (item as any).Price;
-          const imageUrl = isUsingOrderReview 
-            ? (item as any).Image1 
-            : (item as any).Image1 || (item as any).Image;
-          
-          return (
-            <View key={index} style={styles.cartItem}>
-              <Image 
-                source={{ uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${imageUrl}` }} 
-                style={styles.cartItemImage} 
-                resizeMode="contain"
-              />
-              <View style={styles.cartItemDetails}>
-                <Text style={styles.cartItemName} numberOfLines={2}>
-                  {itemName}
-                </Text>
-                <Text style={styles.cartItemPrice}>
-                  <Text style={styles.itemQuantity}>x {quantity}</Text> {' '}
-                  {price.toFixed(2)} KD
-                </Text>
-              </View>
-            </View>
-          );
-        })}
+        <FlatList
+          data={itemsToRender}
+          renderItem={renderCartItem}
+          keyExtractor={(item, index) => index.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalCartList}
+        />
         
         {/* Order Review Summary if available */}
         {orderReviewData && (
@@ -980,7 +994,13 @@ export default function CheckoutScreen() {
       // Render address section for logged-in users
       return (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address</Text>
+          <View style={styles.sectionHeader}>
+            <Image 
+              source={require('../assets/checkout/address_icon_checkout.png')} 
+              style={styles.sectionIcon}
+            />
+            <Text style={styles.sectionTitle}>Address</Text>
+          </View>
           
           {/* Billing Address */}
           <View style={styles.addressContainer}>
@@ -1064,7 +1084,13 @@ export default function CheckoutScreen() {
       // Render address section for guest users
       return (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address</Text>
+          <View style={styles.sectionHeader}>
+            <Image 
+              source={require('../assets/checkout/address_icon_checkout.png')} 
+              style={styles.sectionIcon}
+            />
+            <Text style={styles.sectionTitle}>Address</Text>
+          </View>
           
           {/* Guest Address Add Button - as per guest_checkout.png */}
           {!guestBillingAddress && !showGuestBillingForm && (
@@ -1178,43 +1204,22 @@ export default function CheckoutScreen() {
                   {/* Address Section */}
                   {renderAddressSection()}
                   
-                  {/* Payment Method Selection */}
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Select Payment Type</Text>
-                    
-                    {isLoadingPaymentMethods ? (
-                      <ActivityIndicator size="small" color={colors.blue} />
-                    ) : paymentMethods.length === 0 ? (
-                      <Text style={styles.emptyText}>No payment methods available</Text>
-                    ) : (
-                      <View style={styles.paymentMethodsContainer}>
-                        {paymentMethods.map((method) => (
-                          <TouchableOpacity
-                            key={method.XCode}
-                            style={[
-                              styles.paymentMethodItem,
-                              selectedPaymentMethod?.XCode === method.XCode && styles.selectedPaymentMethod
-                            ]}
-                            onPress={() => setSelectedPaymentMethod(method)}
-                          >
-                            <View style={styles.paymentMethodRadio}>
-                              <View 
-                                style={[
-                                  styles.paymentMethodRadioInner,
-                                  selectedPaymentMethod?.XCode === method.XCode && styles.paymentMethodRadioSelected
-                                ]} 
-                              />
-                            </View>
-                            <Text style={styles.paymentMethodName}>{method.XName}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                  
                   {/* Promo Code Section */}
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
+                    <TouchableOpacity
+                      style={styles.seePromosButtonSmall}
+                      onPress={handleSeePromoCodes}
+                    >
+                      <Text style={styles.seePromosTextSmall}>See Available Promo Codes</Text>
+                    </TouchableOpacity>
+                    
+                    <View style={styles.sectionHeader}>
+                      <Image 
+                        source={require('../assets/checkout/promo_icon_checkout.png')} 
+                        style={styles.sectionIcon}
+                      />
+                      <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
+                    </View>
                     <View style={styles.promoContainer}>
                       <TextInput
                         style={styles.promoInput}
@@ -1259,12 +1264,57 @@ export default function CheckoutScreen() {
                         </Text>
                       </View>
                     )}
-                    <TouchableOpacity
-                      style={styles.seePromosButton}
-                      onPress={handleSeePromoCodes}
-                    >
-                      <Text style={styles.seePromosText}>See Available Promo Codes</Text>
-                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Payment Method Selection */}
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Image 
+                        source={require('../assets/checkout/payment_icon_checkout.png')} 
+                        style={styles.sectionIcon}
+                      />
+                      <Text style={styles.sectionTitle}>Select Payment Type</Text>
+                    </View>
+                    
+                    {isLoadingPaymentMethods ? (
+                      <ActivityIndicator size="small" color={colors.blue} />
+                    ) : paymentMethods.length === 0 ? (
+                      <Text style={styles.emptyText}>No payment methods available</Text>
+                    ) : (
+                      <>
+                        <View style={styles.paymentMethodsContainer}>
+                          {paymentMethods.map((method) => (
+                            <TouchableOpacity
+                              key={method.XCode}
+                              style={[
+                                styles.paymentMethodItem,
+                                selectedPaymentMethod?.XCode === method.XCode && styles.selectedPaymentMethod
+                              ]}
+                              onPress={() => setSelectedPaymentMethod(method)}
+                            >
+                              <View style={styles.paymentMethodRadio}>
+                                <View 
+                                  style={[
+                                    styles.paymentMethodRadioInner,
+                                    selectedPaymentMethod?.XCode === method.XCode && styles.paymentMethodRadioSelected
+                                  ]} 
+                                />
+                              </View>
+                              <Text style={styles.paymentMethodName}>{method.XName}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                        
+                        {/* Payment Methods Image - positioned below right corner */}
+                        <View style={styles.paymentMethodsImageContainer}>
+                          <Image 
+                            source={require('../assets/checkout/payment_methods.png')} 
+                            style={styles.paymentMethodsImage}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      </>
+                    )}
                   </View>
                   
                   {/* Order Summary Section */}
@@ -1471,46 +1521,75 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
   },
-  cartItems: {
-    paddingVertical: spacing.md,
+  cartItemsContainer: {
+    paddingVertical: spacing.lg,
   },
-  cartItem: {
-    flexDirection: 'row',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+  horizontalCartItem: {
+    width: 130,
+    marginRight: spacing.sm,
     backgroundColor: colors.white,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: spacing.sm,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  cartItemImage: {
+  horizontalCartItemImage: {
     width: 60,
     height: 60,
-    borderRadius: 4,
-    marginRight: 12,
+    borderRadius: radii.sm,
+    marginBottom: spacing.xs,
   },
-  cartItemDetails: {
+  horizontalCartItemDetails: {
     flex: 1,
-    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
   },
-  cartItemName: {
-    fontSize: 16,
+  horizontalCartItemName: {
+    fontSize: 12,
     fontWeight: '500',
-    color: colors.black,
-    marginBottom: 4,
+    color: colors.text,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+    lineHeight: 16,
   },
-  cartItemPrice: {
-    fontSize: 14,
-    color: colors.black,
+  horizontalCartItemQuantity: {
+    fontSize: 10,
+    color: colors.textGray,
+    marginBottom: spacing.xs,
   },
-  itemQuantity: {
+  horizontalCartItemPrice: {
+    fontSize: 12,
     fontWeight: 'bold',
+    color: colors.blue,
+  },
+  horizontalCartList: {
+    paddingHorizontal: spacing.md,
   },
   section: {
     marginBottom: spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionIcon: {
+    width: 24,
+    height: 24,
+    marginRight: spacing.sm,
+  },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    marginBottom: spacing.sm,
+    fontWeight: 'bold',
     color: colors.black,
   },
   addressContainer: {
@@ -1553,58 +1632,118 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: {
-    color: colors.blue,
+    color: colors.black,
     fontWeight: '500',
+  },
+  shippingCheckboxContainer: {
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: radii.md,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkboxSquare: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.lightGray,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxSquareSelected: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue,
+  },
+  checkboxInner: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: colors.blue,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.blue,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: colors.black,
   },
   promoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   promoInput: {
     flex: 1,
-    height: 40,
+    height: 48,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: colors.borderLight,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     marginRight: spacing.sm,
+    fontSize: 16,
+    backgroundColor: colors.white,
   },
   promoButton: {
     backgroundColor: colors.black,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 80,
+    height: 48,
   },
   promoButtonText: {
     color: colors.white,
-    fontWeight: '500',
+    fontWeight: '600',
+    fontSize: 16,
   },
   appliedPromo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.backgroundLight,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   appliedPromoText: {
-    color: colors.black,
+    color: colors.text,
+    fontWeight: '500',
   },
   discountText: {
-    color: colors.gray,
+    color: colors.blue,
+    fontWeight: 'bold',
   },
-  seePromosButton: {
-    backgroundColor: colors.blue,
-    padding: spacing.sm,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    marginTop: spacing.sm,
+  seePromosButtonSmall: {
+    alignSelf: 'flex-end',
+    marginBottom: spacing.xs,
   },
-  seePromosText: {
-    color: colors.white,
+  seePromosTextSmall: {
+    color: colors.blue,
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: 12,
+    textDecorationLine: 'underline',
   },
   summaryItem: {
     flexDirection: 'row',
@@ -1656,16 +1795,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.red,
   },
   paymentMethodsContainer: {
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
   paymentMethodItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.lightGray,
-    borderRadius: 4,
-    marginBottom: 8,
+    borderColor: colors.borderLight,
+    borderRadius: radii.md,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.white,
   },
   selectedPaymentMethod: {
     borderColor: colors.blue,
@@ -1676,8 +1816,8 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.gray,
-    marginRight: 10,
+    borderColor: colors.lightGray,
+    marginRight: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1693,10 +1833,20 @@ const styles = StyleSheet.create({
   },
   paymentMethodName: {
     fontSize: 16,
-    color: colors.black,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  paymentMethodsImageContainer: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.sm,
+    marginRight: spacing.md,
+  },
+  paymentMethodsImage: {
+    width: 120,
+    height: 40,
   },
   emptyText: {
-    color: colors.gray,
+    color: colors.textGray,
     textAlign: 'center',
   },
   disabledButton: {
@@ -1704,7 +1854,7 @@ const styles = StyleSheet.create({
   },
   disabledPromoButton: {
     opacity: 0.5,
-    backgroundColor: colors.gray,
+    backgroundColor: colors.textGray,
   },
   createAccountContainer: {
     marginVertical: 12,
@@ -1712,62 +1862,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: colors.veryLightGray,
     borderRadius: radii.md,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  checkboxSquare: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: colors.gray,
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  checkboxSquareSelected: {
-    backgroundColor: colors.blue,
-    borderColor: colors.blue,
-  },
-  checkboxInner: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.blue,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxSelected: {
-    backgroundColor: colors.blue,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.blue,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: colors.black,
-  },
-  shippingCheckboxContainer: {
-    marginVertical: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.veryLightGray,
-    borderRadius: radii.md,
-  },
-  shippingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   termsContainer: {
     marginVertical: 16,
@@ -1886,6 +1980,6 @@ const styles = StyleSheet.create({
   },
   orderReviewPromo: {
     fontSize: 14,
-    color: colors.gray,
+    color: colors.textGray,
   },
 }); 

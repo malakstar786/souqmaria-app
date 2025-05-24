@@ -320,7 +320,19 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView style={styles.scrollView}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => onComplete()}
+        >
+          <FontAwesome name="arrow-left" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Shipping address</Text>
+        <View style={styles.headerRight} />
+      </View>
+      
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
           <Text style={styles.title}>Shipping Address</Text>
           
@@ -556,7 +568,30 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00AEEF',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 40, // Same width as back button for centering
   },
   scrollView: {
     flex: 1,
@@ -581,12 +616,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D9D9D9',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
     color: '#000000',
     backgroundColor: '#FFFFFF',
+    minHeight: 56,
   },
   inputError: {
     borderColor: '#FF0000',
@@ -598,13 +634,14 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: '#D9D9D9',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 16,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 56,
   },
   dropdownText: {
     fontSize: 16,
@@ -616,11 +653,12 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#00AEEF',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 24,
+    minHeight: 56,
   },
   saveButtonText: {
     color: '#FFFFFF',

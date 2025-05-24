@@ -128,7 +128,7 @@ export default function ThankYouScreen() {
           
           <View style={styles.imageContainer}>
             <Image 
-              source={require('../assets/order_succesful_image.png')} 
+              source={require('@assets/checkout/order_succesful_image.png')} 
               style={styles.successImage}
               resizeMode="contain"
             />
@@ -143,7 +143,7 @@ export default function ThankYouScreen() {
             <View style={styles.orderDetailRow}>
               <Text style={styles.orderDetailLabel}>Track Id</Text>
               <Text style={styles.orderDetailValue}>
-                {orderDetails?.TrackId || '#234567890000'}
+                {orderDetails?.TrackId}
               </Text>
             </View>
             
@@ -164,7 +164,7 @@ export default function ThankYouScreen() {
           
           <Text style={styles.contactText}>
             Your Order has been placed successfully. For any assistance contact here: 
-            <Text style={styles.phoneNumber}> +965-60840404</Text>
+            <Text style={styles.phoneNumber}> +965-98900952</Text>
           </Text>
           
           <TouchableOpacity style={styles.continueButton} onPress={handleContinueShopping}>
@@ -185,7 +185,7 @@ export default function ThankYouScreen() {
         
         <View style={styles.imageContainer}>
           <Image 
-            source={require('../assets/order_failed_image.png')} 
+            source={require('../assets/checkout/order_failed_image.png')} 
             style={styles.failureImage}
             resizeMode="contain"
           />

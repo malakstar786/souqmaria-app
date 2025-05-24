@@ -36,6 +36,11 @@ export default function AuthModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   const { login, register, isLoading, error, clearError } = useAuthStore();
   
+  // Add forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isSendingResetEmail, setIsSendingResetEmail] = useState(false);
+  
   // Login form state
   const [loginData, setLoginData] = useState({
     userName: '',
@@ -66,6 +71,8 @@ export default function AuthModal({
     if (isVisible) {
       setActiveTab(initialTab);
       clearError();
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
       setFormErrors({
         userName: '',
         password: '',
@@ -186,6 +193,45 @@ export default function AuthModal({
     }
   }, [error, clearError]);
 
+  // Handle forgot password
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    
+    if (!/^\S+@\S+\.\S+$/.test(forgotPasswordEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    
+    setIsSendingResetEmail(true);
+    
+    try {
+      // Here you would call your forgot password API
+      // For now, we'll just show a success message
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      
+      Alert.alert(
+        'Reset Email Sent',
+        'We have sent a password reset link to your email address. Please check your inbox.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowForgotPassword(false);
+              setForgotPasswordEmail('');
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send reset email. Please try again.');
+    } finally {
+      setIsSendingResetEmail(false);
+    }
+  };
+
   const renderLoginForm = () => (
     <>
       <Text style={styles.autoSignText}>Auto SIGN-IN using Google Email</Text>
@@ -237,7 +283,7 @@ export default function AuthModal({
         {formErrors.password ? <Text style={styles.errorText}>{formErrors.password}</Text> : null}
       </View>
 
-      <TouchableOpacity style={styles.forgotPasswordButton}>
+      <TouchableOpacity style={styles.forgotPasswordButton} onPress={() => setShowForgotPassword(true)}>
         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
       </TouchableOpacity>
 
@@ -255,6 +301,46 @@ export default function AuthModal({
 
       <TouchableOpacity style={styles.switchContainer} onPress={() => setActiveTab('signup')}>
         <Text style={styles.switchText}>Create Account?</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  const renderForgotPasswordForm = () => (
+    <>
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={() => setShowForgotPassword(false)}
+      >
+        <FontAwesome name="arrow-left" size={20} color={colors.blue} />
+        <Text style={styles.backText}>Back to Login</Text>
+      </TouchableOpacity>
+      
+      <Text style={styles.forgotPasswordTitle}>Reset Your Password</Text>
+      <Text style={styles.forgotPasswordDescription}>
+        Enter your email address and we'll send you a link to reset your password.
+      </Text>
+      
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={forgotPasswordEmail}
+          onChangeText={setForgotPasswordEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.actionButton} 
+        onPress={handleForgotPassword}
+        disabled={isSendingResetEmail}
+      >
+        {isSendingResetEmail ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.actionButtonText}>Send Reset Link</Text>
+        )}
       </TouchableOpacity>
     </>
   );
@@ -391,7 +477,7 @@ export default function AuthModal({
           </View>
 
           <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
-            {activeTab === 'login' ? renderLoginForm() : renderSignupForm()}
+            {showForgotPassword ? renderForgotPasswordForm() : activeTab === 'login' ? renderLoginForm() : renderSignupForm()}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -564,5 +650,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.blue,
     fontWeight: 'bold',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  backText: {
+    color: colors.blue,
+    fontSize: 14,
+    marginLeft: spacing.sm,
+  },
+  forgotPasswordTitle: {
+    fontSize: 18,
+    color: colors.black,
+    fontWeight: 'bold',
+    marginBottom: spacing.md,
+  },
+  forgotPasswordDescription: {
+    fontSize: 14,
+    color: colors.textGray,
+    marginBottom: spacing.lg,
   },
 }); 

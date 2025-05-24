@@ -154,7 +154,7 @@ export default function CartScreen() {
         </View>
       </View>
       
-      <View style={styles.actionsContainer}>
+      <View style={styles.actionsRow}>
         <TouchableOpacity 
           style={styles.wishlistButton}
           onPress={() => handleAddToWishlist(item.ProductCode)}
@@ -162,42 +162,40 @@ export default function CartScreen() {
           <Text style={styles.wishlistButtonText}>ADD TO WISHLIST</Text>
         </TouchableOpacity>
         
-        <View style={styles.rightActions}>
-          <View style={styles.quantityControls}>
-            <TouchableOpacity 
-              style={styles.quantityButton}
-              onPress={() => handleUpdateQuantity(item.CartID, item.Quantity + 1)}
-            >
-              <FontAwesome name="plus" size={18} color={colors.white} />
-            </TouchableOpacity>
-            
-            <Text style={styles.quantityText}>{item.Quantity}</Text>
-            
-            <TouchableOpacity 
-              style={styles.quantityButton}
-              onPress={() => handleUpdateQuantity(item.CartID, item.Quantity - 1)}
-              disabled={item.Quantity <= 1}
-            >
-              <FontAwesome name="minus" size={18} color={colors.white} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.quantityControls}>
+          <TouchableOpacity 
+            style={styles.quantityButton}
+            onPress={() => handleUpdateQuantity(item.CartID, item.Quantity + 1)}
+          >
+            <FontAwesome name="plus" size={18} color={colors.white} />
+          </TouchableOpacity>
+          
+          <Text style={styles.quantityText}>{item.Quantity}</Text>
           
           <TouchableOpacity 
-            style={styles.removeButton}
-            onPress={() => handleRemoveItem(item.CartID, item.ProductName)}
+            style={styles.quantityButton}
+            onPress={() => handleUpdateQuantity(item.CartID, item.Quantity - 1)}
+            disabled={item.Quantity <= 1}
           >
-            <Text style={styles.removeButtonText}>REMOVE</Text>
+            <FontAwesome name="minus" size={18} color={colors.white} />
           </TouchableOpacity>
         </View>
+        
+        <TouchableOpacity 
+          style={styles.removeButton}
+          onPress={() => handleRemoveItem(item.CartID, item.ProductName)}
+        >
+          <Text style={styles.removeButtonText}>REMOVE</Text>
+        </TouchableOpacity>
       </View>
       
-      <View style={styles.divider} />
+      <View style={styles.cardDivider} />
     </View>
   );
 
   // Cart summary and checkout
   const renderCartSummary = () => (
-    <View style={styles.summaryContainer}>
+    <View style={styles.summaryBar}>
       <View style={styles.totalContainer}>
         <Text style={styles.totalText}>TOTAL :</Text>
         <Text style={styles.totalAmount}>{totalAmount.toFixed(2)} KD</Text>
@@ -284,7 +282,7 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.veryLightGray,
   },
   loadingContainer: {
     flex: 1,
@@ -293,18 +291,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.blue,
-    marginTop: 10,
-    marginLeft: 16,
-    marginBottom: 10,
+    marginTop: 36,
+    marginLeft: 20,
+    marginBottom: 12,
+    textAlign: 'left',
   },
   emptyCartContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.veryLightGray,
+    backgroundColor: colors.white,
   },
   emptyCartContent: {
     alignItems: 'center',
@@ -364,26 +363,37 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   cartItemContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 0,
+    padding: 0,
   },
   cartItemContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
   },
   productInfo: {
-    flex: 2,
+    flex: 1,
     justifyContent: 'center',
   },
   productName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
     color: colors.black,
-    marginBottom: 4,
+    marginBottom: 12,
+    maxWidth: '100%',
   },
   priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   oldPrice: {
     fontSize: 12,
@@ -392,48 +402,56 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   price: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.blue,
   },
   productImage: {
     width: 80,
     height: 80,
-    borderRadius: 4,
-    overflow: 'hidden',
+    borderRadius: 8,
     backgroundColor: colors.veryLightGray,
+    marginRight: 16,
   },
   image: {
     width: '100%',
     height: '100%',
+    borderRadius: 18,
   },
-  actionsContainer: {
+  actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   wishlistButton: {
     padding: 4,
   },
   wishlistButtonText: {
-    fontSize: 12,
-    color: colors.textGray,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontSize: 13,
+    color: colors.black,
+    fontWeight: '500',
   },
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginTop: 10,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    borderWidth: 0,
+    borderColor: colors.lightGray,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
   },
   quantityButton: {
     backgroundColor: colors.black,
-    width: 30,
-    height: 30,
-    borderRadius: 4,
+    borderWidth: 0,
+    borderColor: colors.white,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -441,54 +459,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.black,
     fontWeight: 'bold',
-    marginHorizontal: 8,
-    minWidth: 20,
+    marginHorizontal: 10,
+    minWidth: 24,
     textAlign: 'center',
   },
   removeButton: {
     padding: 4,
   },
   removeButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.red,
     fontWeight: 'bold',
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.lightGray,
-    marginTop: 10,
+  cardDivider: {
+    height: 0,
+    backgroundColor: 'transparent',
   },
-  summaryContainer: {
+  summaryBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: colors.blue,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderColor: colors.lightGray,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    zIndex: 10,
   },
   totalContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   totalText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.white,
-    marginRight: 8,
+    fontWeight: 'bold',
   },
   totalAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
     color: colors.white,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   checkoutButton: {
+    backgroundColor: colors.blue,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.blue,
   },
   checkoutButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
     color: colors.white,
+    fontWeight: 'bold',
+    fontSize: 15,
+    textTransform: 'uppercase',
     marginRight: 8,
   },
   // Modal styles
