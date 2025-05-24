@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth-store';
 import { colors, spacing, radii } from '@theme';
 
@@ -21,6 +22,7 @@ interface SignupScreenProps {
 
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const { register, isLoading, error, clearError } = useAuthStore();
+  const router = useRouter();
   
   // Form state
   const [fullName, setFullName] = useState('');
@@ -106,7 +108,22 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
       Alert.alert(
         'Success',
         'Your account has been created successfully!',
-        [{ text: 'OK', onPress: () => onSwitchToLogin?.() }]
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            if (onSwitchToLogin) {
+              // Used within auth modal, switch to login
+              onSwitchToLogin();
+            } else {
+              // Used as standalone page, navigate back to checkout
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/checkout');
+              }
+            }
+          }
+        }]
       );
     }
   };
@@ -125,7 +142,22 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <ScrollView style={styles.container}>
+      <View style={styles.container}>
+        {/* Header for standalone usage */}
+        {!onSwitchToLogin && (
+          <View style={styles.header}>
+            <TouchableOpacity 
+              onPress={() => router.canGoBack() ? router.back() : router.replace('/checkout')} 
+              style={styles.backButton}
+            >
+              <FontAwesome name="arrow-left" size={20} color={colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Sign Up</Text>
+            <View style={{ width: 20 }} />
+          </View>
+        )}
+        
+        <ScrollView style={styles.scrollContainer}>
         <View style={styles.googleSignUpContainer}>
           <Text style={styles.googleSignUpText}>Auto SIGN-UP using Google Email</Text>
           <TouchableOpacity style={styles.googleButton}>
@@ -245,7 +277,8 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             <Text style={styles.loginLink}>Login</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -254,6 +287,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.black,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   googleSignUpContainer: {
     paddingHorizontal: spacing.lg,

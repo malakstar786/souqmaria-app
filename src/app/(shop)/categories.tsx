@@ -12,12 +12,12 @@ import {
   Keyboard,
   StatusBar,
   ScrollView,
+  Image,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, radii, typography } from '@theme';
-import useAllCategoryStore from '../../store/all-category-store';
-import CategoryCard from '../../components/CategoryCard';
+import useAllCategoryStore, { Category } from '../../store/all-category-store';
 import useSearchStore from '../../store/search-store';
 import { SearchItem } from '../../utils/api-service';
 import { debounce } from 'lodash';
@@ -71,20 +71,16 @@ export default function CategoriesScreen() {
     Keyboard.dismiss();
     const trimmedQuery = searchQuery.trim();
     if (trimmedQuery.length > 0) {
-      // Clear current suggestions and search query in store before navigating
       clearSearchResults(); 
-      // setSearchQuery(''); // Keep the query in the input for the new page, or clear based on UX preference
-
       router.push({
         pathname: '/products/list',
         params: {
           pageCode: 'Srch',
           searchName: trimmedQuery,
-          name: trimmedQuery, // For screen title on products/list
+          name: trimmedQuery,
         },
       });
     } else {
-      // Optionally handle empty search submission, e.g., show a toast or do nothing
       console.log('Empty search submitted');
     }
   };
@@ -98,26 +94,32 @@ export default function CategoriesScreen() {
 
   const handleCartPress = () => router.push('/cart');
 
-  const handleCategoryPress = (category: any) => {
-    console.log("Navigating to category:", category.CategoryName, "SrNo:", category.SrNo, "HPCType:", category.HPCType);
+  const handleCategoryPress = (category: Category) => {
+    console.log("Navigating to category:", category.CategoryNameEN, "SrNo:", category.SrNo, "HPCType:", category.HPCType);
     router.push({
       pathname: `/products/list`,
       params: { 
         homePageCatSrNo: category.SrNo,
-        pageCode: category.HPCType || 'HPC2', // HPC2 as fallback for homepage category type
-        name: category.CategoryName 
+        pageCode: category.HPCType || 'HPC2',
+        name: category.CategoryNameEN 
       }
     });
   };
 
-  const renderCategoryItem = ({ item, index }: { item: any, index: number }) => (
-    <View style={styles.categoryCardContainer}>
-      <CategoryCard
-        name={item.CategoryName}
-        imageUrl={item.imageUrl}
-        onPress={() => handleCategoryPress(item)}
+  const renderCategoryItem = ({ item }: { item: Category }) => (
+    <TouchableOpacity 
+      style={styles.categoryCardContainer}
+      onPress={() => handleCategoryPress(item)}
+      activeOpacity={0.7}
+    >
+      <Image 
+        source={{ uri: item.imageUrl }} 
+        style={styles.categoryImage}
+        resizeMode="contain"
       />
-    </View>
+      <Text style={styles.categoryTitle}>{item.CategoryNameEN}</Text>
+      <Text style={styles.categorySubtitle}>{item.CategoryNameAR}</Text>
+    </TouchableOpacity>
   );
 
   const renderSearchResultItem = ({ item }: { item: SearchItem }) => (
@@ -175,6 +177,7 @@ export default function CategoriesScreen() {
           style={styles.categoryList}
           contentContainerStyle={styles.categoryListContent}
           showsVerticalScrollIndicator={false}
+          columnWrapperStyle={styles.categoryRow}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No categories found</Text>
@@ -286,11 +289,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryListContent: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  categoryRow: {
+    justifyContent: 'space-between',
   },
   categoryCardContainer: {
-    width: width / 2,
+    width: '48%',
+    marginBottom: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    alignItems: 'center',
     padding: spacing.sm,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryImage: {
+    width: '100%',
+    height: 120,
+    marginBottom: spacing.sm,
+  },
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: colors.black,
+    marginBottom: spacing.xs,
+  },
+  categorySubtitle: {
+    fontSize: 12,
+    color: colors.textGray,
+    textAlign: 'center',
   },
   emptyContainer: {
     flex: 1,

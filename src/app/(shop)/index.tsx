@@ -23,24 +23,18 @@ import useAuthStore from '../../store/auth-store';
 import useBannerStore, { Banner } from '../../store/banner-store';
 import useAdvertisementStore, { Advertisement } from '../../store/advertisement-store';
 import BrowseDrawer from '../../components/browse-drawer';
-import useSearchStore from '../../store/search-store'; // Import search store
-import { SearchItem } from '../../utils/api-service'; // Correct import for SearchItem
+import useSearchStore from '../../store/search-store';
+import { SearchItem } from '../../utils/api-service';
 import { useRouter } from 'expo-router';
-import { debounce } from 'lodash'; // For debouncing search
+import { debounce } from 'lodash';
+import useCartStore from '../../store/cart-store';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const BANNER_ASPECT_RATIO = 16 / 9; // Adjust as per your actual banner image aspect ratio
-                                  // From the image, it looks wider than tall, maybe 2:1 or 2.5:1
-                                  // Let's try a value that looks similar to homepage.png.
-                                  // The example image is roughly 390px wide, and banner is ~200px tall. So ~2:1.
-const BANNER_HEIGHT = screenWidth / 2.2; // Adjusted for a more visually appealing height
-const ADVERTISEMENT_HEIGHT = screenWidth / 3.5; // Example height for ads, adjust as needed
+const BANNER_HEIGHT = 350; // Match screenshot
+const ADVERTISEMENT_HEIGHT = screenHeight * 0.25; // Advertisement height
 const SEARCH_RESULT_ITEM_HEIGHT = 50;
-
-// Calculate header height for positioning search results
-// This is an approximation. For more accuracy, onLayout could be used, or a fixed header height defined.
-const HEADER_TOTAL_HEIGHT = 60; // Approximate height of headerTopBar (padding + logo/icon height)
-const SEARCH_BAR_AREA_HEIGHT = 70; // Approximate height of searchBarOuterContainer (padding + input height)
+const HEADER_HEIGHT = 70;
+const SEARCH_BAR_HEIGHT = 80;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -48,6 +42,7 @@ export default function HomeScreen() {
   const { banners, isLoading: isLoadingBanners, error: errorBanners, fetchBanners } = useBannerStore();
   const { advertisements, isLoading: isLoadingAdvertisements, error: errorAdvertisements, fetchAdvertisements } = useAdvertisementStore();
   const { user } = useAuthStore();
+  const { totalItems } = useCartStore();
   const {
     searchQuery,
     searchResults,
@@ -59,21 +54,25 @@ export default function HomeScreen() {
   } = useSearchStore();
   
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const bannerFlatListRef = useRef<FlatList<Banner>>(null);
   const [currentAdvertisementIndex, setCurrentAdvertisementIndex] = useState(0);
-  const advertisementFlatListRef = useRef<FlatList<Advertisement>>(null);
   const [isBrowseDrawerVisible, setIsBrowseDrawerVisible] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [showAdvertisements, setShowAdvertisements] = useState(false);
+  
+  const bannerFlatListRef = useRef<FlatList<Banner>>(null);
+  const advertisementFlatListRef = useRef<FlatList<Advertisement>>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const userIdToFetch = user?.UserID || user?.id || '';
-    const cultureId = '1'; // Assuming English for now
+    const cultureId = '1';
 
     fetchCategories(cultureId, String(userIdToFetch));
     fetchBanners(cultureId, String(userIdToFetch));
     fetchAdvertisements(cultureId, String(userIdToFetch));
   }, [user, fetchCategories, fetchBanners, fetchAdvertisements]);
 
+  // Auto-scroll banners
   useEffect(() => {
     if (banners.length > 1) {
       const interval = setInterval(() => {
@@ -82,24 +81,25 @@ export default function HomeScreen() {
           bannerFlatListRef.current?.scrollToIndex({ animated: true, index: nextIndex });
           return nextIndex;
         });
-      }, 3000);
+      }, 4000);
       return () => clearInterval(interval);
     }
   }, [banners]);
 
+  // Auto-scroll advertisements
   useEffect(() => {
-    if (advertisements.length > 1) {
+    if (advertisements.length > 1 && showAdvertisements) {
       const interval = setInterval(() => {
         setCurrentAdvertisementIndex(prevIndex => {
           const nextIndex = (prevIndex + 1) % advertisements.length;
           advertisementFlatListRef.current?.scrollToIndex({ animated: true, index: nextIndex });
           return nextIndex;
         });
-      }, 4000);
+      }, 5000);
       return () => clearInterval(interval);
     }
-  }, [advertisements]);
-  
+  }, [advertisements, showAdvertisements]);
+
   const onViewableItemsChangedBanners = useRef(({ viewableItems }: { viewableItems: Array<any> }) => {
     if (viewableItems.length > 0 && viewableItems[0].isViewable) {
       setCurrentBannerIndex(viewableItems[0].index);
@@ -114,22 +114,20 @@ export default function HomeScreen() {
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
-  // Debounced search function
+  // Debounced search
   const debouncedSearch = useCallback(
     debounce((query: string) => {
-      if (query.trim().length > 1) { // Perform search if query is at least 2 chars
+      if (query.trim().length > 1) {
         performSearch(query);
       } else if (query.trim().length === 0) {
         clearSearchResults();
       }
-    }, 500), // 500ms debounce delay
-    [] // Empty dependency array to prevent re-creation of the debounced function on each render
+    }, 500),
+    []
   );
 
-  // Wrap the debounced function call in a useEffect for cleanup
   useEffect(() => {
     return () => {
-      // Cancel any pending debounced calls when the component unmounts
       debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
@@ -142,7 +140,6 @@ export default function HomeScreen() {
   const handleSearchSubmit = () => {
     Keyboard.dismiss();
     if (searchQuery.trim()) {
-      // Navigate to products/list page with search parameters
       router.push({
         pathname: '/products/list',
         params: { 
@@ -151,23 +148,23 @@ export default function HomeScreen() {
           name: `Search: "${searchQuery.trim()}"` 
         }
       });
-      // Clear search query and results
       setSearchQuery('');
       clearSearchResults();
+      setIsSearchFocused(false);
     }
   };
 
   const handleSearchResultPress = (item: SearchItem) => {
-    console.log('Search result pressed:', item);
     setSearchQuery(''); 
     clearSearchResults(); 
+    setIsSearchFocused(false);
     Keyboard.dismiss(); 
     router.push({ pathname: `/product/${item.XCode}`, params: { name: item.XName } });
   };
 
   const handleCartPress = () => router.push('/(shop)/cart');
+  
   const handleCategoryPress = (category: Category) => {
-    console.log("Navigating to category:", category.CategoryName, "SrNo:", category.SrNo, "HPCType:", category.HPCType);
     router.push({
       pathname: `/products/list`,
       params: { 
@@ -177,79 +174,92 @@ export default function HomeScreen() {
       }
     });
   };
+
   const handleBannerPress = (tagUrl: string | null) => {
     if (tagUrl) {
       console.log("Banner pressed, TagUrl:", tagUrl);
-      // if (tagUrl.startsWith('http')) Linking.openURL(tagUrl);
-      // else router.push(tagUrl);
     } else {
       console.log("Banner pressed, no TagUrl.");
     }
   };
+
   const handleAdvertisementPress = (tagUrl: string | null) => {
     if (tagUrl) {
       console.log("Advertisement pressed, TagUrl:", tagUrl);
-      // Logic to handle ad press, e.g., navigate to product or web page
-      // if (tagUrl.startsWith('http')) Linking.openURL(tagUrl);
-      // else router.push(tagUrl);
     } else {
       console.log("Advertisement pressed, no TagUrl.");
     }
   };
-  const handleDrawerOpen = () => {
-    setIsBrowseDrawerVisible(true);
-  };
 
-  const handleDrawerClose = () => {
-    setIsBrowseDrawerVisible(false);
-  };
+  const handleDrawerOpen = () => setIsBrowseDrawerVisible(true);
+  const handleDrawerClose = () => setIsBrowseDrawerVisible(false);
 
+  const handleScroll = (event: any) => {
+    const { contentOffset } = event.nativeEvent;
+    // Show advertisements when user scrolls past the banner section
+    if (contentOffset.y > BANNER_HEIGHT + 200 && !showAdvertisements) {
+      setShowAdvertisements(true);
+    }
+  };
 
   const renderBannerItem = ({ item }: { item: Banner }) => (
     <TouchableOpacity 
-        activeOpacity={0.9} 
-        onPress={() => handleBannerPress(item.TagUrl)}
-        style={styles.bannerItemContainer}
+      style={styles.bannerItemContainer} 
+      onPress={() => handleBannerPress(item.TagUrl)}
+      activeOpacity={0.9}
     >
-      <Image 
-        source={{ uri: item.imageUrl }} 
-        style={styles.bannerImage} 
-        resizeMode="cover" 
+      <Image
+        source={{ uri: item.imageUrl }}
+        style={styles.bannerImage}
+        resizeMode="cover"
       />
     </TouchableOpacity>
   );
 
   const renderAdvertisementItem = ({ item }: { item: Advertisement }) => (
     <TouchableOpacity 
-        activeOpacity={0.9} 
-        onPress={() => handleAdvertisementPress(item.TagUrl)}
-        style={styles.advertisementItemContainer}
+      style={styles.advertisementItemContainer} 
+      onPress={() => handleAdvertisementPress(item.TagUrl)}
+      activeOpacity={0.9}
     >
-      <Image 
-        source={{ uri: item.imageUrl }} 
+      <Image
+        source={{ uri: item.imageUrl }}
         style={styles.advertisementImage}
-        resizeMode="cover" 
+        resizeMode="cover"
       />
     </TouchableOpacity>
   );
 
   const renderSearchResultItem = ({ item }: { item: SearchItem }) => (
-    <TouchableOpacity 
-      style={styles.searchResultItem} 
-      onPress={() => handleSearchResultPress(item)}
-      activeOpacity={0.7}
-    >
-      <FontAwesome name="search" size={16} color={colors.blue} style={styles.searchResultIcon} />
+    <TouchableOpacity style={styles.searchResultItem} onPress={() => handleSearchResultPress(item)}>
+      <FontAwesome name="search" size={16} color={colors.lightGray} style={styles.searchResultIcon} />
       <Text style={styles.searchResultText}>{item.XName}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderCategoryItem = ({ item }: { item: Category }) => (
+    <TouchableOpacity
+      style={styles.categoryItemWrapper}
+      onPress={() => handleCategoryPress(item)}
+      accessibilityRole="button"
+      accessibilityLabel={item.CategoryName}
+      activeOpacity={1.85}
+    >
+      <Image
+        source={{ uri: item.imageUrl }}
+        style={styles.categoryImage}
+      />
+      <Text style={styles.categoryName}>{item.CategoryName}</Text>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.lightBlue} />
+      <StatusBar backgroundColor={colors.white} barStyle="dark-content" />
       
-      <View style={styles.headerTopBar}>
-        <TouchableOpacity onPress={handleDrawerOpen} style={styles.drawerButton}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={handleDrawerOpen} style={styles.drawerButton} accessibilityLabel="Open menu" accessibilityRole="button">
           <FontAwesome name="bars" size={24} color={colors.black} />
         </TouchableOpacity>
         <View style={styles.logoContainer}>
@@ -257,17 +267,22 @@ export default function HomeScreen() {
             source={require('@assets/logo.png')}
             style={styles.logo} 
             resizeMode="contain"
+            accessibilityLabel="Souq Maria Logo"
           />
         </View>
-        <TouchableOpacity style={styles.cartButton} onPress={handleCartPress}>
+        <TouchableOpacity style={styles.cartButton} onPress={handleCartPress} accessibilityLabel="View cart" accessibilityRole="button">
           <FontAwesome name="shopping-cart" size={24} color={colors.black} />
-          {/* <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>2</Text></View> */}
+          {totalItems > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>{totalItems > 99 ? '99+' : totalItems}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
       
-      {/* Search Bar - remains visually below headerTopBar but is not inside ScrollView */}
-      <View style={styles.searchBarOuterContainer}>
-        <View style={styles.searchBarInnerContainer}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color={colors.blue} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
@@ -278,21 +293,26 @@ export default function HomeScreen() {
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
             onFocus={() => setIsSearchFocused(true)}
-            // onBlur={() => setIsSearchFocused(false)} // Controlled by clearing search/pressing item
+            accessibilityLabel="Search products"
+            accessibilityRole="search"
           />
         </View>
       </View>
-      
+
+      {/* Main Content */}
       <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContentContainer}
-        keyboardShouldPersistTaps="handled" // Added to ScrollView for better tap handling with keyboard
+        keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        {/* Content that scrolls */}
         {(!isSearchFocused || (!isLoadingSearch && !errorSearch && searchResults.length === 0)) && (
           <>
-            <View style={styles.sectionContainer}>
+            {/* Categories Section */}
+            <View style={styles.categoriesSection}>
               <Text style={styles.sectionTitle}>Shop By Category</Text>
               {isLoadingCategories ? (
                 <ActivityIndicator size="small" color={colors.blue} style={styles.loader} />
@@ -301,28 +321,23 @@ export default function HomeScreen() {
               ) : categories.length > 0 ? (
                 <FlatList
                   data={categories}
-                  renderItem={({ item }) => (
-                    <View style={{ width: screenWidth / 3, padding: spacing.xs }}>
-                      <CategoryCard 
-                        name={item.CategoryName}
-                        imageUrl={item.imageUrl}
-                        onPress={() => handleCategoryPress(item)}
-                      />
-                    </View>
-                  )}
+                  renderItem={renderCategoryItem}
                   keyExtractor={(item, index) => item.SrNo || item.id || String(index)}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoriesListContainer}
+                  contentContainerStyle={styles.categoriesHorizontalGrid}
                 />
               ) : (
                 <Text style={styles.noDataText}>No categories found.</Text>
               )}
             </View>
 
-            <View style={styles.bannerSectionContainer}>
+            {/* Banner Section - Covers bottom half */}
+            <View style={styles.bannerSection}>
               {isLoadingBanners ? (
-                <ActivityIndicator size="large" color={colors.blue} style={styles.loader} />
+                <View style={styles.bannerLoaderContainer}>
+                  <ActivityIndicator size="large" color={colors.blue} />
+                </View>
               ) : errorBanners ? (
                 <Text style={styles.errorText}>{errorBanners}</Text>
               ) : banners.length > 0 ? (
@@ -332,13 +347,14 @@ export default function HomeScreen() {
                     data={banners}
                     renderItem={renderBannerItem}
                     keyExtractor={(item) => item.Banner_ImageName}
-                    horizontal
+                    horizontal={true}
+                    snapToInterval={screenWidth + spacing.lg}
                     showsHorizontalScrollIndicator={false}
                     pagingEnabled
                     onViewableItemsChanged={onViewableItemsChangedBanners}
                     viewabilityConfig={viewabilityConfig}
                     getItemLayout={(_data, index) => (
-                      { length: screenWidth, offset: screenWidth * index, index }
+                      { length: screenWidth - (spacing.lg * 2), offset: (screenWidth - (spacing.lg * 2)) * index, index }
                     )}
                   />
                   {banners.length > 1 && (
@@ -348,64 +364,71 @@ export default function HomeScreen() {
                           key={index}
                           style={[
                             styles.indicator,
-                            { backgroundColor: index === currentBannerIndex ? colors.blue : colors.lightGray },
+                            {
+                              backgroundColor: index === currentBannerIndex
+                                ? '#FFFFFF'
+                                : '#D9D9D9',
+                            },
                           ]}
                         />
                       ))}
                     </View>
                   )}
                 </>
-              ) : (
-                <Text style={styles.noDataText}>No banners found.</Text>
-              )}
+              ) : null}
             </View>
             
-            <View style={styles.advertisementSectionContainer}>
-              {isLoadingAdvertisements ? (
-                <ActivityIndicator size="large" color={colors.blue} style={styles.loader} />
-              ) : errorAdvertisements ? (
-                <Text style={styles.errorText}>{errorAdvertisements}</Text>
-              ) : advertisements.length > 0 ? (
-                <>
-                  <FlatList
-                    ref={advertisementFlatListRef}
-                    data={advertisements}
-                    renderItem={renderAdvertisementItem}
-                    keyExtractor={(item) => item.id || item.Ads_ImageName}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    pagingEnabled
-                    onViewableItemsChanged={onViewableItemsChangedAdvertisements}
-                    viewabilityConfig={viewabilityConfig}
-                    getItemLayout={(_data, index) => (
-                      { length: screenWidth, offset: screenWidth * index, index }
+            {/* Advertisement Section - Shows when scrolled */}
+            {showAdvertisements && (
+              <View style={styles.advertisementSection}>
+                {isLoadingAdvertisements ? (
+                  <ActivityIndicator size="large" color={colors.blue} />
+                ) : errorAdvertisements ? (
+                  <Text style={styles.errorText}>{errorAdvertisements}</Text>
+                ) : advertisements.length > 0 ? (
+                  <>
+                    <FlatList
+                      ref={advertisementFlatListRef}
+                      data={advertisements}
+                      renderItem={renderAdvertisementItem}
+                      keyExtractor={(item) => item.id || item.Ads_ImageName}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      pagingEnabled
+                      onViewableItemsChanged={onViewableItemsChangedAdvertisements}
+                      viewabilityConfig={viewabilityConfig}
+                                             getItemLayout={(_data, index) => (
+                         { length: screenWidth - (spacing.lg * 2), offset: (screenWidth - (spacing.lg * 2)) * index, index }
+                       )}
+                    />
+                    {advertisements.length > 1 && (
+                      <View style={styles.indicators}>
+                        {advertisements.map((_, index) => (
+                          <View
+                            key={`ad-indicator-${index}`}
+                            style={[
+                              styles.indicator,
+                              { 
+                                backgroundColor: index === currentAdvertisementIndex 
+                                  ? colors.blue 
+                                  : colors.lightGray 
+                              },
+                            ]}
+                          />
+                        ))}
+                      </View>
                     )}
-                  />
-                  {advertisements.length > 1 && (
-                    <View style={styles.indicators}>
-                      {advertisements.map((_, index) => (
-                        <View
-                          key={`ad-indicator-${index}`}
-                          style={[
-                            styles.indicator,
-                            { backgroundColor: index === currentAdvertisementIndex ? colors.blue : colors.lightGray },
-                          ]}
-                        />
-                      ))}
-                    </View>
-                  )}
-                </>
-              ) : (
-                null 
-              )}
-            </View>
+                  </>
+                ) : null}
+              </View>
+            )}
             
-            <View style={{ height: spacing.lg }} />
+            <View style={{ height: spacing.xl * 2 }} />
           </>
         )}
       </ScrollView>
 
-      {/* Search Results Container - Positioned absolutely, outside ScrollView */}
+      {/* Search Results Overlay */}
       {isSearchFocused && (isLoadingSearch || errorSearch || searchResults.length > 0 || searchQuery.trim().length >= 2) && (
         <View style={styles.searchResultsContainer}>
           {isLoadingSearch && (
@@ -439,7 +462,7 @@ export default function HomeScreen() {
               )}
             />
           )}
-    </View>
+        </View>
       )}
 
       <BrowseDrawer isVisible={isBrowseDrawerVisible} onClose={handleDrawerClose} />
@@ -450,79 +473,232 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.white, // Light blue background like in the provided design
   },
-  headerTopBar: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.lightBlue,
-    // zIndex: 1, // Ensure header is below search results if they overlap, but search results will have higher zIndex
-  },
-  drawerButton: {
-    padding: spacing.sm, 
-  },
-  logoContainer: {
-    flex: 1, // Allows logo to be centered if drawer/cart buttons have defined or intrinsic width
-    alignItems: 'center', // Center logo horizontally in this container
-  },
-  logo: {
-    width: 150, 
-    height: 40, 
-  },
-  cartButton: {
-    padding: spacing.sm,
-  },
-  searchBarOuterContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.lightBlue, 
-    // This View is no longer inside ScrollView, so its zIndex relative to siblings in SafeAreaView
-    zIndex: 5, // Higher than ScrollView content, lower than search results dropdown
-  },
-  searchBarInnerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: radii.lg, 
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm, 
-    shadowColor: colors.black, 
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    height: 44,
-    fontSize: typography.body.fontSize,
-    color: colors.black,
-    marginLeft: spacing.sm,
-  },
-  searchResultsContainer: {
-    position: 'absolute',
-    top: HEADER_TOTAL_HEIGHT + SEARCH_BAR_AREA_HEIGHT, // Position below header and search bar area
-    left: spacing.md,
-    right: spacing.md,
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    maxHeight: screenHeight * 0.7, // Increased to show more results 
-    shadowColor: '#000',
+    backgroundColor: colors.lightBlue, // Light blue as per design
+    height: HEADER_HEIGHT,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 50, // High elevation to ensure it's on top
-    zIndex: 50,    // High zIndex
-    overflow: 'hidden', // Ensure content doesn't overflow the container
+    elevation: 3,
+  },
+  drawerButton: {
+    padding: spacing.sm,
+  },
+  logoContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  logo: {
+    width: 153,
+    height: 50,
+  },
+  cartButton: {
+    padding: spacing.sm,
+    position: 'relative',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.blue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    zIndex: 2,
+  },
+  cartBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    marginTop: 0,
+    marginBottom: 0,
+    backgroundColor: colors.lightBlue,
+    zIndex: 5,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    paddingHorizontal: spacing.lg,
+    height: 48,
+    shadowColor: colors.blue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  searchIcon: {
+    marginRight: spacing.md,
+    color: colors.blue,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.black,
+    height: 48,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+  },
+  categoriesSection: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    backgroundColor: colors.white,
+    marginTop: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.black,
+    marginBottom: 12,
+    textAlign: 'left',
+  },
+  categoriesHorizontalGrid: {
+    paddingHorizontal: 10,
+  },
+  categoryItemWrapper: {
+    width: 128,
+    height: 110,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 0,
+    borderColor: colors.white,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.26,
+    shadowRadius: 4,
+    elevation: 2,
+    padding: 0,
+  },
+  categoryImage: {
+    width: 126,
+    height: 66,
+    marginTop: 8,
+    borderRadius: 8,
+    resizeMode: 'contain',
+  },
+  categoryName: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.black,
+    textAlign: 'center',
+  },
+  bannerSection: {
+    marginTop: 12,
+    marginBottom: 0,
+    height: BANNER_HEIGHT,
+    backgroundColor: 'transparent',
+    marginHorizontal: spacing.lg,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bannerLoaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerItemContainer: {
+    width: screenWidth - (spacing.lg * 2),
+    height: BANNER_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 4,
+    marginRight: 0,
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+    resizeMode: 'cover',
+  },
+  advertisementSection: {
+    marginTop: spacing.xl,
+    height: ADVERTISEMENT_HEIGHT,
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    marginHorizontal: spacing.lg,
+    overflow: 'hidden',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  advertisementItemContainer: {
+    width: screenWidth - (spacing.lg * 2),
+    height: ADVERTISEMENT_HEIGHT,
+  },
+  advertisementImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radii.lg,
+  },
+  indicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingVertical: 0,
+  },
+  indicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
+  },
+  searchResultsContainer: {
+    position: 'absolute',
+    top: HEADER_HEIGHT + SEARCH_BAR_HEIGHT,
+    left: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    maxHeight: screenHeight * 0.6,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 50,
+    zIndex: 50,
+    overflow: 'hidden',
   },
   searchResultsList: {
     width: '100%',
@@ -531,7 +707,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
     height: SEARCH_RESULT_ITEM_HEIGHT,
@@ -539,101 +715,38 @@ const styles = StyleSheet.create({
   },
   searchResultIcon: {
     marginRight: spacing.md,
-    width: 16, // Fixed width for alignment
+    width: 16,
   },
   searchResultText: {
-    fontSize: typography.body.fontSize,
-    color: colors.blue, // Changed to blue to match reference image
-    flex: 1, // Take up remaining space
+    fontSize: 16,
+    color: colors.blue,
+    flex: 1,
   },
   searchLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   searchLoadingText: {
-    marginLeft: spacing.sm,
-    fontSize: typography.body.fontSize,
+    marginLeft: spacing.md,
+    fontSize: 16,
     color: colors.blue,
   },
   searchErrorContainer: {
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   searchErrorText: {
-    padding: spacing.md,
     color: colors.red,
     textAlign: 'center',
   },
   noResultsContainer: {
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   noResultsText: {
-    padding: spacing.md,
     color: colors.textGray,
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  scrollView: {
-    flex: 1,
-    // zIndex: 0, // Ensure ScrollView is below absolutely positioned elements
-  },
-  scrollContentContainer: {
-    paddingBottom: spacing.lg, 
-  },
-  sectionContainer: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-  },
-  bannerSectionContainer: {
-    marginTop: spacing.lg,
-  },
-  advertisementSectionContainer: {
-    marginTop: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.black,
-    marginBottom: spacing.md, 
-    textAlign: 'left', 
-  },
-  categoriesListContainer: {
-    paddingVertical: spacing.xs, 
-  },
-  bannerItemContainer: {
-    width: screenWidth,
-    height: BANNER_HEIGHT,
-    borderRadius: radii.lg, 
-    overflow: 'hidden',
-    backgroundColor: colors.white,
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  advertisementItemContainer: {
-    width: screenWidth,
-    height: ADVERTISEMENT_HEIGHT,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    backgroundColor: colors.white,
-  },
-  advertisementImage: {
-    width: '100%',
-    height: '100%',
-  },
-  indicators: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: spacing.xs,
   },
   loader: {
     marginVertical: spacing.lg,
@@ -646,6 +759,6 @@ const styles = StyleSheet.create({
   noDataText: {
     textAlign: 'center',
     color: colors.textGray,
-    marginVertical: spacing.md,
+    marginVertical: spacing.lg,
   },
 }); 

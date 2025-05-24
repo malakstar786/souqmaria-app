@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons'; // Or any other icon library you prefer
 import { colors } from '@theme';
 import CartIcon from '../../components/CartIcon';
+import useCartStore from '../../store/cart-store';
 
 export default function ShopLayout() {
+  const { getUniqueId } = useCartStore();
+  
+  // Initialize unique ID when app starts
+  useEffect(() => {
+    const uniqueId = getUniqueId();
+    console.log('🆔 App initialized with unique ID:', uniqueId);
+  }, [getUniqueId]);
+  
   return (
     <Tabs
       screenOptions={{

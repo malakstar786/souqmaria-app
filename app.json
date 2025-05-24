@@ -1,26 +1,33 @@
 {
   "expo": {
-    "name": "souqmaria-app",
+    "name": "Welcome to Souq Maria!",
     "slug": "souqmaria-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "souqmaria",
+    "primaryColor": "#8DC63F",
     "splash": {
       "image": "./src/assets/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#D9F4FF"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "statusBarStyle": "dark"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#D9F4FF"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#D9F4FF"
+      }
     },
     "web": {
       "favicon": "./src/assets/logo.png"

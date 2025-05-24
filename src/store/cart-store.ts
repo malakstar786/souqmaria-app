@@ -52,6 +52,7 @@ interface CartState {
   error: string | null;
   generateUniqueId: () => void;
   getUniqueId: () => string;
+  regenerateUniqueIdAfterOrder: () => void;
   fetchCartItems: (userId?: string) => Promise<void>;
   updateCartItemQty: (cartId: number, newQty: number) => Promise<boolean>;
   removeCartItem: (cartId: number) => Promise<boolean>;
@@ -62,7 +63,11 @@ interface CartState {
 }
 
 // Generate a unique ID for this app instance
-const generateStoreUniqueId = () => `app-${Date.now()}`;
+const generateStoreUniqueId = () => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  return `app-${timestamp}-${random}`;
+};
 
 // Update the totalAmount and totalItems based on cart items
 const recalculateTotals = (items: CartItem[]) => {
@@ -78,8 +83,10 @@ const recalculateTotals = (items: CartItem[]) => {
   };
 };
 
-// Create the cart store
-const useCartStore = create<CartState>((set, get) => ({
+// Create the cart store with persistence
+const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
   cartItems: [],
   totalAmount: 0,
   totalItems: 0,
@@ -89,6 +96,7 @@ const useCartStore = create<CartState>((set, get) => ({
   
   generateUniqueId: () => {
     const newUniqueId = generateStoreUniqueId();
+        console.log('🆔 Generated new unique ID:', newUniqueId);
     set({ uniqueId: newUniqueId });
   },
   
@@ -96,11 +104,24 @@ const useCartStore = create<CartState>((set, get) => ({
     let { uniqueId } = get();
     if (!uniqueId) {
       const newUniqueId = generateStoreUniqueId();
+          console.log('🆔 No existing unique ID, generating new one:', newUniqueId);
       set({ uniqueId: newUniqueId });
       return newUniqueId;
     }
     return uniqueId;
   },
+      
+      regenerateUniqueIdAfterOrder: () => {
+        const newUniqueId = generateStoreUniqueId();
+        console.log('🆔 Regenerating unique ID after successful order. Old ID:', get().uniqueId, 'New ID:', newUniqueId);
+        set({ 
+          uniqueId: newUniqueId,
+          cartItems: [],
+          totalAmount: 0,
+          totalItems: 0,
+          error: null
+        });
+      },
   
   fetchCartItems: async (userId?: string) => {
     set({ isLoading: true, error: null });
@@ -292,6 +313,12 @@ const useCartStore = create<CartState>((set, get) => ({
     const { totalItems, totalAmount } = recalculateTotals(cartItems);
     set({ totalItems, totalAmount });
   },
-}));
+    }),
+    {
+      name: 'cart-store',
+      storage: createJSONStorage(() => AsyncStorage)
+    }
+  )
+);
 
 export default useCartStore; 

@@ -24,9 +24,27 @@ export default function OrdersScreen() {
 
   // Fetch orders when the screen loads
   useEffect(() => {
+    console.log('📋 Orders Screen - useEffect triggered');
+    console.log('📋 Orders Screen - Full user object:', JSON.stringify(user, null, 2));
+    console.log('📋 Orders Screen - user?.id:', user?.id);
+    console.log('📋 Orders Screen - user?.UserID:', user?.UserID);
+    
     const userId = user?.id || user?.UserID;
-    if (userId) {
+    console.log('📋 Orders Screen - Final userId to use:', userId);
+    
+    // Check if user is a guest (guest users typically have numeric IDs like "8028")
+    const isGuestUser = userId && /^\d+$/.test(userId) && parseInt(userId) > 1000;
+    console.log('📋 Orders Screen - Is guest user:', isGuestUser);
+    
+    if (userId && !isGuestUser) {
+      console.log('📋 Orders Screen - Calling fetchOrders with userId:', userId);
       fetchOrders(userId);
+    } else if (isGuestUser) {
+      console.log('📋 Orders Screen - Guest user detected, orders may not be available');
+      // Still try to fetch orders for guest users, but they might not have any
+      fetchOrders(userId);
+    } else {
+      console.log('📋 Orders Screen - No userId found, not calling fetchOrders');
     }
   }, [user, fetchOrders]);
 
@@ -49,12 +67,12 @@ export default function OrdersScreen() {
         });
   };
 
-  // Format currency
+  // Format currency consistently with KWD
   const formatPrice = (price: number | string | undefined | null): string => {
-    if (price === undefined || price === null) return '--';
+    if (price === undefined || price === null) return '0.000 KWD';
     const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-    if (isNaN(numericPrice)) return '--';
-    return `KD ${numericPrice.toFixed(2)}`;
+    if (isNaN(numericPrice)) return '0.000 KWD';
+    return `${numericPrice.toFixed(3)} KWD`;
   };
 
   // Render an individual order card
@@ -72,7 +90,11 @@ export default function OrdersScreen() {
       <View style={styles.orderInfo}>
         <Text style={styles.orderTotal}>Total: {formatPrice(item.TotalAmount)}</Text>
         <Text style={styles.orderStatus}>
-          Status: <Text style={styles.statusText}>{item.Status || 'Processing'}</Text>
+          Status: <Text style={[styles.statusText, 
+            item.Status === 'SUCCESS' ? styles.statusSuccess : 
+            item.Status === 'PENDING' ? styles.statusPending : 
+            styles.statusDefault
+          ]}>{item.Status || 'Processing'}</Text>
         </Text>
       </View>
       
@@ -224,6 +246,15 @@ const styles = StyleSheet.create({
   statusText: {
     fontWeight: 'bold',
     color: colors.green,
+  },
+  statusSuccess: {
+    color: colors.green,
+  },
+  statusPending: {
+    color: colors.blue,
+  },
+  statusDefault: {
+    color: colors.textGray,
   },
   orderFooter: {
     flexDirection: 'row',

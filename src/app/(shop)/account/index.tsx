@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/auth-store';
+import AuthModal from '../../../components/AuthModal';
 
 // Define valid FontAwesome icon names
 type FontAwesomeIconName = React.ComponentProps<typeof FontAwesome>['name'];
@@ -21,6 +22,7 @@ export default function AccountScreen() {
   const router = useRouter();
   const { user, isLoggedIn, logout } = useAuthStore();
   const [currentLanguage, setCurrentLanguage] = React.useState('English'); // Default or from state
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Handle language change
   const handleChangeLanguage = () => {
@@ -29,7 +31,7 @@ export default function AccountScreen() {
 
   // Handle login/register
   const handleLoginRegister = () => {
-    router.push('/auth');
+    setShowAuthModal(true);
   };
 
   // Handle logout with confirmation
@@ -161,6 +163,16 @@ export default function AccountScreen() {
 
       {/* Account Content - Switch based on login state */}
       {isLoggedIn ? renderLoggedInView() : renderGuestView()}
+      
+      {/* Auth Modal */}
+      <AuthModal
+        isVisible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialTab="login"
+        onSuccess={() => {
+          setShowAuthModal(false);
+        }}
+      />
     </ScrollView>
   );
 }

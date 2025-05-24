@@ -1,0 +1,568 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  SafeAreaView,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import { useAuthStore } from '../store/auth-store';
+import { colors, spacing, radii } from '@theme';
+
+const { height: screenHeight } = Dimensions.get('window');
+
+interface AuthModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  initialTab?: 'login' | 'signup';
+  onSuccess?: () => void;
+}
+
+export default function AuthModal({ 
+  isVisible, 
+  onClose, 
+  initialTab = 'login',
+  onSuccess 
+}: AuthModalProps) {
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const { login, register, isLoading, error, clearError } = useAuthStore();
+  
+  // Login form state
+  const [loginData, setLoginData] = useState({
+    userName: '',
+    password: '',
+    passwordVisible: false,
+  });
+  
+  // Signup form state
+  const [signupData, setSignupData] = useState({
+    fullName: '',
+    email: '',
+    mobile: '',
+    password: '',
+    passwordVisible: false,
+  });
+  
+  // Form validation state
+  const [formErrors, setFormErrors] = useState({
+    userName: '',
+    password: '',
+    fullName: '',
+    email: '',
+    mobile: '',
+  });
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isVisible) {
+      setActiveTab(initialTab);
+      clearError();
+      setFormErrors({
+        userName: '',
+        password: '',
+        fullName: '',
+        email: '',
+        mobile: '',
+      });
+    }
+  }, [isVisible, initialTab, clearError]);
+
+  // Handle login
+  const handleLogin = async () => {
+    clearError();
+    
+    // Validate
+    let valid = true;
+    const errors = { ...formErrors };
+    
+    if (!loginData.userName.trim()) {
+      errors.userName = 'Email/Mobile is required';
+      valid = false;
+    } else {
+      errors.userName = '';
+    }
+    
+    if (!loginData.password) {
+      errors.password = 'Password is required';
+      valid = false;
+    } else {
+      errors.password = '';
+    }
+    
+    setFormErrors(errors);
+    if (!valid) return;
+
+    const success = await login({ 
+      userName: loginData.userName, 
+      password: loginData.password 
+    });
+    
+    if (success) {
+      onSuccess?.();
+      onClose();
+    }
+  };
+
+  // Handle signup
+  const handleSignup = async () => {
+    clearError();
+    
+    // Validate
+    let valid = true;
+    const errors = { ...formErrors };
+    
+    if (!signupData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+      valid = false;
+    } else {
+      errors.fullName = '';
+    }
+    
+    if (!signupData.email.trim()) {
+      errors.email = 'Email is required';
+      valid = false;
+    } else if (!/^\S+@\S+\.\S+$/.test(signupData.email)) {
+      errors.email = 'Invalid email format';
+      valid = false;
+    } else {
+      errors.email = '';
+    }
+    
+    if (!signupData.mobile.trim()) {
+      errors.mobile = 'Mobile is required';
+      valid = false;
+    } else {
+      errors.mobile = '';
+    }
+    
+    if (!signupData.password) {
+      errors.password = 'Password is required';
+      valid = false;
+    } else if (signupData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+      valid = false;
+    } else {
+      errors.password = '';
+    }
+    
+    setFormErrors(errors);
+    if (!valid) return;
+
+    const success = await register(
+      signupData.fullName,
+      signupData.email,
+      signupData.mobile,
+      signupData.password
+    );
+    
+    if (success) {
+      Alert.alert(
+        'Success',
+        'Your account has been created successfully!',
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            onSuccess?.();
+            onClose();
+          }
+        }]
+      );
+    }
+  };
+
+  // Show error alert
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error, [{ text: 'OK', onPress: clearError }]);
+    }
+  }, [error, clearError]);
+
+  const renderLoginForm = () => (
+    <>
+      <Text style={styles.autoSignText}>Auto SIGN-IN using Google Email</Text>
+      <TouchableOpacity style={styles.googleButton}>
+        <View style={styles.googleIcon}>
+          <FontAwesome name="google" size={20} color={colors.black} />
+        </View>
+        <Text style={styles.googleButtonText}>Sign in with Google</Text>
+      </TouchableOpacity>
+      
+      <View style={styles.dividerContainer}>
+        <View style={styles.divider} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.divider} />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, formErrors.userName ? styles.inputError : null]}
+          placeholder="Email/Mobile"
+          value={loginData.userName}
+          onChangeText={(text) => setLoginData(prev => ({ ...prev, userName: text }))}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        {formErrors.userName ? <Text style={styles.errorText}>{formErrors.userName}</Text> : null}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <View style={[styles.passwordContainer, formErrors.password ? styles.inputError : null]}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            value={loginData.password}
+            onChangeText={(text) => setLoginData(prev => ({ ...prev, password: text }))}
+            secureTextEntry={!loginData.passwordVisible}
+          />
+          <TouchableOpacity 
+            onPress={() => setLoginData(prev => ({ ...prev, passwordVisible: !prev.passwordVisible }))}
+            style={styles.eyeIcon}
+          >
+            <FontAwesome
+              name={loginData.passwordVisible ? 'eye-slash' : 'eye'}
+              size={20}
+              color={colors.textGray}
+            />
+          </TouchableOpacity>
+        </View>
+        {formErrors.password ? <Text style={styles.errorText}>{formErrors.password}</Text> : null}
+      </View>
+
+      <TouchableOpacity style={styles.forgotPasswordButton}>
+        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.actionButton} 
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.actionButtonText}>Login</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.switchContainer} onPress={() => setActiveTab('signup')}>
+        <Text style={styles.switchText}>Create Account?</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  const renderSignupForm = () => (
+    <>
+      <Text style={styles.autoSignText}>Auto SIGN-UP using Google Email</Text>
+      <TouchableOpacity style={styles.googleButton}>
+        <View style={styles.googleIcon}>
+          <FontAwesome name="google" size={20} color={colors.black} />
+        </View>
+        <Text style={styles.googleButtonText}>Sign up with Google</Text>
+      </TouchableOpacity>
+      
+      <View style={styles.dividerContainer}>
+        <View style={styles.divider} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.divider} />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, formErrors.fullName ? styles.inputError : null]}
+          placeholder="Full Name"
+          value={signupData.fullName}
+          onChangeText={(text) => setSignupData(prev => ({ ...prev, fullName: text }))}
+          autoCapitalize="words"
+        />
+        {formErrors.fullName ? <Text style={styles.errorText}>{formErrors.fullName}</Text> : null}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, formErrors.email ? styles.inputError : null]}
+          placeholder="Email"
+          value={signupData.email}
+          onChangeText={(text) => setSignupData(prev => ({ ...prev, email: text }))}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        {formErrors.email ? <Text style={styles.errorText}>{formErrors.email}</Text> : null}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, formErrors.mobile ? styles.inputError : null]}
+          placeholder="Mobile"
+          value={signupData.mobile}
+          onChangeText={(text) => setSignupData(prev => ({ ...prev, mobile: text }))}
+          keyboardType="phone-pad"
+        />
+        {formErrors.mobile ? <Text style={styles.errorText}>{formErrors.mobile}</Text> : null}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <View style={[styles.passwordContainer, formErrors.password ? styles.inputError : null]}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            value={signupData.password}
+            onChangeText={(text) => setSignupData(prev => ({ ...prev, password: text }))}
+            secureTextEntry={!signupData.passwordVisible}
+          />
+          <TouchableOpacity 
+            onPress={() => setSignupData(prev => ({ ...prev, passwordVisible: !prev.passwordVisible }))}
+            style={styles.eyeIcon}
+          >
+            <FontAwesome
+              name={signupData.passwordVisible ? 'eye-slash' : 'eye'}
+              size={20}
+              color={colors.textGray}
+            />
+          </TouchableOpacity>
+        </View>
+        {formErrors.password ? <Text style={styles.errorText}>{formErrors.password}</Text> : null}
+      </View>
+
+      <TouchableOpacity 
+        style={styles.actionButton} 
+        onPress={handleSignup}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.actionButtonText}>Sign up</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.switchContainer} onPress={() => setActiveTab('login')}>
+        <Text style={styles.switchText}>Already have account? </Text>
+        <Text style={styles.switchLink}>Login</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.backdrop} />
+        
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalContent}
+        >
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <FontAwesome name="times" size={24} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'login' && styles.activeTab]}
+              onPress={() => setActiveTab('login')}
+            >
+              <Text style={[styles.tabText, activeTab === 'login' && styles.activeTabText]}>
+                Login
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'signup' && styles.activeTab]}
+              onPress={() => setActiveTab('signup')}
+            >
+              <Text style={[styles.tabText, activeTab === 'signup' && styles.activeTabText]}>
+                Sign up
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
+            {activeTab === 'login' ? renderLoginForm() : renderSignupForm()}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: screenHeight * 0.75,
+    paddingTop: spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  closeButton: {
+    padding: spacing.sm,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: colors.blue,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.textGray,
+  },
+  activeTabText: {
+    color: colors.blue,
+    fontWeight: 'bold',
+  },
+  formContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+  },
+  autoSignText: {
+    fontSize: 14,
+    color: colors.black,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+    marginBottom: spacing.lg,
+  },
+  googleIcon: {
+    marginRight: spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    color: colors.black,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.lg,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.lightGray,
+  },
+  dividerText: {
+    marginHorizontal: spacing.md,
+    color: colors.textGray,
+    fontSize: 14,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    fontSize: 16,
+    backgroundColor: colors.backgroundLight,
+  },
+  inputError: {
+    borderColor: colors.red,
+  },
+  errorText: {
+    color: colors.red,
+    fontSize: 12,
+    marginTop: spacing.xs,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: radii.md,
+    backgroundColor: colors.backgroundLight,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: spacing.md,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    padding: spacing.md,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  forgotPasswordText: {
+    color: colors.blue,
+    fontSize: 14,
+  },
+  actionButton: {
+    backgroundColor: colors.blue,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  actionButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: spacing.xl,
+  },
+  switchText: {
+    fontSize: 14,
+    color: colors.black,
+  },
+  switchLink: {
+    fontSize: 14,
+    color: colors.blue,
+    fontWeight: 'bold',
+  },
+}); 

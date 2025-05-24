@@ -7,7 +7,9 @@ const CATEGORY_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/HomePage_Category
 // Types for category data
 export interface Category {
   SrNo: string;
-  CategoryName: string;
+  CategoryNameEN: string; // English category name
+  CategoryNameAR: string; // Arabic category name
+  CategoryName: string; // For backward compatibility - will use English name
   Ordering: number;
   Image: string; // This is the image filename
   HPCType: string;
@@ -42,8 +44,10 @@ const useAllCategoryStore = create<AllCategoryState>((set) => ({
         // API returned categories successfully
         const rawCategories = response.Data.row || [];
         
-        const processedCategories = rawCategories.map((category: Category) => ({
+        const processedCategories = rawCategories.map((category: any) => ({
           ...category,
+          // Ensure CategoryName exists for backward compatibility
+          CategoryName: category.CategoryNameEN || category.CategoryName,
           // Construct the full image URL
           imageUrl: `${CATEGORY_IMAGE_BASE_URL}${category.Image}`,
         }));

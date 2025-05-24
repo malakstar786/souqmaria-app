@@ -4384,3 +4384,80 @@ The checkout flow has been implemented to follow the exact sequence specified:
 - Verify order details API integration with actual TrackId
 - Test edge cases and error scenarios
 
+## MY ORDERS API IMPLEMENTATION
+
+### Overview
+The My Orders screen displays a list of orders for the logged-in user, showing order details like order number, date, total amount, status, and item count.
+
+### API Endpoint
+**Stored Procedure**: `[Web].[Sp_Template1_Get_MyOrders_Apps]`
+
+### API Testing
+```bash
+# Test My Orders API
+curl -X POST "https://api.souqmaria.com/api/MerpecWebApi/getData_JSON/" \
+  -H "Content-Type: application/json" \
+  -d '{"strQuery": "[Web].[Sp_Template1_Get_MyOrders_Apps] '\''Get_MyOrders_Parent'\'','\''USER_ID'\'','\'''\'''\'''\'','\''KWD'\'','\''KD'\'',3044,1"}'
+```
+
+### Parameters
+1. **Type**: `"Get_MyOrders_Parent"` (string) - Operation type
+2. **Value**: `USER_ID` (string) - User ID to fetch orders for
+3. **Value1**: `""` (string) - Empty string
+4. **Value2**: `""` (string) - Empty string  
+5. **Value3**: `"KWD"` (string) - Currency name (Kuwaiti Dinar)
+6. **Value4**: `"KD"` (string) - Currency code
+7. **Company**: `3044` (int) - Company ID
+8. **CultureId**: `1` (int) - Culture ID (1 for English, 2 for Arabic)
+
+### Response Structure
+```json
+{
+  "success": 1,
+  "row": [
+    {
+      "OrderID": "string",
+      "OrderNo": "string", 
+      "OrderDate": "string",
+      "TotalAmount": number,
+      "Status": "string",
+      "ItemCount": number,
+      "CurrencyName": "KWD",
+      "CurrencyCode": "KD"
+    }
+  ],
+  "Message": "Data found."
+}
+```
+
+### Currency Data Source
+- **Currency Name**: "KWD" (Kuwaiti Dinar)
+- **Currency Code**: "KD" 
+- These values are passed directly to the stored procedure
+- Previously was using hardcoded strings "CurrencyXName" and "CurrencyXCode"
+- Updated to use actual currency values: "KWD" and "KD"
+
+### Implementation Files
+- **Screen**: `src/app/(shop)/account/orders/index.tsx`
+- **Store**: `src/store/order-store.ts` 
+- **API Service**: `src/utils/api-service.ts` (getMyOrders function)
+- **API Config**: `src/utils/api-config.ts` (GET_MY_ORDERS query)
+
+### Order Details API
+For individual order details:
+```bash
+# Test Order Details API  
+curl -X POST "https://api.souqmaria.com/api/MerpecWebApi/getData_JSON/" \
+  -H "Content-Type: application/json" \
+  -d '{"strQuery": "[Web].[Sp_Template1_Get_MyOrders_Apps] '\''Get_MyOrders_Child'\'','\''USER_ID'\'','\''ORDER_NO'\'','\'''\'''\'''\'','\''KWD'\'','\''KD'\'',3044,1"}'
+```
+
+### UI Layout Requirements
+Based on @my_orders.png:
+- Order cards with clean, modern design
+- Each card shows: Order #, Date, Total amount with KWD currency, Status, Item count
+- Touch interaction to view order details
+- Empty state for when no orders found
+- Loading states and error handling
+- Proper navigation and header with back button
+

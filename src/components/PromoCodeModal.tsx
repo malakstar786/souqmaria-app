@@ -1,25 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Modal,
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import usePromoStore from '../store/promo-store';
-
-const colors = {
-  white: '#FFFFFF',
-  lightBlue: '#E6F0FA',
-  blue: '#0063B1',
-  black: '#000000',
-  lightGray: '#E0E0E0',
-  gray: '#888888',
-};
+import { colors, spacing, radii } from '@theme';
+import { getPromoCodes, PromoCodeItem } from '../utils/api-service';
 
 interface PromoCodeModalProps {
   isVisible: boolean;
@@ -27,145 +19,225 @@ interface PromoCodeModalProps {
   onSelectPromoCode: (code: string) => void;
 }
 
-const PromoCodeModal = ({ isVisible, onClose, onSelectPromoCode }: PromoCodeModalProps) => {
-  const { promoCodes, fetchPromoCodes, isFetchingCodes } = usePromoStore();
-  
+export default function PromoCodeModal({
+  isVisible,
+  onClose,
+  onSelectPromoCode,
+}: PromoCodeModalProps) {
+  const [promoCodes, setPromoCodes] = useState<PromoCodeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (isVisible) {
       fetchPromoCodes();
     }
-  }, [isVisible, fetchPromoCodes]);
+  }, [isVisible]);
 
-  const handleSelectPromoCode = (code: string) => {
+  const fetchPromoCodes = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🎟️ PROMO CODES MODAL - Fetching promo codes...');
+      const response = await getPromoCodes('1');
+      
+      console.log('🎟️ PROMO CODES MODAL - Response:', JSON.stringify(response, null, 2));
+      
+      if (response.ResponseCode === '2' && response.Data?.row) {
+        setPromoCodes(response.Data.row);
+        console.log('🎟️ PROMO CODES MODAL - Found', response.Data.row.length, 'promo codes');
+      } else {
+        setError('No promo codes are available at the moment');
+        setPromoCodes([]);
+        console.log('🎟️ PROMO CODES MODAL - No promo codes available');
+      }
+    } catch (err) {
+      console.error('🎟️ PROMO CODES MODAL - Error fetching promo codes:', err);
+      setError('Failed to load promo codes. Please try again.');
+      setPromoCodes([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectCode = (code: string) => {
+    console.log('🎟️ PROMO CODES MODAL - Selected code:', code);
     onSelectPromoCode(code);
     onClose();
   };
 
-  const renderPromoItem = ({ item }: { item: { XCode: string; XName: string } }) => (
+  const renderPromoCodeItem = ({ item }: { item: PromoCodeItem }) => (
     <TouchableOpacity
-      style={styles.promoItem}
-      onPress={() => handleSelectPromoCode(item.XCode)}
+      style={styles.promoCodeItem}
+      onPress={() => handleSelectCode(item.XCode)}
     >
-      <View style={styles.promoContent}>
-        <Text style={styles.promoCode}>{item.XCode}</Text>
-        <Text style={styles.promoName}>{item.XName}</Text>
+      <View style={styles.promoCodeContent}>
+        <Text style={styles.promoCodeText}>{item.XCode}</Text>
+        <Text style={styles.promoCodeDescription}>{item.XName}</Text>
       </View>
-      <FontAwesome name="arrow-right" size={18} color={colors.blue} />
+      <FontAwesome name="chevron-right" size={16} color={colors.textGray} />
     </TouchableOpacity>
   );
 
   return (
     <Modal
+      visible={isVisible}
       animationType="slide"
       transparent={true}
-      visible={isVisible}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.modalContainer}>
           <View style={styles.header}>
+            <Text style={styles.headerTitle}>Available Promo Codes</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <FontAwesome name="close" size={20} color={colors.black} />
+              <FontAwesome name="times" size={20} color={colors.black} />
             </TouchableOpacity>
-            <Text style={styles.title}>Available Promo Codes</Text>
-            <View style={{ width: 20 }} />
           </View>
 
-          {isFetchingCodes ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.blue} />
-              <Text style={styles.loadingText}>Loading promo codes...</Text>
-            </View>
-          ) : promoCodes.length > 0 ? (
-            <FlatList
-              data={promoCodes}
-              renderItem={renderPromoItem}
-              keyExtractor={(item) => item.XCode}
-              contentContainerStyle={styles.promoList}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No promo codes available at this time</Text>
-            </View>
-          )}
+          <View style={styles.content}>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.blue} />
+                <Text style={styles.loadingText}>Loading promo codes...</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.errorContainer}>
+                <FontAwesome name="exclamation-circle" size={48} color={colors.textGray} />
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={fetchPromoCodes}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : promoCodes.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <FontAwesome name="tag" size={48} color={colors.textGray} />
+                <Text style={styles.emptyText}>No promo codes available</Text>
+                <Text style={styles.emptySubtext}>Check back later for exclusive offers!</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={promoCodes}
+                renderItem={renderPromoCodeItem}
+                keyExtractor={(item) => item.XCode}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContainer}
+              />
+            )}
+          </View>
         </View>
       </SafeAreaView>
     </Modal>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  modalContent: {
-    width: '90%',
-    maxHeight: '70%',
+  modalContainer: {
     backgroundColor: colors.white,
-    borderRadius: 8,
-    overflow: 'hidden',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    minHeight: '50%',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    alignItems: 'center',
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.lightGray,
   },
-  title: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.black,
   },
   closeButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
-  promoList: {
-    paddingVertical: 8,
-  },
-  promoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
-  },
-  promoContent: {
+  content: {
     flex: 1,
-  },
-  promoCode: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.blue,
-    marginBottom: 4,
-  },
-  promoName: {
-    fontSize: 14,
-    color: colors.gray,
+    padding: spacing.lg,
   },
   loadingContainer: {
-    padding: 24,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing.md,
     fontSize: 16,
-    color: colors.gray,
+    color: colors.textGray,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.textGray,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: colors.blue,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontWeight: '500',
   },
   emptyContainer: {
-    padding: 24,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
-    color: colors.gray,
+    fontSize: 18,
+    fontWeight: '500',
+    color: colors.textGray,
+    marginTop: spacing.md,
+    textAlign: 'center',
   },
-});
-
-export default PromoCodeModal; 
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textGray,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  listContainer: {
+    paddingBottom: spacing.lg,
+  },
+  promoCodeItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.veryLightGray,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
+  },
+  promoCodeContent: {
+    flex: 1,
+  },
+  promoCodeText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.black,
+    marginBottom: 4,
+  },
+  promoCodeDescription: {
+    fontSize: 14,
+    color: colors.textGray,
+  },
+}); 

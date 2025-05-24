@@ -335,6 +335,13 @@ const apiRequest = async <T>(
 ): Promise<ApiResponse<T>> => {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  // Log all API requests
+  console.log(`🌐 API REQUEST - ${endpoint}:`, {
+    url,
+    method,
+    params: JSON.stringify(params, null, 2)
+  });
+  
   try {
     const httpResponse = await fetch(url, {
       method,
@@ -347,15 +354,35 @@ const apiRequest = async <T>(
     
     const responseData = await httpResponse.json();
     
-    // Log raw response data for checkout endpoints
+    // Log all API responses
+    console.log(`🌐 API RESPONSE - ${endpoint}:`, {
+      status: httpResponse.status,
+      statusText: httpResponse.statusText,
+      data: JSON.stringify(responseData, null, 2)
+    });
+    
+    // Additional detailed logging for specific endpoints
     if (endpoint === ENDPOINTS.SAVE_CHECKOUT) {
-      console.log('🛒 API RAW RESPONSE DATA:', JSON.stringify(responseData, null, 2));
-      console.log('🛒 API RAW RESPONSE - TrackId:', responseData.TrackId);
-      console.log('🛒 API RAW RESPONSE - ResponseCode:', responseData.ResponseCode);
-      console.log('🛒 API RAW RESPONSE - Message:', responseData.Message);
+      console.log('🛒 SAVE CHECKOUT - RAW RESPONSE:', JSON.stringify(responseData, null, 2));
+      console.log('🛒 SAVE CHECKOUT - TrackId:', responseData.TrackId);
+      console.log('🛒 SAVE CHECKOUT - ResponseCode:', responseData.ResponseCode);
+      console.log('🛒 SAVE CHECKOUT - Message:', responseData.Message);
+    }
+    
+    if (endpoint === ENDPOINTS.ORDER_REVIEW_CHECKOUT) {
+      console.log('🛒 ORDER REVIEW - RAW RESPONSE:', JSON.stringify(responseData, null, 2));
+      console.log('🛒 ORDER REVIEW - ResponseCode:', responseData.ResponseCode);
+      console.log('🛒 ORDER REVIEW - Has Data:', !!responseData.li?.length);
+      console.log('🛒 ORDER REVIEW - Cart Count:', responseData.li?.[0]?.CartCount || 0);
     }
 
     if (!httpResponse.ok) {
+      console.error(`🌐 API ERROR - ${endpoint}:`, {
+        status: httpResponse.status,
+        statusText: httpResponse.statusText,
+        responseData
+      });
+      
       // For HTTP errors (4xx, 5xx), try to use the message from the API if available
       return {
         StatusCode: httpResponse.status,
@@ -388,16 +415,16 @@ const apiRequest = async <T>(
       UserDetails: responseData.UserDetails,
     };
     
-    // Log the constructed API response for checkout endpoints
+    // Log the constructed API response for important endpoints
     if (endpoint === ENDPOINTS.SAVE_CHECKOUT) {
-      console.log('🛒 API CONSTRUCTED RESPONSE:', JSON.stringify(apiResponse, null, 2));
-      console.log('🛒 API CONSTRUCTED - TrackId:', apiResponse.TrackId);
+      console.log('🛒 SAVE CHECKOUT - CONSTRUCTED RESPONSE:', JSON.stringify(apiResponse, null, 2));
+      console.log('🛒 SAVE CHECKOUT - Final TrackId:', apiResponse.TrackId);
     }
     
     return apiResponse;
 
   } catch (error) {
-    console.error('API request failed:', endpoint, error);
+    console.error(`🌐 API NETWORK ERROR - ${endpoint}:`, error);
     return {
       StatusCode: 503, 
       ResponseCode: String(RESPONSE_CODES.GENERAL_ERROR), 
@@ -627,18 +654,25 @@ export const getShippingAddresses = async (userId: string): Promise<ApiResponse<
 export const getMyOrders = async (userId: string, cultureId: string = '1'): Promise<ApiResponse<any>> => {
   try {
     const query = SP_QUERIES.GET_MY_ORDERS(userId, cultureId);
+    console.log('📋 getMyOrders - Query:', query);
+    
     const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
       strQuery: query
     });
     
-    return {
+    console.log('📋 getMyOrders - Raw response:', JSON.stringify(response.data, null, 2));
+    
+    const result = {
       StatusCode: 200,
       ResponseCode: response.data.success === 1 ? '2' : '-2',
       Message: response.data.Message || 'Orders retrieved successfully',
       Data: response.data
     };
+    
+    console.log('📋 getMyOrders - Formatted result:', JSON.stringify(result, null, 2));
+    return result;
   } catch (error) {
-    console.error('Error getting orders:', error);
+    console.error('❌ getMyOrders - Error:', error);
     return {
       StatusCode: 500,
       ResponseCode: '-2',
@@ -1720,10 +1754,10 @@ export interface PaymentModeResponse {
 }
 
 // Get payment modes for checkout
-export async function getPaymentModes(): Promise<ApiResponse<PaymentModeResponse>> {
+export async function getPaymentModes(countryXcode: string = '69'): Promise<ApiResponse<PaymentModeResponse>> {
   try {
     const data = {
-      strQuery: SP_QUERIES.GET_PAYMENT_MODE_LIST
+      strQuery: SP_QUERIES.GET_PAYMENT_MODE_LIST(countryXcode)
     };
     const response = await apiRequest<PaymentModeResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -2028,7 +2062,32 @@ export interface OrderReviewCheckoutResponse {
 
 export async function getOrderReviewCheckout(params: OrderReviewCheckoutParams): Promise<ApiResponse<OrderReviewCheckoutResponse>> {
   try {
-    console.log('🛒 Order Review Checkout - Request:', JSON.stringify(params, null, 2));
+    console.log('🛒 ORDER REVIEW CHECKOUT - Starting API call with params:', JSON.stringify(params, null, 2));
+    
+    // Validate required parameters
+    if (!params.UniqueId) {
+      console.error('🛒 ORDER REVIEW CHECKOUT - Missing required UniqueId parameter');
+      return {
+        StatusCode: 400,
+        ResponseCode: '-1',
+        Message: 'UniqueId is required for order review',
+        Data: { li: [], ResponseCode: '-1', Message: 'UniqueId is required' }
+      };
+    }
+    
+    // Log the call type based on location parameters
+    const hasLocationData = params.Country && params.State && params.City;
+    console.log('🛒 ORDER REVIEW CHECKOUT - Call type:', hasLocationData ? 'WITH LOCATION DATA' : 'WITHOUT LOCATION DATA (Initial/Guest call)');
+    
+    if (hasLocationData) {
+      console.log('🛒 ORDER REVIEW CHECKOUT - Location codes:', {
+        Country: params.Country,
+        State: params.State,
+        City: params.City
+      });
+    } else {
+      console.log('🛒 ORDER REVIEW CHECKOUT - No location codes provided - this is expected for initial guest checkout calls');
+    }
     
     const response = await apiRequest<OrderReviewCheckoutResponse>(
       ENDPOINTS.ORDER_REVIEW_CHECKOUT,
@@ -2036,17 +2095,71 @@ export async function getOrderReviewCheckout(params: OrderReviewCheckoutParams):
       params
     );
     
-    console.log('🛒 Order Review Checkout - Response:', JSON.stringify({
-      statusCode: response.StatusCode,
-      responseCode: response.ResponseCode,
-      message: response.Message,
-      hasData: !!response.Data?.li?.length,
-      itemCount: response.Data?.li?.[0]?.CartCount || 0
-    }, null, 2));
+    // Enhanced response logging
+    console.log('🛒 ORDER REVIEW CHECKOUT - API Response Status:', response.StatusCode);
+    console.log('🛒 ORDER REVIEW CHECKOUT - API Response Code:', response.ResponseCode);
+    console.log('🛒 ORDER REVIEW CHECKOUT - API Message:', response.Message);
+    
+    if (response.Data) {
+      console.log('🛒 ORDER REVIEW CHECKOUT - Response Data Structure:', {
+        hasLiArray: !!response.Data.li,
+        liArrayLength: response.Data.li?.length || 0,
+        responseCode: response.Data.ResponseCode,
+        message: response.Data.Message
+      });
+      
+      if (response.Data.li && response.Data.li.length > 0) {
+        const orderData = response.Data.li[0];
+        console.log('🛒 ORDER REVIEW CHECKOUT - Order Data Details:', {
+          cartCount: orderData.CartCount,
+          cartItemsListLength: orderData.CartItemsList?.length || 0,
+          subTotal: orderData.SubTotal,
+          discount: orderData.Discount,
+          shippingCharge: orderData.ShippingCharge,
+          grandTotal: orderData.GrandTotal,
+          promoCode: orderData.PromoCode || 'None',
+          hasCartItems: !!orderData.CartItemsList?.length
+        });
+        
+        // Log individual cart items for debugging
+        if (orderData.CartItemsList && orderData.CartItemsList.length > 0) {
+          console.log('🛒 ORDER REVIEW CHECKOUT - Cart Items:', orderData.CartItemsList.map((item, index) => ({
+            index,
+            itemCode: item.ItemCode,
+            itemName: item.ItemName,
+            quantity: item.Quantity,
+            newPrice: item.NewPrice,
+            subTotal: item.SubTotal
+          })));
+        } else {
+          console.log('🛒 ORDER REVIEW CHECKOUT - No cart items found in CartItemsList');
+        }
+        
+        // Check for potential itemcount mismatch
+        if (orderData.CartCount === 0 && orderData.CartItemsList && orderData.CartItemsList.length > 0) {
+          console.warn('🛒 ORDER REVIEW CHECKOUT - POTENTIAL ISSUE: CartCount is 0 but CartItemsList has items');
+        }
+      } else {
+        console.log('🛒 ORDER REVIEW CHECKOUT - No order data in li array');
+        
+        // Check if this is due to empty cart or missing location codes
+        if (!hasLocationData) {
+          console.log('🛒 ORDER REVIEW CHECKOUT - This might be expected for initial guest calls without location data');
+        } else {
+          console.log('🛒 ORDER REVIEW CHECKOUT - No data despite having location codes - possible empty cart or API issue');
+        }
+      }
+    } else {
+      console.log('🛒 ORDER REVIEW CHECKOUT - No Data field in response');
+    }
     
     return response;
   } catch (error) {
-    console.error('❌ Error in getOrderReviewCheckout:', error);
+    console.error('❌ ORDER REVIEW CHECKOUT - Error occurred:', error);
+    console.error('❌ ORDER REVIEW CHECKOUT - Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 } 

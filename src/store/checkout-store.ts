@@ -80,6 +80,7 @@ interface CheckoutState {
   // Order review actions
   fetchOrderReview: (params: OrderReviewCheckoutParams) => Promise<boolean>;
   clearOrderReviewError: () => void;
+  triggerOrderReviewUpdate: () => Promise<void>;
   
   clearError: () => void;
   reset: () => void;
@@ -366,6 +367,67 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
 
   clearOrderReviewError: () => {
     set({ orderReviewError: null });
+  },
+
+  triggerOrderReviewUpdate: async () => {
+    const currentState = get();
+    
+    // Get cart store to access unique ID
+    const cartStore = (await import('./cart-store')).default;
+    const uniqueId = cartStore.getState().getUniqueId();
+    
+    // Get auth store to check if user is logged in
+    const authStore = (await import('./auth-store')).default;
+    const user = authStore.getState().user;
+    const isLoggedIn = !!user;
+    
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Starting automatic order review update');
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - User status:', isLoggedIn ? 'Logged in' : 'Guest');
+    
+    // Determine location parameters
+    let country = '';
+    let stateCode = '';
+    let city = '';
+    
+    if (isLoggedIn) {
+      // For logged-in users, try to get location from selected billing address
+      const selectedBilling = currentState.billingAddresses.find(addr => 
+        addr.BillingAddressId === currentState.selectedBillingAddressId
+      );
+      if (selectedBilling) {
+        country = selectedBilling.CountryId?.toString() || '';
+        stateCode = selectedBilling.StateId?.toString() || '';
+        city = selectedBilling.CityId?.toString() || '';
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Using logged-in user address location codes:', { country, stateCode, city });
+      } else {
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - No selected billing address found for logged-in user');
+      }
+    } else {
+      // For guest users
+      if (currentState.billingAddress) {
+        country = currentState.billingAddress.country?.XCode.toString() || '';
+        stateCode = currentState.billingAddress.state?.XCode.toString() || '';
+        city = currentState.billingAddress.city?.XCode.toString() || '';
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Using guest billing address location codes:', { country, stateCode, city });
+      } else {
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - No guest billing address available - calling without location codes');
+      }
+    }
+    
+    const params: OrderReviewCheckoutParams = {
+      Country: country,
+      State: stateCode,
+      City: city,
+      UniqueId: uniqueId,
+      IpAddress: '127.0.0.1',
+      CultureId: 1,
+      Company: 3044,
+      UserId: isLoggedIn ? (user?.UserID || '') : '',
+      BuyNow: ''
+    };
+    
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Calling order review with params:', params);
+    await get().fetchOrderReview(params);
   },
 
   clearError: () => {

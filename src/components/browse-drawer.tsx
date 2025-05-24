@@ -76,7 +76,7 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
   // Monitor animation value for completion
   useEffect(() => {
     const id = slideAnim.addListener(({ value }) => {
-      if (isClosingRef.current && value === -DRAWER_WIDTH) {
+      if (isClosingRef.current && value <= -DRAWER_WIDTH + 10) {
         setActuallyVisible(false);
         isClosingRef.current = false;
       }
@@ -209,35 +209,41 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
       transparent={true}
       visible={actuallyVisible} 
       onRequestClose={onClose}
+      statusBarTranslucent={false}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
-      
-      <Animated.View style={[
-        styles.drawerContainer, 
-        { 
-          transform: [{ translateX: slideAnim }],
-          paddingTop: Platform.OS === 'android' ? spacing.md : insets.top + spacing.xs,
-          paddingBottom: Platform.OS === 'android' ? spacing.lg : insets.bottom + spacing.xs,
-        }
-      ]}>
-        <View style={styles.drawerHeader}>
-          <Text style={styles.drawerTitle}>Browse</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <FontAwesome name="times" size={24} color={colors.black} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.divider} />
-        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={styles.scrollContentContainer}>
-            {renderContent()}
-        </ScrollView>
-      </Animated.View>
+      <View style={styles.modalContainer}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay} />
+        </TouchableWithoutFeedback>
+        
+        <Animated.View style={[
+          styles.drawerContainer, 
+          { 
+            transform: [{ translateX: slideAnim }],
+            paddingTop: Platform.OS === 'android' ? spacing.md : insets.top + spacing.xs,
+            paddingBottom: Platform.OS === 'android' ? spacing.lg : insets.bottom + spacing.xs,
+          }
+        ]}>
+          <View style={styles.drawerHeader}>
+            <Text style={styles.drawerTitle}>Browse</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <FontAwesome name="times" size={24} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.divider} />
+          <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={styles.scrollContentContainer}>
+              {renderContent()}
+          </ScrollView>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

@@ -68,14 +68,12 @@ import { Address as StoreAddress } from '../store/address-store';
 import PromoCodeModal from '../components/PromoCodeModal';
 import ChangeAddressModal from '../components/ChangeAddressModal';
 import AddAddressModal from '../components/AddAddressModal';
+import AuthModal from '../components/AuthModal';
 
 const { width, height } = Dimensions.get('window');
 
 // Interfaces and types
-interface PaymentMethod {
-  PaymentModeCode: string;
-  PaymentModeName: string;
-}
+// Note: Using PaymentModeItem from api-service.ts
 
 // Add conversion helpers at the top
 function addressToApiAddress(address: any): ApiAddress {
@@ -163,6 +161,7 @@ export default function CheckoutScreen() {
     orderReviewError,
     fetchOrderReview,
     clearOrderReviewError,
+    triggerOrderReviewUpdate,
   } = useCheckoutStore();
   
   // State
@@ -185,6 +184,10 @@ export default function CheckoutScreen() {
   
   // Add state for PromoCodeModal
   const [showPromoCodeModal, setShowPromoCodeModal] = useState(false);
+  
+  // Add state for AuthModal
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'signup'>('signup');
   
   // Add state for applying promo codes
   const [isPromoApplying, setIsPromoApplying] = useState(false);
@@ -237,7 +240,39 @@ export default function CheckoutScreen() {
     console.log('🏠 - checkoutBillingAddresses length:', checkoutBillingAddresses.length);
     console.log('🏠 - checkoutShippingAddresses length:', checkoutShippingAddresses.length);
     console.log('🏠 - checkoutLoading:', checkoutLoading);
-  }, [selectedBillingAddressId, selectedShippingAddressId, checkoutBillingAddresses, checkoutShippingAddresses, checkoutLoading]);
+  }, [selectedBillingAddressId, selectedShippingAddressId, checkoutBillingAddresses.length, checkoutShippingAddresses.length, checkoutLoading]);
+  
+  // Trigger order review when cart items change
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      console.log('🛒 Cart items changed - triggering order review update');
+      triggerOrderReviewUpdate();
+    }
+  }, [cartItems.length, triggerOrderReviewUpdate]);
+  
+  // Trigger order review when billing address selection changes for logged-in users
+  useEffect(() => {
+    if (isLoggedIn && selectedBillingAddressId) {
+      console.log('🛒 Billing address selection changed - triggering order review update');
+      triggerOrderReviewUpdate();
+    }
+  }, [selectedBillingAddressId, isLoggedIn, triggerOrderReviewUpdate]);
+  
+  // Trigger order review when guest billing address is set
+  useEffect(() => {
+    if (!isLoggedIn && guestBillingAddress) {
+      console.log('🛒 Guest billing address changed - triggering order review update');
+      triggerOrderReviewUpdate();
+    }
+  }, [guestBillingAddress, isLoggedIn, triggerOrderReviewUpdate]);
+  
+  // Trigger order review when promo code is applied or removed
+  useEffect(() => {
+    if (appliedPromo !== null) {
+      console.log('🛒 Promo code changed - triggering order review update');
+      triggerOrderReviewUpdate();
+    }
+  }, [appliedPromo, triggerOrderReviewUpdate]);
   
   // Determine if we need to show the guest checkout form initially
   useEffect(() => {
@@ -363,6 +398,10 @@ export default function CheckoutScreen() {
         // Update the discount in the UI based on the response
         setPromoDiscount(promoStore.discountAmount);
         Alert.alert('Success', 'Promo code applied successfully');
+        
+        // Trigger order review update after successful promo application
+        console.log('🛒 Promo code applied successfully - triggering order review update');
+        triggerOrderReviewUpdate();
       } else if (promoStore.promoError) {
         // Show error message
         Alert.alert('Error', promoStore.promoError);
@@ -391,6 +430,10 @@ export default function CheckoutScreen() {
         setPromoCode(''); // Clear the input field
         setAppliedPromo(null);
         setPromoDiscount(0);
+        
+        // Trigger order review update after successful promo removal
+        console.log('🛒 Promo code removed successfully - triggering order review update');
+        triggerOrderReviewUpdate();
       } else if (promoStore.promoError) {
         // Show error message
         Alert.alert('Error', promoStore.promoError);
@@ -410,9 +453,37 @@ export default function CheckoutScreen() {
   };
   
   // Add function to handle promo code selection from modal
-  const handleSelectPromoCode = (code: string) => {
+  const handleSelectPromoCode = async (code: string) => {
     setPromoCode(code);
-    handleApplyPromoCode(); // Auto apply the selected code
+    
+    // Auto apply the selected code
+    const userId = user?.UserID || '';
+    
+    try {
+      setIsPromoApplying(true);
+      const result = await promoStore.applyPromo(code, userId, uniqueId, buyNow);
+      
+      if (result) {
+        // Success - Promo code was applied
+        setAppliedPromo(code);
+        // Update the discount in the UI based on the response
+        setPromoDiscount(promoStore.discountAmount);
+        Alert.alert('Success', 'Promo code applied successfully');
+        
+        // Trigger order review update to get updated totals
+        await triggerOrderReviewUpdate();
+      } else {
+        // Failed to apply promo code
+        Alert.alert('Error', promoStore.promoError || 'Failed to apply promo code');
+        setPromoCode(''); // Clear the input
+      }
+    } catch (error) {
+      console.error('Error applying promo code:', error);
+      Alert.alert('Error', 'An error occurred while applying the promo code');
+      setPromoCode(''); // Clear the input
+    } finally {
+      setIsPromoApplying(false);
+    }
   };
   
   // Handle guest billing address submission
@@ -574,7 +645,8 @@ export default function CheckoutScreen() {
   
   // Navigate to login screen
   const handleLogin = () => {
-    router.push('/auth');
+    setAuthInitialTab('login');
+    setShowAuthModal(true);
   };
   
   // Get selected addresses for display
@@ -1027,8 +1099,8 @@ export default function CheckoutScreen() {
             </View>
           )}
           
-          {/* Shipping Address - Only show if shipping is different */}
-          {currentStep === 'shipping' && guestShippingAddress && (
+          {/* Shipping Address - Show if shipping address exists */}
+          {guestShippingAddress && (
             <View style={styles.addressContainer}>
               <Text style={styles.addressTitle}>Shipping Address</Text>
               <View style={styles.selectedAddress}>
@@ -1054,7 +1126,9 @@ export default function CheckoutScreen() {
 
   // Add handler for the checkbox
   const handleCreateAccountToggle = () => {
-    setCreateAccount(!createAccount);
+    // Show auth modal with signup tab
+    setAuthInitialTab('signup');
+    setShowAuthModal(true);
   };
 
   // Add handler for terms and conditions checkbox
@@ -1149,7 +1223,19 @@ export default function CheckoutScreen() {
                         onChangeText={setPromoCode}
                         editable={!appliedPromo && !isPromoApplying}
                       />
-                      {appliedPromo && (
+                      {!appliedPromo ? (
+                        <TouchableOpacity
+                          style={[styles.promoButton, (!promoCode?.trim() || isPromoApplying) && styles.disabledPromoButton]}
+                          onPress={handleApplyPromoCode}
+                          disabled={!promoCode?.trim() || isPromoApplying}
+                        >
+                          {isPromoApplying ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                          ) : (
+                            <Text style={styles.promoButtonText}>Apply</Text>
+                          )}
+                        </TouchableOpacity>
+                      ) : (
                         <TouchableOpacity
                           style={[styles.promoButton, styles.removePromoButton]}
                           onPress={handleRemovePromoCode}
@@ -1320,6 +1406,27 @@ export default function CheckoutScreen() {
               addressType="shipping"
               isLoading={checkoutLoading}
             />
+            
+            {/* Promo Code Modal */}
+            <PromoCodeModal
+              isVisible={showPromoCodeModal}
+              onClose={() => setShowPromoCodeModal(false)}
+              onSelectPromoCode={handleSelectPromoCode}
+            />
+            
+            {/* Auth Modal */}
+            <AuthModal
+              isVisible={showAuthModal}
+              onClose={() => setShowAuthModal(false)}
+              initialTab={authInitialTab}
+              onSuccess={() => {
+                // Refresh the page data after successful login/signup
+                if (user?.UserID) {
+                  fetchDefaultAddresses(user.UserID);
+                  fetchAllAddresses(user.UserID);
+                }
+              }}
+            />
           </View>
         </SafeAreaView>
       </Modal>
@@ -1489,13 +1596,15 @@ const styles = StyleSheet.create({
   },
   seePromosButton: {
     backgroundColor: colors.blue,
-    padding: spacing.md,
+    padding: spacing.sm,
     borderRadius: radii.md,
     alignItems: 'center',
+    marginTop: spacing.sm,
   },
   seePromosText: {
     color: colors.white,
     fontWeight: '500',
+    fontSize: 14,
   },
   summaryItem: {
     flexDirection: 'row',
@@ -1592,6 +1701,10 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  disabledPromoButton: {
+    opacity: 0.5,
+    backgroundColor: colors.gray,
   },
   createAccountContainer: {
     marginVertical: 12,

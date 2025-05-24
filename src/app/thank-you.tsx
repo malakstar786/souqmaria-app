@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getOrderDetailsForThankYou } from '../utils/api-service';
+import useCartStore from '../store/cart-store';
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +29,9 @@ export default function ThankYouScreen() {
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Get cart store functions
+  const { regenerateUniqueIdAfterOrder } = useCartStore();
+  
   const status = params.status as string;
   const trackId = params.trackId as string;
   const errorMessage = params.errorMessage as string;
@@ -37,6 +41,12 @@ export default function ThankYouScreen() {
   useEffect(() => {
     const fetchOrderDetails = async () => {
       console.log('🎉 Thank You Page - Received params:', { status, trackId, errorMessage });
+      
+      // If this is a successful order, regenerate unique ID for future orders
+      if (isSuccess && trackId && trackId !== 'ORDER_SUCCESS') {
+        console.log('🎉 Successful order detected - regenerating unique ID for future orders');
+        regenerateUniqueIdAfterOrder();
+      }
       
       if (trackId && trackId !== 'ORDER_SUCCESS' && trackId !== 'ORDER_FAILED') {
         try {
@@ -85,10 +95,11 @@ export default function ThankYouScreen() {
     };
     
     fetchOrderDetails();
-  }, [trackId]);
+  }, [trackId, isSuccess, regenerateUniqueIdAfterOrder]);
   
   const handleContinueShopping = () => {
-    router.push('/(tabs)/home');
+    // Navigate to home page for both guest and logged-in users
+    router.replace('/(shop)/home');
   };
   
   const handleTryAgain = () => {
