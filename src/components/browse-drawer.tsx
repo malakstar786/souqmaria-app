@@ -17,6 +17,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '../../src/theme';
 import useMenuStore, { MenuCategory } from '../store/menu-store';
 import { useRouter } from 'expo-router';
+import { useTranslation } from '../utils/translations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
@@ -29,6 +30,7 @@ interface BrowseDrawerProps {
 
 function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const {
     menuStructure,
@@ -148,7 +150,7 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
       return <Text style={styles.errorText}>{error}</Text>;
     }
     if (menuStructure.length === 0) {
-      return <Text style={styles.emptyText}>No categories available.</Text>;
+      return <Text style={styles.emptyText}>{t('no_categories_found')}</Text>;
     }
 
     return menuStructure.map((category) => (
@@ -182,7 +184,7 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
               <Text style={styles.subErrorText}>{category.errorSubCategories}</Text>
             )}
             {!category.isLoadingSubCategories && !category.errorSubCategories && category.subCategories && category.subCategories.length === 0 && (
-              <Text style={styles.noSubCategoriesText}>No sub-categories found.</Text>
+              <Text style={styles.noSubCategoriesText}>{t('no_sub_categories_found')}</Text>
             )}
             {category.subCategories?.map((subCat) => (
               <TouchableOpacity 
@@ -225,7 +227,7 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
           }
         ]}>
           <View style={styles.drawerHeader}>
-            <Text style={styles.drawerTitle}>Browse</Text>
+            <Text style={styles.drawerTitle}>{t('browse')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <FontAwesome name="times" size={24} color={colors.black} />
             </TouchableOpacity>

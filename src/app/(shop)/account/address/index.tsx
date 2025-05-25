@@ -4,9 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../../../store/auth-store';
 import useAddressStore, { Address } from '../../../../store/address-store';
+import { useTranslation } from '../../../../utils/translations';
+import { useRTL } from '../../../../utils/rtl';
 
 export default function AddressScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { user } = useAuthStore();
   const { 
     billingAddresses, 
@@ -53,12 +57,12 @@ export default function AddressScreen() {
   
   const handleDeleteAddress = (addressId: number, isShipping: boolean) => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this address?",
+      t('confirm_delete'),
+      t('delete_address_confirmation'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('cancel'), style: "cancel" },
         { 
-          text: "Delete", 
+          text: t('delete'), 
           style: "destructive",
           onPress: async () => {
             if (!user?.UserID && !user?.id) return;
@@ -74,11 +78,11 @@ export default function AddressScreen() {
               }
               if (success) {
                 clearError();
-                Alert.alert('Success', 'Address deleted successfully!');
+                Alert.alert(t('success'), t('address_deleted_successfully'));
               }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete address. Please try again.');
-            }
+                          } catch (error) {
+                Alert.alert(t('error'), t('failed_to_delete_address'));
+              }
           }
         }
       ]
@@ -88,20 +92,20 @@ export default function AddressScreen() {
   const renderAddressItem = ({ item, isShipping }: { item: Address, isShipping: boolean }) => (
     <View style={styles.addressCard}>
       {item.isDefault && (
-        <View style={styles.defaultBadge}>
-          <Text style={styles.defaultBadgeText}>Default</Text>
+        <View style={[styles.defaultBadge, isRTL ? { left: 8, right: 'auto' } : { right: 8, left: 'auto' }]}>
+          <Text style={styles.defaultBadgeText}>{t('address_default')}</Text>
         </View>
       )}
       
-      <Text style={styles.addressName}>{item.fullName}</Text>
-      <Text style={styles.addressDetail}>{item.email}</Text>
-      <Text style={styles.addressDetail}>{item.mobile}</Text>
+      <Text style={[styles.addressName, { textAlign }]}>{item.fullName}</Text>
+      <Text style={[styles.addressDetail, { textAlign }]}>{item.email}</Text>
+      <Text style={[styles.addressDetail, { textAlign }]}>{item.mobile}</Text>
       
       {/* Use address field if present (from API), otherwise construct from parts */}
       {item.address ? (
-        <Text style={styles.addressDetail}>{item.address}</Text>
+        <Text style={[styles.addressDetail, { textAlign }]}>{item.address}</Text>
       ) : (
-        <Text style={styles.addressDetail}>
+        <Text style={[styles.addressDetail, { textAlign }]}>
           {item.block ? `Block - ${item.block}` : ''} 
           {item.street ? `, Street - ${item.street}` : ''} 
           {item.house ? `, House/Building - ${item.house}` : ''}
@@ -110,28 +114,28 @@ export default function AddressScreen() {
       )}
       
       {item.address2 && (
-        <Text style={styles.addressDetail}>{item.address2}</Text>
+        <Text style={[styles.addressDetail, { textAlign }]}>{item.address2}</Text>
       )}
       
-      <Text style={styles.addressDetail}>
+      <Text style={[styles.addressDetail, { textAlign }]}>
         {item.cityName}, {item.stateName}, {item.countryName}
       </Text>
       
-      <View style={styles.addressActions}>
+      <View style={[styles.addressActions, { flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-start' : 'flex-end' }]}>
         <TouchableOpacity 
-          style={styles.editButton} 
+          style={[styles.editButton, { flexDirection, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }]} 
           onPress={() => handleEditAddress(item, isShipping)}
         >
           <Ionicons name="pencil" size={16} color="#8DC63F" />
-          <Text style={styles.editButtonText}>Edit</Text>
+          <Text style={[styles.editButtonText, { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 }]}>{t('edit')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.deleteButton} 
+          style={[styles.deleteButton, { flexDirection }]} 
           onPress={() => handleDeleteAddress(item.id, isShipping)}
         >
           <Ionicons name="trash" size={16} color="#FF0000" />
-          <Text style={styles.deleteButtonText}>Delete</Text>
+          <Text style={[styles.deleteButtonText, { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 }]}>{t('delete')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -142,7 +146,7 @@ export default function AddressScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00AEEF" />
-        <Text style={styles.loadingText}>Loading addresses...</Text>
+        <Text style={styles.loadingText}>{t('loading_addresses')}</Text>
       </View>
     );
   }
@@ -150,11 +154,11 @@ export default function AddressScreen() {
   return (
     <View style={styles.container}>
       {/* Custom Back Button */}
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { flexDirection }]}>
         <TouchableOpacity onPress={() => router.replace('/account')} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="#00AEEF" />
+          <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={28} color="#00AEEF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Addresses</Text>
+        <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('my_addresses')}</Text>
         <View style={{ width: 28 }} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -172,30 +176,30 @@ export default function AddressScreen() {
                 clearError();
               }}
             >
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
         )}
         {/* Shipping Addresses FIRST for visibility */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Shipping Addresses</Text>
+          <View style={[styles.sectionHeader, { flexDirection }]}>
+            <Text style={[styles.sectionTitle, { textAlign }]}>{t('shipping_addresses')}</Text>
             <TouchableOpacity 
-              style={styles.addButton}
+              style={[styles.addButton, { flexDirection }]}
               onPress={() => handleAddAddress(true)}
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
-              <Text style={styles.addButtonText}>Add</Text>
+              <Text style={[styles.addButtonText, { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 }]}>{t('add')}</Text>
             </TouchableOpacity>
           </View>
           {shippingAddresses.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No shipping addresses found</Text>
+              <Text style={[styles.emptyStateText, { textAlign: 'center' }]}>{t('no_shipping_addresses')}</Text>
               <TouchableOpacity 
                 style={styles.addEmptyButton}
                 onPress={() => handleAddAddress(true)}
               >
-                <Text style={styles.addEmptyButtonText}>Add Shipping Address</Text>
+                <Text style={[styles.addEmptyButtonText, { textAlign: 'center' }]}>{t('add_shipping_address')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -208,24 +212,24 @@ export default function AddressScreen() {
         </View>
         {/* Billing Addresses SECOND */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Billing Addresses</Text>
+          <View style={[styles.sectionHeader, { flexDirection }]}>
+            <Text style={[styles.sectionTitle, { textAlign }]}>{t('billing_addresses')}</Text>
             <TouchableOpacity 
-              style={styles.addButton}
+              style={[styles.addButton, { flexDirection }]}
               onPress={() => handleAddAddress(false)}
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
-              <Text style={styles.addButtonText}>Add</Text>
+              <Text style={[styles.addButtonText, { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 }]}>{t('add')}</Text>
             </TouchableOpacity>
           </View>
           {billingAddresses.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No billing addresses found</Text>
+              <Text style={[styles.emptyStateText, { textAlign: 'center' }]}>{t('no_billing_addresses')}</Text>
               <TouchableOpacity 
                 style={styles.addEmptyButton}
                 onPress={() => handleAddAddress(false)}
               >
-                <Text style={styles.addEmptyButtonText}>Add Billing Address</Text>
+                <Text style={[styles.addEmptyButtonText, { textAlign: 'center' }]}>{t('add_billing_address')}</Text>
               </TouchableOpacity>
             </View>
           ) : (

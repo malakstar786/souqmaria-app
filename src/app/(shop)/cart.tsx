@@ -18,11 +18,15 @@ import { useRouter, Link } from 'expo-router';
 import useCartStore from '../../store/cart-store';
 import useAuthStore from '../../store/auth-store';
 import useWishlistStore from '../../store/wishlist-store';
+import { useTranslation } from '../../utils/translations';
+import { useRTL } from '../../utils/rtl';
 
 const { width } = Dimensions.get('window');
 
 export default function CartScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { user, isLoggedIn } = useAuthStore();
   const { 
     cartItems, 
@@ -52,11 +56,11 @@ export default function CartScreen() {
     
     // Check for stock availability error
     if (!result && error === 'Stock not available for requested quantity') {
-      Alert.alert('Stock Not Available', 'The requested quantity is not available in stock.');
+      Alert.alert(t('stock_not_available'), t('requested_quantity_not_available'));
       clearError(); // Clear error after showing alert
     } else if (!result && error) {
       // Handle other errors
-      Alert.alert('Error', error || 'Failed to update quantity');
+      Alert.alert(t('error'), error || t('failed_to_update_quantity'));
       clearError(); // Clear error after showing alert
     }
   };
@@ -80,11 +84,11 @@ export default function CartScreen() {
   const handleAddToWishlist = async (productCode: string) => {
     if (!user?.UserID) {
       Alert.alert(
-        'Login Required', 
-        'Please login to add items to your wishlist.', 
+        t('login_required'), 
+        t('please_login_to_add_wishlist'), 
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Login', onPress: () => router.push('/auth') }
+          { text: t('cancel'), style: 'cancel' },
+          { text: t('login'), onPress: () => router.push('/auth') }
         ]
       );
       return;
@@ -93,12 +97,12 @@ export default function CartScreen() {
     try {
       const success = await useWishlistStore.getState().addToWishlist(productCode, user.UserID);
       if (success) {
-        Alert.alert('Success', 'Item added to your wishlist.');
+        Alert.alert(t('success'), t('item_added_to_wishlist'));
       } else {
-        Alert.alert('Error', 'Failed to add item to wishlist. Please try again.');
+        Alert.alert(t('error'), t('failed_to_add_to_wishlist'));
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      Alert.alert(t('error'), t('unexpected_error'));
     }
   };
 
@@ -112,13 +116,13 @@ export default function CartScreen() {
             <Text style={styles.badgeText}>0</Text>
           </View>
         </View>
-        <Text style={styles.emptyCartText}>Your Cart is Empty</Text>
+        <Text style={[styles.emptyCartText, { textAlign: 'center' }]}>{t('your_cart_is_empty')}</Text>
         <TouchableOpacity style={styles.addItemsButton} onPress={() => router.push('/(shop)')}>
-          <View style={styles.addButtonContent}>
-            <View style={styles.addIcon}>
+          <View style={[styles.addButtonContent, { flexDirection }]}>
+            <View style={[styles.addIcon, isRTL && { marginLeft: 8, marginRight: 0 }]}>
               <FontAwesome name="plus-circle" size={16} color={colors.white} />
             </View>
-            <Text style={styles.addButtonText}>Add Items</Text>
+            <Text style={[styles.addButtonText, { textAlign: 'center' }]}>{t('add_items')}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -128,16 +132,16 @@ export default function CartScreen() {
   // Cart item component
   const renderCartItem = (item: any) => (
     <View key={item.CartID} style={styles.cartItemContainer}>
-      <View style={styles.cartItemContent}>
+      <View style={[styles.cartItemContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={1}>
+          <Text style={[styles.productName, { textAlign }]} numberOfLines={1}>
             {item.ProductName}
           </Text>
-          <View style={styles.priceContainer}>
+          <View style={[styles.priceContainer, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
             {item.Price !== item.SubTotal / item.Quantity && (
-              <Text style={styles.oldPrice}>{(item.SubTotal / item.Quantity).toFixed(2)} KD</Text>
+              <Text style={[styles.oldPrice, { textAlign }]}>{(item.SubTotal / item.Quantity).toFixed(2)} KD</Text>
             )}
-            <Text style={styles.price}>{item.Price.toFixed(2)} KD</Text>
+            <Text style={[styles.price, { textAlign }]}>{item.Price.toFixed(2)} KD</Text>
           </View>
         </View>
         
@@ -154,12 +158,12 @@ export default function CartScreen() {
         </View>
       </View>
       
-      <View style={styles.actionsRow}>
+      <View style={[styles.actionsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <TouchableOpacity 
           style={styles.wishlistButton}
           onPress={() => handleAddToWishlist(item.ProductCode)}
         >
-          <Text style={styles.wishlistButtonText}>ADD TO WISHLIST</Text>
+          <Text style={styles.wishlistButtonText}>{t('add_to_wishlist_caps')}</Text>
         </TouchableOpacity>
         
         <View style={styles.quantityControls}>
@@ -185,7 +189,7 @@ export default function CartScreen() {
           style={styles.removeButton}
           onPress={() => handleRemoveItem(item.CartID, item.ProductName)}
         >
-          <Text style={styles.removeButtonText}>REMOVE</Text>
+          <Text style={styles.removeButtonText}>{t('remove_caps')}</Text>
         </TouchableOpacity>
       </View>
       
@@ -195,10 +199,10 @@ export default function CartScreen() {
 
   // Cart summary and checkout
   const renderCartSummary = () => (
-    <View style={styles.summaryBar}>
-      <View style={styles.totalContainer}>
-        <Text style={styles.totalText}>TOTAL :</Text>
-        <Text style={styles.totalAmount}>{totalAmount.toFixed(2)} KD</Text>
+    <View style={[styles.summaryBar, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.totalContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <Text style={styles.totalText}>{t('total_caps')} :</Text>
+        <Text style={[styles.totalAmount, isRTL && { marginRight: 8, marginLeft: 0 }]}>{totalAmount.toFixed(2)} KD</Text>
       </View>
       
       <TouchableOpacity 
@@ -206,8 +210,12 @@ export default function CartScreen() {
         onPress={() => router.push('/checkout')}
         disabled={!cartItems.length}
       >
-        <Text style={styles.checkoutButtonText}>CHECKOUT</Text>
-        <FontAwesome name="arrow-circle-right" size={20} color={colors.white} />
+        <Text style={[styles.checkoutButtonText, isRTL && { marginLeft: 8, marginRight: 0 }]}>{t('checkout_caps')}</Text>
+        <FontAwesome 
+          name={isRTL ? "arrow-circle-left" : "arrow-circle-right"} 
+          size={20} 
+          color={colors.white} 
+        />
       </TouchableOpacity>
     </View>
   );
@@ -216,7 +224,7 @@ export default function CartScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <Text style={styles.headerTitle}>My Cart</Text>
+        <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
         <ActivityIndicator size="large" color={colors.blue} />
       </SafeAreaView>
     );
@@ -224,7 +232,7 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.headerTitle}>My Cart</Text>
+      <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
       
       {cartItems.length === 0 ? (
         renderEmptyCart()
@@ -250,17 +258,17 @@ export default function CartScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Remove item from Cart?</Text>
-            <Text style={styles.modalSubtitle} numberOfLines={2}>
+            <Text style={[styles.modalTitle, { textAlign: 'center' }]}>{t('remove_item_from_cart')}</Text>
+            <Text style={[styles.modalSubtitle, { textAlign: 'center' }]} numberOfLines={2}>
               {itemToDelete?.name}
             </Text>
             
-            <View style={styles.modalButtons}>
+            <View style={[styles.modalButtons, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <TouchableOpacity 
                 style={styles.modalCancelButton} 
                 onPress={() => setShowDeleteModal(false)}
               >
-                <Text style={styles.modalCancelText}>CANCEL</Text>
+                <Text style={styles.modalCancelText}>{t('cancel').toUpperCase()}</Text>
               </TouchableOpacity>
               
               <View style={styles.modalDivider} />
@@ -269,7 +277,7 @@ export default function CartScreen() {
                 style={styles.modalConfirmButton} 
                 onPress={confirmDelete}
               >
-                <Text style={styles.modalConfirmText}>YES, REMOVE</Text>
+                <Text style={styles.modalConfirmText}>{t('yes_remove')}</Text>
               </TouchableOpacity>
             </View>
           </View>

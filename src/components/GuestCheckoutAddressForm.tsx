@@ -16,6 +16,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
 import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse, saveBillingAddress, SaveBillingAddressPayload } from '../utils/api-service';
+import { useTranslation } from '../utils/translations';
 
 // Define our own LocationItem interface to match the component usage
 interface LocationItem {
@@ -28,6 +29,7 @@ interface GuestCheckoutAddressFormProps {
 }
 
 const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps) => {
+  const { t } = useTranslation();
   const { 
     billingAddress, 
     setBillingAddress, 
@@ -337,7 +339,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
         >
           <FontAwesome name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Billing address</Text>
+        <Text style={styles.headerTitle}>{t('billing_address')}</Text>
         <View style={styles.headerRight} />
       </View>
       
@@ -349,7 +351,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               style={[styles.input, formErrors.fullName && styles.inputError]}
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Full Name"
+              placeholder={t('full_name')}
               placeholderTextColor="#999"
             />
             {formErrors.fullName && (
@@ -363,7 +365,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               style={[styles.input, formErrors.email && styles.inputError]}
               value={email}
               onChangeText={setEmail}
-              placeholder="Email"
+              placeholder={t('email')}
               placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -379,7 +381,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               style={[styles.input, formErrors.mobile && styles.inputError]}
               value={mobile}
               onChangeText={setMobile}
-              placeholder="Mobile No."
+              placeholder={t('mobile')}
               placeholderTextColor="#999"
               keyboardType="phone-pad"
             />
@@ -395,7 +397,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               onPress={() => setShowCountryModal(true)}
             >
               <Text style={country ? styles.dropdownText : styles.placeholderText}>
-                {country ? country.XName : 'Country'}
+                {country ? country.XName : t('country')}
               </Text>
               <FontAwesome name="chevron-down" size={16} color="#666" />
             </TouchableOpacity>
@@ -414,7 +416,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
                 disabled={!state}
               >
                 <Text style={city ? styles.dropdownText : styles.placeholderText}>
-                  {city ? city.XName : 'City'}
+                  {city ? city.XName : t('city')}
                 </Text>
                 <FontAwesome name="chevron-down" size={16} color="#666" />
               </TouchableOpacity>
@@ -431,7 +433,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
                 disabled={!country}
               >
                 <Text style={state ? styles.dropdownText : styles.placeholderText}>
-                  {state ? state.XName : 'Area'}
+                  {state ? state.XName : t('area')}
                 </Text>
                 <FontAwesome name="chevron-down" size={16} color="#666" />
               </TouchableOpacity>
@@ -449,7 +451,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
                 style={[styles.input, formErrors.block && styles.inputError]}
                 value={block}
                 onChangeText={setBlock}
-                placeholder="Block"
+                placeholder={t('block')}
                 placeholderTextColor="#999"
               />
               {formErrors.block && (
@@ -463,7 +465,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
                 style={[styles.input, formErrors.street && styles.inputError]}
                 value={street}
                 onChangeText={setStreet}
-                placeholder="Street"
+                placeholder={t('street')}
                 placeholderTextColor="#999"
               />
               {formErrors.street && (
@@ -480,7 +482,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
                 style={[styles.input, formErrors.house && styles.inputError]}
                 value={house}
                 onChangeText={setHouse}
-                placeholder="House/ Building"
+                placeholder={t('house_building')}
                 placeholderTextColor="#999"
               />
               {formErrors.house && (
@@ -494,7 +496,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
                 style={styles.input}
                 value={apartment}
                 onChangeText={setApartment}
-                placeholder="Apartment No."
+                placeholder={t('apartment_no')}
                 placeholderTextColor="#999"
               />
             </View>
@@ -506,7 +508,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               style={styles.input}
               value={address2}
               onChangeText={setAddress2}
-              placeholder="Address Line 1"
+              placeholder={t('address_line_1')}
               placeholderTextColor="#999"
               multiline
               numberOfLines={3}
@@ -522,7 +524,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               <View style={[styles.checkbox, shipToDifferentAddress && styles.checkboxSelected]}>
                 {shipToDifferentAddress && <FontAwesome name="check" size={12} color="#FFFFFF" />}
               </View>
-              <Text style={styles.checkboxLabel}>Ship to Different Address?</Text>
+              <Text style={styles.checkboxLabel}>{t('ship_to_different_address')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
@@ -532,7 +534,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
               <View style={[styles.checkbox, styles.checkboxSelected]}>
                 <FontAwesome name="check" size={12} color="#FFFFFF" />
               </View>
-              <Text style={styles.checkboxLabel}>Set as default</Text>
+              <Text style={styles.checkboxLabel}>{t('set_as_default')}</Text>
             </TouchableOpacity>
           </View>
           
@@ -545,7 +547,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
             {isSubmitting ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={styles.saveButtonText}>{t('save')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -555,7 +557,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
       {renderDropdownModal(
         showCountryModal,
         () => setShowCountryModal(false),
-        'Select Country',
+        t('select_country'),
         countries,
         country,
         (selected) => {
@@ -568,7 +570,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
       {renderDropdownModal(
         showStateModal,
         () => setShowStateModal(false),
-        'Select State',
+        t('select_state'),
         states,
         state,
         (selected) => {
@@ -581,7 +583,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
       {renderDropdownModal(
         showCityModal,
         () => setShowCityModal(false),
-        'Select City',
+        t('select_city'),
         cities,
         city,
         (selected) => {

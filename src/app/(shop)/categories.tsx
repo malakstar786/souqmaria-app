@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,8 @@ import useAllCategoryStore, { Category } from '../../store/all-category-store';
 import useSearchStore from '../../store/search-store';
 import { SearchItem } from '../../utils/api-service';
 import { debounce } from 'lodash';
+import { useTranslation } from '../../utils/translations';
+import { useRTL } from '../../utils/rtl';
 
 const { width } = Dimensions.get('window');
 const SEARCH_RESULT_ITEM_HEIGHT = 50;
@@ -28,6 +30,8 @@ const HEADER_HEIGHT = 110; // Height of header + search bar
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { 
     categories, 
     isLoading: isLoadingCategories, 
@@ -47,8 +51,11 @@ export default function CategoriesScreen() {
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  // Memoize categories to prevent unnecessary re-renders
+  const memoizedCategories = useMemo(() => categories, [categories]);
+
   useEffect(() => {
-    fetchAllCategories('1', ''); // CultureId '1' for English, empty UserId
+    fetchAllCategories(); // Use dynamic culture ID from language store
   }, [fetchAllCategories]);
 
   const debouncedSearch = useCallback(
@@ -117,15 +124,15 @@ export default function CategoriesScreen() {
         style={styles.categoryImage}
         resizeMode="contain"
       />
-      <Text style={styles.categoryTitle}>{item.CategoryNameEN}</Text>
-      <Text style={styles.categorySubtitle}>{item.CategoryNameAR}</Text>
+      <Text style={[styles.categoryTitle, { textAlign: 'center' }]}>{item.CategoryNameEN}</Text>
+      <Text style={[styles.categorySubtitle, { textAlign: 'center' }]}>{item.CategoryNameAR}</Text>
     </TouchableOpacity>
   );
 
   const renderSearchResultItem = ({ item }: { item: SearchItem }) => (
-    <TouchableOpacity style={styles.searchResultItem} onPress={() => handleSearchResultPress(item)} activeOpacity={0.7}>
-      <FontAwesome name="search" size={16} color={colors.blue} style={styles.searchResultIcon} />
-      <Text style={styles.searchResultText}>{item.XName}</Text>
+    <TouchableOpacity style={[styles.searchResultItem, { flexDirection }]} onPress={() => handleSearchResultPress(item)} activeOpacity={0.7}>
+      <FontAwesome name="search" size={16} color={colors.blue} style={[styles.searchResultIcon, isRTL && { marginLeft: 12, marginRight: 0 }]} />
+      <Text style={[styles.searchResultText, { textAlign }]}>{item.XName}</Text>
     </TouchableOpacity>
   );
 
@@ -135,7 +142,7 @@ export default function CategoriesScreen() {
       
       {/* Header with Title and Cart */}
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Categories</Text>
+        <Text style={styles.headerTitle}>{t('categories')}</Text>
         <TouchableOpacity onPress={handleCartPress} style={styles.cartButton}>
           <FontAwesome name="shopping-cart" size={24} color={colors.black} />
         </TouchableOpacity>
@@ -147,7 +154,7 @@ export default function CategoriesScreen() {
           <FontAwesome name="search" size={18} color={colors.blue} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="What are you looking for?"
+            placeholder={t('search_placeholder')}
             placeholderTextColor={colors.textGray}
             value={searchQuery}
             onChangeText={handleSearchTextChange}
@@ -170,7 +177,7 @@ export default function CategoriesScreen() {
         </View>
       ) : (
         <FlatList
-          data={categories}
+          data={memoizedCategories}
           renderItem={renderCategoryItem}
           keyExtractor={(item) => item.SrNo}
           numColumns={2}
@@ -178,9 +185,19 @@ export default function CategoriesScreen() {
           contentContainerStyle={styles.categoryListContent}
           showsVerticalScrollIndicator={false}
           columnWrapperStyle={styles.categoryRow}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          initialNumToRender={8}
+          windowSize={10}
+          getItemLayout={(data, index) => ({
+            length: 180, // Approximate item height
+            offset: 180 * Math.floor(index / 2),
+            index,
+          })}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No categories found</Text>
+              <Text style={styles.emptyText}>{t('no_categories_found')}</Text>
             </View>
           }
         />
@@ -192,7 +209,7 @@ export default function CategoriesScreen() {
           {isLoadingSearch ? (
             <View style={styles.searchLoadingContainer}>
               <ActivityIndicator color={colors.blue} size="small" />
-              <Text style={styles.searchLoadingText}>Searching...</Text>
+              <Text style={styles.searchLoadingText}>{t('searching')}</Text>
             </View>
           ) : errorSearch ? (
             <View style={styles.searchErrorContainer}>
@@ -200,7 +217,7 @@ export default function CategoriesScreen() {
             </View>
           ) : searchResults.length === 0 && searchQuery.trim().length >= 2 ? (
             <View style={styles.noResultsContainer}>
-              <Text style={styles.noResultsText}>No products found for "{searchQuery}"</Text>
+              <Text style={styles.noResultsText}>{t('no_products_found_for')} "{searchQuery}"</Text>
             </View>
           ) : (
             <ScrollView 

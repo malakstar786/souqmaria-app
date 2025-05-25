@@ -76,6 +76,7 @@ import PromoCodeModal from '../components/PromoCodeModal';
 import ChangeAddressModal from '../components/ChangeAddressModal';
 import AddAddressModal from '../components/AddAddressModal';
 import AuthModal from '../components/AuthModal';
+import { useTranslation } from '../utils/translations';
 
 const { width, height } = Dimensions.get('window');
 
@@ -143,6 +144,7 @@ function apiAddressToAddress(api: ApiAddress): any {
 export default function CheckoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
   const { refreshCartItems, cartItems, totalAmount } = useCartStore();
   const { user, isLoggedIn } = useAuthStore();
   const promoStore = usePromoStore();
@@ -1089,7 +1091,7 @@ export default function CheckoutScreen() {
               source={require('../assets/checkout/address_icon_checkout.png')} 
               style={styles.sectionIcon}
             />
-            <Text style={styles.sectionTitle}>Address</Text>
+            <Text style={styles.sectionTitle}>{t('address')}</Text>
           </View>
           
           {/* Guest Address Add Button - as per guest_checkout.png */}
@@ -1099,7 +1101,7 @@ export default function CheckoutScreen() {
               onPress={() => setShowGuestBillingForm(true)}
             >
               <FontAwesome name="plus" size={16} color={colors.blue} style={styles.addIcon} />
-              <Text style={styles.addGuestAddressText}>Add Address</Text>
+              <Text style={styles.addGuestAddressText}>{t('add_address')}</Text>
               <FontAwesome name="chevron-right" size={14} color={colors.blue} style={styles.arrowIcon} />
             </TouchableOpacity>
           )}
@@ -1107,7 +1109,7 @@ export default function CheckoutScreen() {
           {/* Billing Address - only show if already entered */}
           {guestBillingAddress && (
             <View style={styles.addressContainer}>
-              <Text style={styles.addressTitle}>Billing Address</Text>
+              <Text style={styles.addressTitle}>{t('billing_address')}</Text>
               <View style={styles.selectedAddress}>
                 <Text style={styles.addressText}>
                   {guestBillingAddress.fullName}, {guestBillingAddress.mobile}{'\n'}
@@ -1119,7 +1121,7 @@ export default function CheckoutScreen() {
                   style={styles.changeButton}
                   onPress={() => setShowGuestBillingForm(true)}
                 >
-                  <Text style={styles.changeButtonText}>Change</Text>
+                  <Text style={styles.changeButtonText}>{t('change_address')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1128,7 +1130,7 @@ export default function CheckoutScreen() {
           {/* Shipping Address - Show if shipping address exists */}
           {guestShippingAddress && (
             <View style={styles.addressContainer}>
-              <Text style={styles.addressTitle}>Shipping Address</Text>
+              <Text style={styles.addressTitle}>{t('shipping_address')}</Text>
               <View style={styles.selectedAddress}>
                 <Text style={styles.addressText}>
                   {guestShippingAddress.fullName}, {guestShippingAddress.mobile}{'\n'}
@@ -1140,7 +1142,7 @@ export default function CheckoutScreen() {
                   style={styles.changeButton}
                   onPress={() => setShowGuestShippingForm(true)}
                 >
-                  <Text style={styles.changeButtonText}>Change</Text>
+                  <Text style={styles.changeButtonText}>{t('change_address')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1210,7 +1212,7 @@ export default function CheckoutScreen() {
                       style={styles.seePromosButtonSmall}
                       onPress={handleSeePromoCodes}
                     >
-                      <Text style={styles.seePromosTextSmall}>See Available Promo Codes</Text>
+                      <Text style={styles.seePromosTextSmall}>{t('see_available_promo_codes')}</Text>
                     </TouchableOpacity>
                     
                     <View style={styles.sectionHeader}>
@@ -1218,12 +1220,12 @@ export default function CheckoutScreen() {
                         source={require('../assets/checkout/promo_icon_checkout.png')} 
                         style={styles.sectionIcon}
                       />
-                      <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
+                      <Text style={styles.sectionTitle}>{t('have_promo_code')}</Text>
                     </View>
                     <View style={styles.promoContainer}>
                       <TextInput
                         style={styles.promoInput}
-                        placeholder="Enter Promo Code"
+                        placeholder={t('enter_promo_code')}
                         value={promoCode}
                         onChangeText={setPromoCode}
                         editable={!appliedPromo && !isPromoApplying}
@@ -1237,7 +1239,7 @@ export default function CheckoutScreen() {
                           {isPromoApplying ? (
                             <ActivityIndicator color="#FFFFFF" size="small" />
                           ) : (
-                            <Text style={styles.promoButtonText}>Apply</Text>
+                            <Text style={styles.promoButtonText}>{t('apply')}</Text>
                           )}
                         </TouchableOpacity>
                       ) : (
@@ -1249,7 +1251,7 @@ export default function CheckoutScreen() {
                           {isPromoRemoving ? (
                             <ActivityIndicator color="#FFFFFF" size="small" />
                           ) : (
-                            <Text style={styles.promoButtonText}>Remove</Text>
+                            <Text style={styles.promoButtonText}>{t('remove')}</Text>
                           )}
                         </TouchableOpacity>
                       )}
@@ -1273,13 +1275,13 @@ export default function CheckoutScreen() {
                         source={require('../assets/checkout/payment_icon_checkout.png')} 
                         style={styles.sectionIcon}
                       />
-                      <Text style={styles.sectionTitle}>Select Payment Type</Text>
+                      <Text style={styles.sectionTitle}>{t('select_payment_type')}</Text>
                     </View>
                     
                     {isLoadingPaymentMethods ? (
                       <ActivityIndicator size="small" color={colors.blue} />
                     ) : paymentMethods.length === 0 ? (
-                      <Text style={styles.emptyText}>No payment methods available</Text>
+                      <Text style={styles.emptyText}>{t('no_payment_methods_available')}</Text>
                     ) : (
                       <>
                         <View style={styles.paymentMethodsContainer}>
@@ -1319,36 +1321,36 @@ export default function CheckoutScreen() {
                   
                   {/* Order Summary Section */}
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Order Summary</Text>
+                    <Text style={styles.sectionTitle}>{t('order_summary')}</Text>
                     <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>Item Sub total</Text>
+                                              <Text style={styles.summaryLabel}>{t('item_sub_total')}</Text>
                       <Text style={styles.summaryValue}>
                         KD {orderReviewData ? orderReviewData.SubTotal.toFixed(2) : correctTotalAmount.toFixed(2)}
                       </Text>
                     </View>
                     {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) && (
                       <View style={styles.summaryItem}>
-                        <Text style={styles.summaryLabel}>Discount</Text>
+                        <Text style={styles.summaryLabel}>{t('discount')}</Text>
                         <Text style={[styles.summaryValue, styles.discountValue]}>
                           KD {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) ? orderReviewData?.Discount?.toFixed(2) || '0.00' : promoDiscount.toFixed(2)}
                         </Text>
                       </View>
                     )}
                     <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>Shipping Fee</Text>
+                      <Text style={styles.summaryLabel}>{t('shipping_fee')}</Text>
                       <Text style={styles.summaryValue}>
                         KD {orderReviewData ? orderReviewData.ShippingCharge.toFixed(2) : shippingFee.toFixed(2)}
                       </Text>
                     </View>
                     <View style={[styles.summaryItem, styles.totalItem]}>
-                      <Text style={styles.totalLabel}>Grand Total</Text>
+                      <Text style={styles.totalLabel}>{t('grand_total')}</Text>
                       <Text style={styles.totalValue}>
                         KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
                       </Text>
                     </View>
                     {orderReviewData?.PromoCode && (
                       <View style={styles.summaryItem}>
-                        <Text style={styles.summaryLabel}>Applied Promo</Text>
+                        <Text style={styles.summaryLabel}>{t('applied_promo')}</Text>
                         <Text style={styles.summaryValue}>
                           {orderReviewData.PromoCode} ({orderReviewData.Percentage}% off)
                         </Text>
@@ -1366,7 +1368,7 @@ export default function CheckoutScreen() {
                         <View style={[styles.checkboxSquare, createAccount && styles.checkboxSquareSelected]}>
                           {createAccount && <FontAwesome name="check" size={12} color={colors.white} />}
                         </View>
-                        <Text style={styles.checkboxLabel}>Create an Account?</Text>
+                        <Text style={styles.checkboxLabel}>{t('create_account_question')}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -1381,7 +1383,7 @@ export default function CheckoutScreen() {
                         {acceptTerms && <FontAwesome name="check" size={12} color={colors.white} />}
                       </View>
                       <Text style={styles.termsText}>
-                        By proceeding, I've read and accept the <Text style={styles.termsLink}>terms & conditions</Text>.
+                        {t('terms_conditions_text')} <Text style={styles.termsLink}>{t('terms_conditions')}</Text>.
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1401,16 +1403,16 @@ export default function CheckoutScreen() {
                       <ActivityIndicator size="small" color={colors.white} />
                     ) : (
                       <Text style={styles.placeOrderButtonText}>
-                        Place Order • KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
+                        {t('place_order')} • KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
                       </Text>
                     )}
                   </TouchableOpacity>
                   
                   {!isLoggedIn && (
                     <View style={styles.loginContainer}>
-                      <Text style={styles.loginText}>Are you a returning customer? </Text>
+                      <Text style={styles.loginText}>{t('returning_customer')} </Text>
                       <TouchableOpacity onPress={handleLogin}>
-                        <Text style={styles.loginLink}>Login Here</Text>
+                        <Text style={styles.loginLink}>{t('login_here')}</Text>
                       </TouchableOpacity>
                     </View>
                   )}

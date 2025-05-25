@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getAllCategories } from '../utils/api-service';
+import useLanguageStore from './language-store';
 
 // Base URL for category images
 const CATEGORY_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/HomePage_Category/3044/';
@@ -34,11 +35,12 @@ const useAllCategoryStore = create<AllCategoryState>((set) => ({
   error: null,
   
   // Fetch all categories
-  fetchAllCategories: async (cultureId = '1', userId = '') => {
+  fetchAllCategories: async (cultureId?: string, userId = '') => {
     set({ isLoading: true, error: null });
     
     try {
-      const response = await getAllCategories(cultureId, userId);
+      const finalCultureId = cultureId || useLanguageStore.getState().getCultureId();
+      const response = await getAllCategories(finalCultureId, userId);
       
       if (response.StatusCode === 200 && response.Data?.success === 1) {
         // API returned categories successfully

@@ -7,6 +7,7 @@ import {
 } from '../utils/api-service';
 import { RESPONSE_CODES } from '../utils/api-config';
 import useAuthStore from './auth-store'; // To get userId if needed
+import useLanguageStore from './language-store';
 
 export interface MenuCategory extends ApiMenuCategory {
   subCategories?: MenuSubCategory[];
@@ -29,11 +30,12 @@ const useMenuStore = create<MenuState>((set, get) => ({
   menuStructure: [],
   isLoading: false,
   error: null,
-  fetchMenuStructure: async (cultureId = '1') => {
+  fetchMenuStructure: async (cultureId?: string) => {
     set({ isLoading: true, error: null });
     const userId = useAuthStore.getState().user?.UserID || useAuthStore.getState().user?.id || '';
+    const finalCultureId = cultureId || useLanguageStore.getState().getCultureId();
     try {
-      const response = await getMenuCategories(cultureId, String(userId));
+      const response = await getMenuCategories(finalCultureId, String(userId));
       if (response.ResponseCode === RESPONSE_CODES.SUCCESS && response.Data?.success === 1 && Array.isArray(response.Data.row)) {
         const categories = response.Data.row.map(cat => ({ 
           ...cat, 
@@ -63,7 +65,7 @@ const useMenuStore = create<MenuState>((set, get) => ({
     }
   },
 
-  fetchSubCategoriesForCategory: async (categoryXcode: string, cultureId = '1') => {
+  fetchSubCategoriesForCategory: async (categoryXcode: string, cultureId?: string) => {
     const currentStructure = get().menuStructure;
     const categoryIndex = currentStructure.findIndex(cat => cat.XCode === categoryXcode);
 
@@ -79,9 +81,10 @@ const useMenuStore = create<MenuState>((set, get) => ({
     set({ menuStructure: optimisticStructure });
     
     const userId = useAuthStore.getState().user?.UserID || useAuthStore.getState().user?.id || '';
+    const finalCultureId = cultureId || useLanguageStore.getState().getCultureId();
 
     try {
-      const response = await getMenuSubCategories(categoryXcode, cultureId, String(userId));
+      const response = await getMenuSubCategories(categoryXcode, finalCultureId, String(userId));
       const finalStructure = get().menuStructure.map((cat, index) => {
         if (index === categoryIndex) {
           if (response.ResponseCode === RESPONSE_CODES.SUCCESS && response.Data?.success === 1) {

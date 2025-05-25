@@ -14,7 +14,10 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/auth-store';
+import useLanguageStore from '../../../store/language-store';
 import AuthModal from '../../../components/AuthModal';
+import { useTranslation } from '../../../utils/translations';
+import { useRTL } from '../../../utils/rtl';
 const preLoginAccountIcon = require('@assets/account_tab/pre_login.png');
 const languageIcon = require('@assets/account_tab/language_icon.png');
 const detailsIcon = require('@assets/account_tab/details_icon.png');
@@ -30,8 +33,10 @@ const whatsappIcon = require('@assets/account_tab/whatsapp_icon.png');
 
 export default function AccountScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { user, isLoggedIn, logout } = useAuthStore();
-  const [currentLanguage, setCurrentLanguage] = React.useState('English'); // Default or from state
+  const { currentLanguage } = useLanguageStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Handle language change
@@ -73,27 +78,27 @@ export default function AccountScreen() {
       {/* Account Options */}
       <View style={styles.optionsContainer}>
         <AccountOption 
-          label="My Details" 
+          label={t('my_details')} 
           onPress={() => handleOptionPress('/account/details')} 
           iconSource={detailsIcon} 
         />
         <AccountOption 
-          label="My Address" 
+          label={t('my_address')} 
           onPress={() => handleOptionPress('/account/address')} 
           iconSource={addressIcon} 
         />
         <AccountOption 
-          label="My Orders" 
+          label={t('my_orders')} 
           onPress={() => handleOptionPress('/account/orders')} 
           iconSource={ordersIcon} 
         />
         <AccountOption 
-          label="Wishlist" 
+          label={t('wishlist')} 
           onPress={() => handleOptionPress('/account/wishlist')} 
           iconSource={wishlistIcon} 
         />
         <AccountOption 
-          label="Policies" 
+          label={t('policies')} 
           onPress={() => handleOptionPress('/account/policies')} 
           iconSource={policiesIcon} 
         />
@@ -101,13 +106,13 @@ export default function AccountScreen() {
 
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
+        <Text style={styles.logoutButtonText}>{t('logout')}</Text>
       </TouchableOpacity>
 
       {/* Social Links */}
       <View style={styles.socialContainer}>
-        <Text style={styles.socialTitle}>FOLLOW US</Text>
-        <View style={styles.socialIcons}>
+        <Text style={[styles.socialTitle, { textAlign: 'center' }]}>{t('follow_us')}</Text>
+        <View style={[styles.socialIcons, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TouchableOpacity style={styles.socialIcon} onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=61565804636382')}>
             <Image source={facebookIcon} style={styles.socialIconImage} />
           </TouchableOpacity>
@@ -136,13 +141,13 @@ export default function AccountScreen() {
           resizeMode="contain" 
         />
         <Text style={styles.illustrationText}>
-          To get the best experience of shopping you can
+          {t('guest_shopping_experience')}
         </Text>
       </View>
 
       {/* Login/Register Button */}
       <TouchableOpacity style={styles.loginButton} onPress={handleLoginRegister}>
-        <Text style={styles.loginButtonText}>Login / Register</Text>
+        <Text style={styles.loginButtonText}>{t('login_register')}</Text>
       </TouchableOpacity>
     </>
   );
@@ -151,21 +156,21 @@ export default function AccountScreen() {
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
       {/* Header */}
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Account</Text>
+        <Text style={[styles.headerTitle, { textAlign }]}>{t('account_tab')}</Text>
       </View>
 
       {/* Language Selector */}
-      <View style={styles.languageRow}>
-        <View style={styles.languageLeft}>
-          <Image source={languageIcon} style={styles.languageIcon} />
-          <Text style={styles.languageLabel}>Language</Text>
-          <Text style={styles.tapToChange} onPress={handleChangeLanguage}>
-        (Tap to change)
+      <View style={[styles.languageRow, { flexDirection }]}>
+        <View style={[styles.languageLeft, { flexDirection }]}>
+          <Image source={languageIcon} style={[styles.languageIcon, isRTL && { marginLeft: 8, marginRight: 0 }]} />
+          <Text style={[styles.languageLabel, { textAlign, marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 }]}>{t('language')}</Text>
+          <Text style={[styles.tapToChange, { textAlign, marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 }]} onPress={handleChangeLanguage}>
+        {t('tap_to_change')}
           </Text>
         </View>
-        <View style={styles.languageRight}>
-          <TouchableOpacity style={styles.languageRight} onPress={handleChangeLanguage}>
-            <Text style={styles.currentLanguage}>{currentLanguage}</Text>
+        <View style={[styles.languageRight, { flexDirection }]}>
+          <TouchableOpacity style={[styles.languageRight, { flexDirection }]} onPress={handleChangeLanguage}>
+            <Text style={[styles.currentLanguage, { textAlign, marginLeft: isRTL ? 4 : 0, marginRight: isRTL ? 0 : 4 }]}>{currentLanguage.name}</Text>
           </TouchableOpacity>  
         </View>
       </View>
@@ -194,11 +199,13 @@ function AccountOption({ label, onPress, iconSource }: {
   onPress: () => void,
   iconSource: any
 }) {
+  const { isRTL, flexDirection } = useRTL();
+  
   return (
-    <TouchableOpacity style={styles.optionRow} onPress={onPress}>
-      <View style={styles.optionLeft}>
-        <Image source={iconSource} style={styles.optionIconImage} />
-        <Text style={styles.optionLabel}>{label}</Text>
+    <TouchableOpacity style={[styles.optionRow, { flexDirection }]} onPress={onPress}>
+      <View style={[styles.optionLeft, { flexDirection }]}>
+        <Image source={iconSource} style={[styles.optionIconImage, isRTL && { marginLeft: 16, marginRight: 0 }]} />
+        <Text style={[styles.optionLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{label}</Text>
       </View>
     </TouchableOpacity>
   );

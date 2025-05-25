@@ -12,6 +12,7 @@ import {
   UpdateCartQtyParams
 } from '../utils/api-service';
 import { COMMON_PARAMS, RESPONSE_CODES, CULTURE_IDS } from '../utils/api-config';
+import useLanguageStore from './language-store';
 
 // Cart item interface
 interface CartItem {
@@ -140,7 +141,7 @@ const useCartStore = create<CartState>()(
       const response: ApiResponse<any> = await getCartItems(
         actualUserId || '',
         uniqueId,
-        CULTURE_IDS.ENGLISH
+        useLanguageStore.getState().getCultureId()
       );
       
       if (response.Data?.success === 1 && response.Data.row && Array.isArray(response.Data.row)) {

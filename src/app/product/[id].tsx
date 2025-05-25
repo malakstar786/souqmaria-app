@@ -30,6 +30,9 @@ import {
 import { COMMON_PARAMS, CULTURE_IDS, RESPONSE_CODES } from '../../utils/api-config';
 import useAuthStore from '../../store/auth-store';
 import useCartStore from '../../store/cart-store';
+import useLanguageStore from '../../store/language-store';
+import { useTranslation } from '../../utils/translations';
+import { useRTL } from '../../utils/rtl';
 
 // Define a proper interface for our product
 interface ProductDetail {
@@ -64,9 +67,12 @@ const { width } = Dimensions.get('window');
 
 export default function ProductDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
-  const cultureId = CULTURE_IDS.ENGLISH;
+  const { getCultureId } = useLanguageStore();
+  const cultureId = getCultureId();
   
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [specialDescriptions, setSpecialDescriptions] = useState<{Data: string}[]>([]);
@@ -104,7 +110,7 @@ export default function ProductDetailScreen() {
       const response = await getProductDetailsByItemCode(
         id as string, 
         COMMON_PARAMS.Location,
-        '1', // CultureId
+        cultureId, // Use dynamic culture ID
         user?.UserID || '' // UserId
       );
       
@@ -113,17 +119,31 @@ export default function ProductDetailScreen() {
         const productData = response.Data.row[0];
         setProduct(productData);
         
-        // Get product images
+        // Get product images - only add valid, non-empty images
         const images: string[] = [];
-        if (productData.ImageUrl1) images.push(productData.ImageUrl1);
-        else if (productData.Image1) images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image1}`);
         
-        if (productData.ImageUrl2) images.push(productData.ImageUrl2);
-        else if (productData.Image2) images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image2}`);
+        // Image 1
+        if (productData.ImageUrl1 && productData.ImageUrl1.trim()) {
+          images.push(productData.ImageUrl1);
+        } else if (productData.Image1 && productData.Image1.trim()) {
+          images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image1}`);
+        }
         
-        if (productData.ImageUrl3) images.push(productData.ImageUrl3);
-        else if (productData.Image3) images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image3}`);
+        // Image 2
+        if (productData.ImageUrl2 && productData.ImageUrl2.trim()) {
+          images.push(productData.ImageUrl2);
+        } else if (productData.Image2 && productData.Image2.trim()) {
+          images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image2}`);
+        }
         
+        // Image 3
+        if (productData.ImageUrl3 && productData.ImageUrl3.trim()) {
+          images.push(productData.ImageUrl3);
+        } else if (productData.Image3 && productData.Image3.trim()) {
+          images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image3}`);
+        }
+        
+        console.log('📸 Product images found:', images.length, images);
         setProductImages(images);
         
         // Fetch special descriptions
@@ -146,7 +166,7 @@ export default function ProductDetailScreen() {
     try {
       const response = await getSpecialDescriptionListByItemCode(
         itemCode,
-        '1', // CultureId
+        cultureId, // Use dynamic culture ID
         user?.UserID || '' // UserId
       );
       
@@ -162,7 +182,7 @@ export default function ProductDetailScreen() {
     try {
       const response = await getRelatedProductsListByItemCode(
         itemCode,
-        '1', // CultureId
+        cultureId, // Use dynamic culture ID
         user?.UserID || '' // UserId
       );
       
@@ -273,9 +293,9 @@ export default function ProductDetailScreen() {
   if (error || !product) {
     return (
       <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || 'Product not found'}</Text>
+        <Text style={styles.errorText}>{error || t('product_not_found')}</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>{t('go_back')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -288,14 +308,14 @@ export default function ProductDetailScreen() {
         <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
         
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <FontAwesome name="arrow-left" size={20} color={colors.black} />
+            <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -316,7 +336,7 @@ export default function ProductDetailScreen() {
           >
             {/* Barcode */}
             {product.Barcode && (
-              <Text style={styles.barcode}>BARCODE: {product.Barcode}</Text>
+              <Text style={[styles.barcode, { textAlign }]}>BARCODE: {product.Barcode}</Text>
             )}
             
             {/* Product Image Slider */}
@@ -352,7 +372,7 @@ export default function ProductDetailScreen() {
             ) : (
               <View style={styles.noImageContainer}>
                 <FontAwesome name="image" size={50} color={colors.lightGray} />
-                <Text style={styles.noImageText}>No image available</Text>
+                <Text style={[styles.noImageText, { textAlign: 'center' }]}>{t('no_image_available')}</Text>
               </View>
             )}
             
@@ -360,37 +380,37 @@ export default function ProductDetailScreen() {
             <View style={styles.productInfo}>
               {/* Product Brand */}
               {product.ProductBrand && (
-                <Text style={styles.productBrand}>{product.ProductBrand}</Text>
+                <Text style={[styles.productBrand, { textAlign }]}>{product.ProductBrand}</Text>
               )}
               
               {/* Product Name */}
-              <Text style={styles.productName}>{product.ItemName}</Text>
+              <Text style={[styles.productName, { textAlign }]}>{product.ItemName}</Text>
               
               {/* Price Section */}
-              <View style={styles.priceContainer}>
+              <View style={[styles.priceContainer, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
                 {product.OldPrice > 0 && (
-                  <Text style={styles.oldPrice}>{product.OldPrice.toFixed(2)} KD</Text>
+                  <Text style={[styles.oldPrice, { textAlign }]}>{product.OldPrice.toFixed(2)} KD</Text>
                 )}
-                <Text style={styles.price}>{product.NewPrice ? product.NewPrice.toFixed(2) : '0.00'} KD</Text>
+                <Text style={[styles.price, { textAlign }]}>{product.NewPrice ? product.NewPrice.toFixed(2) : '0.00'} KD</Text>
               </View>
               
               {/* Stock Information - Only show if out of stock */}
               {product.StockQty <= 0 && (
-                <Text style={styles.outOfStock}>Out Of Stock</Text>
+                <Text style={[styles.outOfStock, { textAlign }]}>{t('out_of_stock')}</Text>
               )}
               
               {/* Product Description with Read More */}
               {product.Description && (
                 <View style={styles.descriptionContainer}>
-                  <Text style={styles.descriptionTitle}>DESCRIPTION</Text>
+                  <Text style={[styles.descriptionTitle, { textAlign }]}>{t('product_description')}</Text>
                   <View>
-                    <Text style={styles.descriptionText} numberOfLines={isDescriptionExpanded ? undefined : 2}>
+                    <Text style={[styles.descriptionText, { textAlign }]} numberOfLines={isDescriptionExpanded ? undefined : 2}>
                       {product.Description}
                     </Text>
                     {product.Description.length > 100 && (
                       <TouchableOpacity onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                        <Text style={styles.readMoreText}>
-                          {isDescriptionExpanded ? 'Read Less' : 'Read More'}
+                        <Text style={[styles.readMoreText, { textAlign }]}>
+                          {isDescriptionExpanded ? t('read_less') : t('read_more')}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -401,12 +421,17 @@ export default function ProductDetailScreen() {
               {/* Special Descriptions Section */}
               {specialDescriptions.length > 0 && (
                 <View style={styles.specialDescriptionContainer}>
-                  <Text style={styles.sectionTitle}>KEY FEATURES</Text>
+                  <Text style={[styles.sectionTitle, { textAlign }]}>{t('key_features')}</Text>
                   <View style={styles.featuresList}>
                     {specialDescriptions.map((item, index) => (
-                      <View key={index} style={styles.featureItem}>
-                        <FontAwesome name="check-circle" size={16} color={colors.blue} style={styles.featureIcon} />
-                        <Text style={styles.featureText}>{item.Data}</Text>
+                      <View key={index} style={[styles.featureItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                        <FontAwesome 
+                          name="check-circle" 
+                          size={16} 
+                          color={colors.blue} 
+                          style={[styles.featureIcon, isRTL && { marginLeft: 8, marginRight: 0 }]} 
+                        />
+                        <Text style={[styles.featureText, { textAlign }]}>{item.Data}</Text>
                       </View>
                     ))}
                   </View>
@@ -417,7 +442,7 @@ export default function ProductDetailScreen() {
             {/* Related Products Section */}
             {relatedProducts.length > 0 && (
               <View style={styles.relatedProductsContainer}>
-                <Text style={styles.relatedProductsTitle}>RELATED PRODUCTS</Text>
+                <Text style={[styles.relatedProductsTitle, { textAlign }]}>{t('related_products')}</Text>
                 <ScrollView 
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -438,8 +463,8 @@ export default function ProductDetailScreen() {
                         style={styles.relatedProductImage}
                         resizeMode="contain"
                       />
-                      <Text style={styles.relatedProductName} numberOfLines={2}>{item.ItemName}</Text>
-                      <Text style={styles.relatedProductPrice}>{item.NewPrice.toFixed(2)} KD</Text>
+                      <Text style={[styles.relatedProductName, { textAlign: 'center' }]} numberOfLines={2}>{item.ItemName}</Text>
+                      <Text style={[styles.relatedProductPrice, { textAlign: 'center' }]}>{item.NewPrice.toFixed(2)} KD</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -451,9 +476,9 @@ export default function ProductDetailScreen() {
         {/* Fixed Bottom Action Bar */}
         <View style={styles.fixedBottomContainer}>
           {/* Quantity Selector and Add to Cart Section */}
-          <View style={styles.bottomActionContainer}>
+          <View style={[styles.bottomActionContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             {/* Quantity Selector */}
-            <View style={styles.quantityContainer}>
+            <View style={[styles.quantityContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <TouchableOpacity 
                 style={styles.quantityButton} 
                 onPress={decrementQuantity}
@@ -482,18 +507,23 @@ export default function ProductDetailScreen() {
               {isAddingToCart ? (
                 <ActivityIndicator size="small" color={colors.white} />
               ) : (
-                <Text style={styles.buttonText}>ADD TO CART</Text>
+                <Text style={styles.buttonText}>{t('add_to_cart')}</Text>
               )}
             </TouchableOpacity>
           </View>
           
           {/* Order on WhatsApp Button (full width) */}
           <TouchableOpacity 
-            style={styles.whatsappButton}
+            style={[styles.whatsappButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             onPress={handleOrderOnWhatsApp}
           >
-            <FontAwesome name="whatsapp" size={20} color={colors.white} style={styles.whatsappIcon} />
-            <Text style={styles.whatsappButtonText}>ORDER ON WHATSAPP</Text>
+            <FontAwesome 
+              name="whatsapp" 
+              size={20} 
+              color={colors.white} 
+              style={[styles.whatsappIcon, isRTL && { marginLeft: 8, marginRight: 0 }]} 
+            />
+            <Text style={styles.whatsappButtonText}>{t('order_on_whatsapp')}</Text>
           </TouchableOpacity>
         </View>
         
@@ -508,18 +538,18 @@ export default function ProductDetailScreen() {
             <View style={styles.modalContent}>
               <FontAwesome name="check-circle" size={50} color={colors.blue} style={styles.successIcon} />
               
-              <Text style={styles.modalProductName}>{product.ItemName}</Text>
-              <Text style={styles.modalSuccessText}>Added to your cart successfully.</Text>
+              <Text style={[styles.modalProductName, { textAlign: 'center' }]}>{product.ItemName}</Text>
+              <Text style={[styles.modalSuccessText, { textAlign: 'center' }]}>{t('added_to_cart_successfully')}</Text>
               
-              <View style={styles.modalButtons}>
+              <View style={[styles.modalButtons, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <TouchableOpacity style={styles.modalButton} onPress={handleViewCart}>
-                  <Text style={styles.modalButtonText}>VIEW CART</Text>
+                  <Text style={styles.modalButtonText}>{t('view_cart')}</Text>
                 </TouchableOpacity>
                 
                 <View style={styles.modalDivider} />
                 
                 <TouchableOpacity style={styles.modalButton} onPress={handleContinueShopping}>
-                  <Text style={styles.modalButtonText}>CONTINUE SHOPPING</Text>
+                  <Text style={styles.modalButtonText}>{t('continue_shopping')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -693,37 +723,41 @@ const styles = StyleSheet.create({
   },
   featureItem: {
     flexDirection: 'row',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     alignItems: 'flex-start',
+    paddingHorizontal: spacing.xs,
   },
   featureIcon: {
-    marginRight: spacing.sm,
-    marginTop: 2,
+    marginRight: spacing.md,
+    marginTop: 3, // Better alignment with text
   },
   featureText: {
     flex: 1,
     fontSize: 14,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 22, // Better line height for readability
   },
   bottomActionContainer: {
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+    justifyContent: 'space-between', // Better spacing between quantity and button
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    marginRight: spacing.md,
+    backgroundColor: colors.veryLightGray,
+    borderRadius: 8,
+    padding: spacing.xs,
   },
   quantityButton: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderWidth: 1,
-    borderColor: colors.black,
-    borderRadius: 4,
+    borderColor: colors.borderLight,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.white,
@@ -732,16 +766,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.black,
-    marginHorizontal: spacing.md,
-    minWidth: 20,
+    marginHorizontal: spacing.lg,
+    minWidth: 30,
     textAlign: 'center',
   },
   addToCartButton: {
     backgroundColor: colors.blue,
     borderRadius: 8,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 48, // Better touch target
   },
   inlineButton: {
     flex: 1,
@@ -750,11 +786,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#25D366', // WhatsApp green
     borderRadius: 8,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
+    minHeight: 48, // Better touch target
   },
   whatsappIcon: {
     marginRight: spacing.sm,

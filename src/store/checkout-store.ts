@@ -13,6 +13,7 @@ import {
 } from '../utils/api-service';
 import { Platform } from 'react-native';
 import { RESPONSE_CODES } from '../utils/api-config';
+import useLanguageStore from './language-store';
 
 // Interface for address data
 export interface CheckoutAddress {
@@ -420,7 +421,7 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
       City: city,
       UniqueId: uniqueId,
       IpAddress: '127.0.0.1',
-      CultureId: 1,
+      CultureId: parseInt(useLanguageStore.getState().getCultureId()),
       Company: 3044,
       UserId: isLoggedIn ? (user?.UserID || '') : '',
       BuyNow: ''

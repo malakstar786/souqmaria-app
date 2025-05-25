@@ -5,6 +5,7 @@ import {
   removePromoCode,
   PromoCodeParams
 } from '../utils/api-service';
+import useLanguageStore from './language-store';
 
 export interface PromoCode {
   XCode: string;
@@ -154,7 +155,7 @@ const usePromoStore = create<PromoStoreState>((set, get) => ({
     try {
       // Use the proper endpoint
       const data = {
-        strQuery: "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Promo_Coupons_List','','','','','',1,3044,''"
+        strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Promo_Coupons_List','','','','','',${useLanguageStore.getState().getCultureId()},3044,''`
       };
       
       const response = await fetch(`${ENDPOINTS.GET_DATA_JSON}`, {

@@ -1,36 +1,52 @@
 {
   "expo": {
-    "name": "Welcome to Souq Maria!",
+    "name": "SouqMaria",
     "slug": "souqmaria-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/logo.png",
+    "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "souqmaria",
-    "primaryColor": "#8DC63F",
+    "primaryColor": "#007AFF",
     "splash": {
-      "image": "./src/assets/logo.png",
+      "image": "./src/assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#D9F4FF"
+      "backgroundColor": "#FFFFFF"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "statusBarStyle": "dark"
+      "bundleIdentifier": "com.souqmaria.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses camera to scan barcodes for product search",
+        "NSLocationWhenInUseUsageDescription": "This app uses location to provide better delivery estimates"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/logo.png",
-        "backgroundColor": "#D9F4FF"
+        "foregroundImage": "./src/assets/icon.png",
+        "backgroundColor": "#FFFFFF"
       },
-      "edgeToEdgeEnabled": true,
-      "statusBar": {
-        "barStyle": "dark-content",
-        "backgroundColor": "#D9F4FF"
-      }
+      "package": "com.souqmaria.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
-      "favicon": "./src/assets/logo.png"
+      "favicon": "./src/assets/logo.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }

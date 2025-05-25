@@ -28,6 +28,7 @@ import { SearchItem } from '../../utils/api-service';
 import { useRouter } from 'expo-router';
 import { debounce } from 'lodash';
 import useCartStore from '../../store/cart-store';
+import { useTranslation } from '../../utils/translations';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const BANNER_HEIGHT = 350; // Match screenshot
@@ -38,6 +39,7 @@ const SEARCH_BAR_HEIGHT = 80;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { categories, isLoading: isLoadingCategories, error: errorCategories, fetchCategories } = useCategoryStore();
   const { banners, isLoading: isLoadingBanners, error: errorBanners, fetchBanners } = useBannerStore();
   const { advertisements, isLoading: isLoadingAdvertisements, error: errorAdvertisements, fetchAdvertisements } = useAdvertisementStore();
@@ -65,11 +67,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const userIdToFetch = user?.UserID || user?.id || '';
-    const cultureId = '1';
-
-    fetchCategories(cultureId, String(userIdToFetch));
-    fetchBanners(cultureId, String(userIdToFetch));
-    fetchAdvertisements(cultureId, String(userIdToFetch));
+    // Remove hardcoded culture ID - let the stores use dynamic culture ID from language store
+    fetchCategories(undefined, String(userIdToFetch));
+    fetchBanners(undefined, String(userIdToFetch));
+    fetchAdvertisements(undefined, String(userIdToFetch));
   }, [user, fetchCategories, fetchBanners, fetchAdvertisements]);
 
   // Auto-scroll banners
@@ -313,7 +314,7 @@ export default function HomeScreen() {
           <>
             {/* Categories Section */}
             <View style={styles.categoriesSection}>
-              <Text style={styles.sectionTitle}>Shop By Category</Text>
+              <Text style={styles.sectionTitle}>{t('shop_by_category')}</Text>
               {isLoadingCategories ? (
                 <ActivityIndicator size="small" color={colors.blue} style={styles.loader} />
               ) : errorCategories ? (
@@ -328,7 +329,7 @@ export default function HomeScreen() {
                   contentContainerStyle={styles.categoriesHorizontalGrid}
                 />
               ) : (
-                <Text style={styles.noDataText}>No categories found.</Text>
+                <Text style={styles.noDataText}>{t('no_categories_found')}</Text>
               )}
             </View>
 
@@ -434,7 +435,7 @@ export default function HomeScreen() {
           {isLoadingSearch && (
             <View style={styles.searchLoadingContainer}>
               <ActivityIndicator color={colors.blue} size="small" />
-              <Text style={styles.searchLoadingText}>Searching...</Text>
+              <Text style={styles.searchLoadingText}>{t('searching')}</Text>
             </View>
           )}
           
@@ -446,7 +447,7 @@ export default function HomeScreen() {
           
           {!isLoadingSearch && !errorSearch && searchResults.length === 0 && searchQuery.trim().length >= 2 && (
             <View style={styles.noResultsContainer}>
-              <Text style={styles.noResultsText}>No products found for "{searchQuery}"</Text>
+              <Text style={styles.noResultsText}>{t('no_products_found_for')} "{searchQuery}"</Text>
             </View>
           )}
           

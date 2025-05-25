@@ -16,6 +16,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '../theme';
 import { FilterOption } from '../utils/api-service';
 import Slider from '@react-native-community/slider';
+import { useTranslation } from '../utils/translations';
 
 const { width } = Dimensions.get('window');
 
@@ -55,6 +56,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   onApplyFilters,
   onReset,
 }) => {
+  const { t } = useTranslation();
   const [visibleFilter, setVisibleFilter] = useState<FilterType | null>(null);
   const [localFilters, setLocalFilters] = useState(activeFilters);
   const [priceRange, setPriceRange] = useState<[number, number]>(activeFilters.priceRange);
@@ -175,7 +177,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>BRAND</Text>
+            <Text style={styles.modalTitle}>{t('filter_brand').toUpperCase()}</Text>
             <TouchableOpacity onPress={closeFilter} style={styles.closeButton}>
               <FontAwesome name="times" size={20} color={colors.black} />
             </TouchableOpacity>
@@ -208,14 +210,14 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               style={[styles.footerButton, styles.resetButton]}
               onPress={handleResetFilters}
             >
-              <Text style={styles.resetButtonText}>Reset</Text>
+              <Text style={styles.resetButtonText}>{t('reset')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={[styles.footerButton, styles.applyButton]}
               onPress={handleApplyFilters}
             >
-              <Text style={styles.applyButtonText}>Apply</Text>
+              <Text style={styles.applyButtonText}>{t('apply')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -233,7 +235,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>CATEGORY</Text>
+            <Text style={styles.modalTitle}>{t('filter_category').toUpperCase()}</Text>
             <TouchableOpacity onPress={closeFilter} style={styles.closeButton}>
               <FontAwesome name="times" size={20} color={colors.black} />
             </TouchableOpacity>
@@ -290,14 +292,14 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               style={[styles.footerButton, styles.resetButton]}
               onPress={handleResetFilters}
             >
-              <Text style={styles.resetButtonText}>Reset</Text>
+              <Text style={styles.resetButtonText}>{t('reset')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={[styles.footerButton, styles.applyButton]}
               onPress={handleApplyFilters}
             >
-              <Text style={styles.applyButtonText}>Apply</Text>
+              <Text style={styles.applyButtonText}>{t('apply')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -315,7 +317,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>PRICE</Text>
+            <Text style={styles.modalTitle}>{t('filter_price').toUpperCase()}</Text>
             <TouchableOpacity onPress={closeFilter} style={styles.closeButton}>
               <FontAwesome name="times" size={20} color={colors.black} />
             </TouchableOpacity>
@@ -328,7 +330,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             
             {/* Min Price Slider */}
             <View style={styles.sliderContainer}>
-              <Text style={styles.sliderLabel}>Min Price</Text>
+              <Text style={styles.sliderLabel}>{t('min_price')}</Text>
               <Slider
                 style={styles.slider}
                 minimumValue={filters.minPrice || 0}
@@ -344,7 +346,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             
             {/* Max Price Slider */}
             <View style={styles.sliderContainer}>
-              <Text style={styles.sliderLabel}>Max Price</Text>
+              <Text style={styles.sliderLabel}>{t('max_price')}</Text>
               <Slider
                 style={styles.slider}
                 minimumValue={priceRange[0]}
@@ -364,14 +366,14 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               style={[styles.footerButton, styles.resetButton]}
               onPress={handleResetFilters}
             >
-              <Text style={styles.resetButtonText}>Reset</Text>
+              <Text style={styles.resetButtonText}>{t('reset')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={[styles.footerButton, styles.applyButton]}
               onPress={handleApplyFilters}
             >
-              <Text style={styles.applyButtonText}>Apply</Text>
+              <Text style={styles.applyButtonText}>{t('apply')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -389,7 +391,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>SORT BY</Text>
+            <Text style={styles.modalTitle}>{t('filter_sort_by').toUpperCase()}</Text>
             <TouchableOpacity onPress={closeFilter} style={styles.closeButton}>
               <FontAwesome name="times" size={20} color={colors.black} />
             </TouchableOpacity>
@@ -429,7 +431,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           onPress={() => openFilter('sort')}
           disabled={isLoading}
         >
-          <Text style={styles.filterButtonText}>Sort By</Text>
+          <Text style={styles.filterButtonText}>{t('filter_sort_by')}</Text>
           {getActiveFilterCount('sort') > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{getActiveFilterCount('sort')}</Text>
@@ -442,7 +444,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           onPress={() => openFilter('category')}
           disabled={isLoading}
         >
-          <Text style={styles.filterButtonText}>Category</Text>
+          <Text style={styles.filterButtonText}>{t('filter_category')}</Text>
           {getActiveFilterCount('category') > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{getActiveFilterCount('category')}</Text>
@@ -455,7 +457,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           onPress={() => openFilter('price')}
           disabled={isLoading}
         >
-          <Text style={styles.filterButtonText}>Price</Text>
+          <Text style={styles.filterButtonText}>{t('filter_price')}</Text>
           {getActiveFilterCount('price') > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{getActiveFilterCount('price')}</Text>
@@ -468,7 +470,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           onPress={() => openFilter('brand')}
           disabled={isLoading}
         >
-          <Text style={styles.filterButtonText}>Brand</Text>
+          <Text style={styles.filterButtonText}>{t('filter_brand')}</Text>
           {getActiveFilterCount('brand') > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{getActiveFilterCount('brand')}</Text>

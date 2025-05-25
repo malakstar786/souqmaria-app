@@ -1,0 +1,60 @@
+{
+  "appStore": {
+    "name": "SouqMaria",
+    "subtitle": "Mobile & Electronics Marketplace",
+    "description": "SouqMaria is Kuwait's premier mobile and electronics marketplace. Discover the latest smartphones, tablets, accessories, smartwatches, and electronic appliances at competitive prices. Shop with confidence with our secure payment options and fast delivery across Kuwait.",
+    "keywords": "mobile, electronics, smartphone, tablet, accessories, smartwatch, Kuwait, shopping, marketplace, souq",
+    "category": "Shopping",
+    "contentRating": "4+",
+    "supportURL": "https://souqmaria.com/support",
+    "marketingURL": "https://souqmaria.com",
+    "privacyPolicyURL": "https://souqmaria.com/privacy-policy",
+    "screenshots": {
+      "iPhone": [
+        "screenshots/iphone/home.png",
+        "screenshots/iphone/categories.png",
+        "screenshots/iphone/product-detail.png",
+        "screenshots/iphone/cart.png",
+        "screenshots/iphone/account.png"
+      ],
+      "iPad": [
+        "screenshots/ipad/home.png",
+        "screenshots/ipad/categories.png",
+        "screenshots/ipad/product-detail.png"
+      ]
+    }
+  },
+  "playStore": {
+    "title": "SouqMaria - Mobile & Electronics",
+    "shortDescription": "Kuwait's premier mobile and electronics marketplace",
+    "fullDescription": "SouqMaria is Kuwait's trusted mobile and electronics marketplace, offering the latest smartphones, tablets, accessories, smartwatches, and electronic appliances.\n\n🛍️ FEATURES:\n• Browse thousands of mobile phones and electronics\n• Compare prices and specifications\n• Secure payment options\n• Fast delivery across Kuwait\n• Arabic and English language support\n• Guest checkout available\n• Wishlist and cart management\n• Order tracking\n\n📱 CATEGORIES:\n• Mobile Phones\n• Tablets\n• Mobile Accessories\n• Smartwatches\n• Speakers & Headphones\n• Electronic Appliances\n\n🇰🇼 KUWAIT FOCUSED:\n• Local delivery\n• KWD currency\n• Arabic language support\n• Local customer service\n\nDownload SouqMaria today and discover the best deals on mobile phones and electronics in Kuwait!",
+    "category": "SHOPPING",
+    "contentRating": "Everyone",
+    "contactEmail": "support@souqmaria.com",
+    "contactPhone": "+96598900952",
+    "website": "https://souqmaria.com",
+    "privacyPolicy": "https://souqmaria.com/privacy-policy",
+    "screenshots": {
+      "phone": [
+        "screenshots/android/phone/home.png",
+        "screenshots/android/phone/categories.png",
+        "screenshots/android/phone/product-detail.png",
+        "screenshots/android/phone/cart.png",
+        "screenshots/android/phone/account.png"
+      ],
+      "tablet": [
+        "screenshots/android/tablet/home.png",
+        "screenshots/android/tablet/categories.png",
+        "screenshots/android/tablet/product-detail.png"
+      ]
+    }
+  },
+  "localization": {
+    "ar": {
+      "name": "سوق ماريا",
+      "subtitle": "سوق الجوال والإلكترونيات",
+      "description": "سوق ماريا هو السوق الرائد للجوال والإلكترونيات في الكويت. اكتشف أحدث الهواتف الذكية والأجهزة اللوحية والإكسسوارات والساعات الذكية والأجهزة الإلكترونية بأسعار تنافسية. تسوق بثقة مع خيارات الدفع الآمنة والتوصيل السريع في جميع أنحاء الكويت.",
+      "keywords": "جوال، إلكترونيات، هاتف ذكي، تابلت، إكسسوارات، ساعة ذكية، الكويت، تسوق، سوق"
+    }
+  }
+} 

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getAdvertisements } from '../utils/api-service';
 import { RESPONSE_CODES } from '../utils/api-config';
+import useLanguageStore from './language-store';
 
 // Base URL for advertisement images
 const ADVERTISEMENT_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/ads/';
@@ -24,10 +25,11 @@ const useAdvertisementStore = create<AdvertisementState>((set) => ({
   advertisements: [],
   isLoading: false,
   error: null,
-  fetchAdvertisements: async (cultureId = '1', userId = '') => {
+  fetchAdvertisements: async (cultureId?: string, userId = '') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await getAdvertisements(cultureId, userId);
+      const finalCultureId = cultureId || useLanguageStore.getState().getCultureId();
+      const response = await getAdvertisements(finalCultureId, userId);
       // Check ResponseCode for success, as per api-service modification
       if (
         response.ResponseCode === RESPONSE_CODES.SUCCESS ||

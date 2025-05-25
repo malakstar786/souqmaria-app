@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,9 @@ import ProductCard from '../../components/ProductCard';
 import ProductFilters from '../../components/ProductFilters';
 import useAuthStore from '../../store/auth-store';
 import useSearchStore from '../../store/search-store';
+import useLanguageStore from '../../store/language-store';
 import { RESPONSE_CODES, COMMON_PARAMS as API_COMMON_PARAMS, CULTURE_IDS } from '../../utils/api-config';
+import { useTranslation } from '../../utils/translations';
 
 const { width } = Dimensions.get('window');
 const PRODUCT_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/CompanyLogo/3044/';
@@ -37,6 +39,7 @@ const HEADER_AND_FILTER_HEIGHT = 180;
 
 export default function ProductListScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ 
     name?: string;
     homePageCatSrNo?: string;
@@ -46,7 +49,8 @@ export default function ProductListScreen() {
     searchName?: string;
   }>();
   const { user } = useAuthStore();
-  const cultureId = CULTURE_IDS.ENGLISH;
+  const { getCultureId } = useLanguageStore();
+  const cultureId = getCultureId();
 
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
@@ -97,6 +101,12 @@ export default function ProductListScreen() {
     searchName: params.searchName,
     subCategory: params.subCategory
   });
+
+  // Memoize the product list to avoid unnecessary re-renders
+  const memoizedProducts = useMemo(() => filteredProducts, [filteredProducts]);
+  
+  // Memoize filter options to avoid unnecessary re-renders
+  const memoizedFilterOptions = useMemo(() => filterOptions, [filterOptions]);
 
   const { clearSearchResults } = useSearchStore();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -480,7 +490,7 @@ export default function ProductListScreen() {
         
         <ProductFilters
           isLoading={isLoading}
-          filters={filterOptions}
+          filters={memoizedFilterOptions}
           activeFilters={activeFilters}
           onApplyFilters={handleApplyFilters}
           onReset={handleResetFilters}
@@ -489,8 +499,8 @@ export default function ProductListScreen() {
         <View style={styles.productsContainer}>
           <Text style={styles.resultsText}>
             {filteredProducts.length > 0 
-              ? `${filteredProducts.length} Result${filteredProducts.length === 1 ? '' : 's'} Found` 
-              : (isLoading ? 'Loading...' : 'No Results Found')}
+              ? `${filteredProducts.length} ${filteredProducts.length === 1 ? 'Result' : 'Results'} Found` 
+                              : (isLoading ? t('loading') : t('no_results_found'))}
           </Text>
           
           {isLoading && filteredProducts.length === 0 ? (
@@ -500,13 +510,13 @@ export default function ProductListScreen() {
           ) : !isLoading && filteredProducts.length === 0 ? (
             <View style={styles.fullScreenLoaderOrEmptyContainer}>
               <Text style={styles.noResultsTextLarge}>
-                No products found{params.searchName ? ` for "${params.searchName}"` : ''}.
+                {t('no_products_found')}{params.searchName ? ` ${t('no_products_found_for')} "${params.searchName}"` : ''}.
               </Text>
               {error && <Text style={[styles.errorText, {marginTop: spacing.sm}]}>{error}</Text>}
             </View>
           ) : (
             <FlatList
-              data={filteredProducts}
+              data={memoizedProducts}
               renderItem={({ item }) => (
                 <ProductCard product={item} onPress={handleProductPress} />
               )}
@@ -514,6 +524,16 @@ export default function ProductListScreen() {
               numColumns={2}
               contentContainerStyle={styles.productList}
               showsVerticalScrollIndicator={false}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              initialNumToRender={8}
+              windowSize={10}
+              getItemLayout={(data, index) => ({
+                length: 200, // Approximate item height
+                offset: 200 * Math.floor(index / 2), // Approximate offset for 2 columns
+                index,
+              })}
             />
           )}
         </View>

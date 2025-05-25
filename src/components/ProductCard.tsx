@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { colors, spacing, radii, typography } from '@theme';
 import { ProductDetail } from '../utils/api-service';
 
@@ -11,7 +11,10 @@ interface ProductCardProps {
   onPress: (product: ProductDetail) => void;
 }
 
-const ProductCard = ({ product, onPress }: ProductCardProps) => {
+const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+  
   const imageUrl = product.ImageUrl || 'https://via.placeholder.com/150';
   const name = product.ItemName || 'Product Name';
   const oldPrice = product.OldPrice && product.OldPrice > 0 ? `${product.OldPrice.toFixed(3)} KD` : null;
@@ -20,8 +23,26 @@ const ProductCard = ({ product, onPress }: ProductCardProps) => {
   return (
     <TouchableOpacity style={styles.container} onPress={() => onPress(product)} activeOpacity={0.85} accessibilityRole="button">
       <View style={styles.imageContainer}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" accessibilityLabel={name} />
+        {imageUrl && !imageError ? (
+          <>
+            <Image 
+              source={{ uri: imageUrl }} 
+              style={styles.image} 
+              resizeMode="contain" 
+              accessibilityLabel={name}
+              onLoadStart={() => setImageLoading(true)}
+              onLoadEnd={() => setImageLoading(false)}
+              onError={() => {
+                setImageLoading(false);
+                setImageError(true);
+              }}
+            />
+            {imageLoading && (
+              <View style={styles.imageLoader}>
+                <ActivityIndicator size="small" color={colors.blue} />
+              </View>
+            )}
+          </>
         ) : (
           <View style={styles.imagePlaceholder} />
         )}
@@ -33,7 +54,7 @@ const ProductCard = ({ product, onPress }: ProductCardProps) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -93,6 +114,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.blue,
+  },
+  imageLoader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.white,
   },
 });
 

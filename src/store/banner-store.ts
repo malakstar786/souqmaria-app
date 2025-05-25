@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getBanners } from '../utils/api-service';
+import useLanguageStore from './language-store';
 
 // Base URL for banner images
 const BANNER_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/Banner/';
@@ -23,10 +24,11 @@ const useBannerStore = create<BannerState>((set) => ({
   banners: [],
   isLoading: false,
   error: null,
-  fetchBanners: async (cultureId = '1', userId = '') => {
+  fetchBanners: async (cultureId?: string, userId = '') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await getBanners(cultureId, userId);
+      const finalCultureId = cultureId || useLanguageStore.getState().getCultureId();
+      const response = await getBanners(finalCultureId, userId);
       if (response.StatusCode === 200 && response.Data?.success === 1) {
         const rawBanners = response.Data.row || [];
         const processedBanners = rawBanners.map((banner: Banner, index: number) => ({

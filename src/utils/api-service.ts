@@ -9,6 +9,8 @@ import {
   CULTURE_IDS,
 } from './api-config';
 import axios from 'axios';
+import useLanguageStore from '../store/language-store';
+import { withCache } from './api-cache';
 
 // Types for API requests and responses
 export interface ApiResponse<T = any> {
@@ -325,6 +327,18 @@ const getPlatformSource = (): string => {
   return Platform.OS === 'ios' ? PLATFORM.IOS : PLATFORM.ANDROID;
 };
 
+// Helper function to get current culture ID from language store
+const getCurrentCultureId = (): string => {
+  try {
+    const cultureId = useLanguageStore.getState().getCultureId();
+    console.log('🌐 getCurrentCultureId() called, returning:', cultureId);
+    return cultureId;
+  } catch (error) {
+    console.warn('🌐 Failed to get culture ID from language store, defaulting to English:', error);
+    return CULTURE_IDS.ENGLISH;
+  }
+};
+
 /**
  * Base API request function with error handling
  */
@@ -568,7 +582,7 @@ export async function getCities(stateXcode: string): Promise<ApiResponse<Locatio
 export const getCountryList = async (): Promise<LocationResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
-      strQuery: "[Web].[Sp_Manage_Address_Apps_SM]'Get_Country_List','','','','','',1,3044"
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_Country_List','','','','','',${getCurrentCultureId()},3044`
     });
     return response.data;
   } catch (error) {
@@ -584,7 +598,7 @@ export const getCountryList = async (): Promise<LocationResponse> => {
 export const getStateList = async (countryId: number): Promise<LocationResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
-      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_State_List','${countryId}','','','','',1,3044`
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_State_List','${countryId}','','','','',${getCurrentCultureId()},3044`
     });
     return response.data;
   } catch (error) {
@@ -600,7 +614,7 @@ export const getStateList = async (countryId: number): Promise<LocationResponse>
 export const getCityList = async (stateId: number): Promise<LocationResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/getData_JSON`, {
-      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_City_List','${stateId}','','','','',1,3044`
+      strQuery: `[Web].[Sp_Manage_Address_Apps_SM]'Get_City_List','${stateId}','','','','',${getCurrentCultureId()},3044`
     });
     return response.data;
   } catch (error) {
@@ -651,9 +665,10 @@ export const getShippingAddresses = async (userId: string): Promise<ApiResponse<
  * @param cultureId Culture ID (defaults to English)
  * @returns API response with orders data
  */
-export const getMyOrders = async (userId: string, cultureId: string = '1'): Promise<ApiResponse<any>> => {
+export const getMyOrders = async (userId: string, cultureId?: string): Promise<ApiResponse<any>> => {
   try {
-    const query = SP_QUERIES.GET_MY_ORDERS(userId, cultureId);
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const query = SP_QUERIES.GET_MY_ORDERS(userId, finalCultureId);
     console.log('📋 getMyOrders - Query:', query);
     
     const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
@@ -689,9 +704,10 @@ export const getMyOrders = async (userId: string, cultureId: string = '1'): Prom
  * @param cultureId Culture ID (defaults to English)
  * @returns API response with order details data
  */
-export const getOrderDetails = async (userId: string, orderNo: string, cultureId: string = '1'): Promise<ApiResponse<any>> => {
+export const getOrderDetails = async (userId: string, orderNo: string, cultureId?: string): Promise<ApiResponse<any>> => {
   try {
-    const query = SP_QUERIES.GET_ORDER_DETAILS(userId, orderNo, cultureId);
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const query = SP_QUERIES.GET_ORDER_DETAILS(userId, orderNo, finalCultureId);
     const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
       strQuery: query
     });
@@ -719,22 +735,33 @@ export const getOrderDetails = async (userId: string, orderNo: string, cultureId
  * @param userId User ID (optional, pass empty string if not logged in)
  * @returns API response with categories data
  */
-export const getCategories = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
-  // This also uses GET_DATA_JSON, so it will benefit from the apiRequest update
-  try {
-    const query = SP_QUERIES.GET_CATEGORY_LIST(cultureId, userId); // This is Get_HomePage_Category_List
-    // Use the updated apiRequest directly
-    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
+export const getCategories = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
+  const finalCultureId = cultureId || getCurrentCultureId();
+  const cacheKey = 'getCategories';
+  const cacheParams = { cultureId: finalCultureId, userId };
+  
+  return withCache(
+    cacheKey,
+    cacheParams,
+    finalCultureId,
+    async () => {
+      try {
+        const query = SP_QUERIES.GET_CATEGORY_LIST(finalCultureId, userId); // This is Get_HomePage_Category_List
+        // Use the updated apiRequest directly
+        return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
 
-  } catch (error) {
-    console.error('Error getting categories (homepage):', error);
-    return {
-      StatusCode: 500,
-      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-      Message: 'Failed to fetch homepage categories. Please try again.',
-      Data: null // Or { success: 0, row: [], Message: '...' }
-    };
-  }
+      } catch (error) {
+        console.error('Error getting categories (homepage):', error);
+        return {
+          StatusCode: 500,
+          ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+          Message: 'Failed to fetch homepage categories. Please try again.',
+          Data: null // Or { success: 0, row: [], Message: '...' }
+        };
+      }
+    },
+    true // Mark as critical for longer caching
+  );
 };
 
 /**
@@ -743,22 +770,33 @@ export const getCategories = async (cultureId: string = '1', userId: string = ''
  * @param userId User ID (optional, pass empty string if not logged in)
  * @returns API response with all categories data
  */
-export const getAllCategories = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
-  // This also uses GET_DATA_JSON, so it will benefit from the apiRequest update
-  try {
-    const query = SP_QUERIES.GET_ALL_CATEGORY_LIST(cultureId, userId); // This is Get_All_HomePage_Category_List
-    // Use the updated apiRequest directly
-    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
+export const getAllCategories = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
+  const finalCultureId = cultureId || getCurrentCultureId();
+  const cacheKey = 'getAllCategories';
+  const cacheParams = { cultureId: finalCultureId, userId };
+  
+  return withCache(
+    cacheKey,
+    cacheParams,
+    finalCultureId,
+    async () => {
+      try {
+        const query = SP_QUERIES.GET_ALL_CATEGORY_LIST(finalCultureId, userId); // This is Get_All_HomePage_Category_List
+        // Use the updated apiRequest directly
+        return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
 
-  } catch (error) {
-    console.error('Error getting all categories:', error);
-    return {
-      StatusCode: 500,
-      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-      Message: 'Failed to fetch all categories. Please try again.',
-      Data: null // Or { success: 0, row: [], Message: '...' }
-    };
-  }
+      } catch (error) {
+        console.error('Error getting all categories:', error);
+        return {
+          StatusCode: 500,
+          ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+          Message: 'Failed to fetch all categories. Please try again.',
+          Data: null // Or { success: 0, row: [], Message: '...' }
+        };
+      }
+    },
+    true // Mark as critical for longer caching
+  );
 };
 
 /**
@@ -767,9 +805,10 @@ export const getAllCategories = async (cultureId: string = '1', userId: string =
  * @param userId User ID (optional, pass empty string if not logged in)
  * @returns API response with banner data
  */
-export const getBanners = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+export const getBanners = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
   try {
-    const query = SP_QUERIES.GET_BANNER_LIST(cultureId, userId);
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const query = SP_QUERIES.GET_BANNER_LIST(finalCultureId, userId);
     const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
       strQuery: query
     });
@@ -797,9 +836,10 @@ export const getBanners = async (cultureId: string = '1', userId: string = ''): 
  * @param userId User ID (optional, pass empty string if not logged in)
  * @returns API response with advertisement data
  */
-export const getAdvertisements = async (cultureId: string = '1', userId: string = ''): Promise<ApiResponse<any>> => {
+export const getAdvertisements = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
   try {
-    const query = SP_QUERIES.GET_ADVERTISEMENT_LIST(cultureId, userId);
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const query = SP_QUERIES.GET_ADVERTISEMENT_LIST(finalCultureId, userId);
     const axiosResponse = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
       strQuery: query
     });
@@ -844,10 +884,11 @@ export const getAdvertisements = async (cultureId: string = '1', userId: string 
  * Get Menu Categories for Browse Drawer
  */
 export const getMenuCategories = async (
-  cultureId: string = '1',
+  cultureId?: string,
   userId: string = '' 
 ): Promise<ApiResponse<{ success: number; row: MenuCategory[]; Message: string }>> => {
-  const strQuery = SP_QUERIES.GET_MENU_CATEGORY_LIST(cultureId, userId);
+  const finalCultureId = cultureId || getCurrentCultureId();
+  const strQuery = SP_QUERIES.GET_MENU_CATEGORY_LIST(finalCultureId, userId);
   const payload: GetDataJsonPayload = { strQuery };
   
   // apiRequest will now correctly wrap the SP result {success, row, Message} into its Data field.
@@ -863,7 +904,7 @@ export const getMenuCategories = async (
  */
 export const getMenuSubCategories = async (
   categoryXcode: string,
-  cultureId: string = '1',
+  cultureId?: string,
   userId: string = '' // Optional: Pass userId if available
 ): Promise<ApiResponse<{ success: number; row: MenuSubCategory[]; Message: string }>> => {
   if (!categoryXcode) {
@@ -877,7 +918,8 @@ export const getMenuSubCategories = async (
     };
   }
   
-  const strQuery = SP_QUERIES.GET_MENU_SUBCATEGORY_LIST(categoryXcode, cultureId, userId);
+  const finalCultureId = cultureId || getCurrentCultureId();
+  const strQuery = SP_QUERIES.GET_MENU_SUBCATEGORY_LIST(categoryXcode, finalCultureId, userId);
   const payload: GetDataJsonPayload = { strQuery };
 
   const response = await apiRequest<{ success: number; row: MenuSubCategory[]; Message: string }>(
@@ -919,10 +961,11 @@ export const getMenuSubCategories = async (
  */
 export const searchItems = async (
   searchText: string,
-  cultureId: string = '1',
+  cultureId?: string,
   userId: string = '' // Optional: Pass userId if available for personalized search or history
 ): Promise<ApiResponse<{ success: number; row: SearchItem[]; Message: string }>> => {
-  const strQuery = SP_QUERIES.GET_ITEM_NAME_LIST_BY_SEARCH(searchText, cultureId, userId);
+  const finalCultureId = cultureId || getCurrentCultureId();
+  const strQuery = SP_QUERIES.GET_ITEM_NAME_LIST_BY_SEARCH(searchText, finalCultureId, userId);
   const payload: GetDataJsonPayload = { strQuery };
 
   try {
@@ -1026,14 +1069,15 @@ export const getAllProductsDirectly = async (
 export const getProductDetailsByItemCode = async (
   itemCode: string,
   location: string, // e.g., COMMON_PARAMS.Location
-  cultureId: string = '1',
+  cultureId?: string,
   userId: string = ''
 ): Promise<ApiResponse<{ success: number; row: ProductDetail[]; Message: string }>> => {
   // Note: SP for details usually returns a single item in the 'row' array.
+  const finalCultureId = cultureId || getCurrentCultureId();
   const strQuery = SP_QUERIES.GET_PRODUCT_DETAILS_BY_ITEM_CODE(
     itemCode,
     location,
-    cultureId,
+    finalCultureId,
     userId
   );
   const payload: GetDataJsonPayload = { strQuery };
@@ -1049,12 +1093,13 @@ export const getProductDetailsByItemCode = async (
  */
 export const getSpecialDescriptionListByItemCode = async (
   itemCode: string,
-  cultureId: string = '1',
+  cultureId?: string,
   userId: string = ''
 ): Promise<ApiResponse<{ success: number; row: any[]; Message: string }>> => {
+  const finalCultureId = cultureId || getCurrentCultureId();
   const strQuery = SP_QUERIES.GET_SPECIAL_DESCRIPTION_LIST_BY_ITEM_CODE(
     itemCode,
-    cultureId,
+    finalCultureId,
     userId
   );
   const payload: GetDataJsonPayload = { strQuery };
@@ -1070,12 +1115,13 @@ export const getSpecialDescriptionListByItemCode = async (
  */
 export const getRelatedProductsListByItemCode = async (
   itemCode: string,
-  cultureId: string = '1',
+  cultureId?: string,
   userId: string = ''
 ): Promise<ApiResponse<{ success: number; row: any[]; Message: string }>> => {
+  const finalCultureId = cultureId || getCurrentCultureId();
   const strQuery = SP_QUERIES.GET_RELATED_PRODUCTS_LIST_BY_ITEM_CODE(
     itemCode,
-    cultureId,
+    finalCultureId,
     userId
   );
   const payload: GetDataJsonPayload = { strQuery };
@@ -1194,10 +1240,11 @@ export interface DeleteCartItemParams {
 export const getCartItems = async (
   userId: string = '',
   uniqueId: string,
-  cultureId: string = '1'
+  cultureId?: string
 ): Promise<ApiResponse<CartItemsResponse | null>> => {
   try {
-    const strQuery = SP_QUERIES.GET_CART_PRODUCTS(userId, uniqueId, cultureId);
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const strQuery = SP_QUERIES.GET_CART_PRODUCTS(userId, uniqueId, finalCultureId);
     console.log('🛒 GetCartItems - Request:', JSON.stringify({
       endpoint: ENDPOINTS.GET_DATA_JSON,
       method: 'POST',
@@ -1334,7 +1381,7 @@ export const deleteCartItem = async (params: DeleteCartItemParams): Promise<ApiR
  */
 export const getWishlistItems = async (userId: string): Promise<ApiResponse<any>> => {
   try {
-    const strQuery = `[Web].[Sp_Templete1_Get_MyWishlist_Apps]'Get_MyWishlist','${userId}','','','','',1,3044`;
+    const strQuery = `[Web].[Sp_Templete1_Get_MyWishlist_Apps]'Get_MyWishlist','${userId}','','','','',${getCurrentCultureId()},3044`;
     console.log('🧡 GetWishlistItems - Request:', JSON.stringify({ strQuery }, null, 2));
     
     const response = await apiRequest(
@@ -1545,10 +1592,11 @@ export const removePromoCode = async (params: PromoCodeParams): Promise<ApiRespo
  * Get list of available promo codes
  */
 export const getPromoCodes = async (
-  cultureId: string = '1'
+  cultureId?: string
 ): Promise<ApiResponse<PromoCodesListResponse>> => {
   try {
-    const strQuery = SP_QUERIES.GET_PROMO_CODES_LIST(cultureId);
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const strQuery = SP_QUERIES.GET_PROMO_CODES_LIST(finalCultureId);
     console.log('Get promo codes - Request:', JSON.stringify({ strQuery }, null, 2));
     
     const response = await apiRequest<PromoCodesListResponse>(
@@ -1582,62 +1630,72 @@ export const getPromoCodes = async (
 export const getFilteredProducts = async (
   params: ProductFilterParams
 ): Promise<ProductFilterResponse> => {
-  try {
-    const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_FILTER}`;
-    console.log('Filter API request:', JSON.stringify(params, null, 2));
+  const cacheKey = 'getFilteredProducts';
+  const cultureId = String(params.CultureId);
+  
+  return withCache(
+    cacheKey,
+    params,
+    cultureId,
+    async () => {
+      try {
+        const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_FILTER}`;
+        console.log('Filter API request:', JSON.stringify(params, null, 2));
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(params),
-    });
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(params),
+        });
 
-    if (!response.ok) {
-      console.error(`Error fetching filtered products: ${response.status}`);
-      return {
-        List: {
-          Productlist: [],
-          li_Brand_List: [],
-          li_Category_List: [],
-          li_SubCategory_List: [],
-          li_SortBy_List: [],
-          MinPrice: 0,
-          MaxPrice: 0,
-        },
-        ResponseCode: String(response.status),
-        Message: `HTTP error ${response.status}`,
-      };
+        if (!response.ok) {
+          console.error(`Error fetching filtered products: ${response.status}`);
+          return {
+            List: {
+              Productlist: [],
+              li_Brand_List: [],
+              li_Category_List: [],
+              li_SubCategory_List: [],
+              li_SortBy_List: [],
+              MinPrice: 0,
+              MaxPrice: 0,
+            },
+            ResponseCode: String(response.status),
+            Message: `HTTP error ${response.status}`,
+          };
+        }
+
+        const data: ProductFilterResponse = await response.json();
+        console.log('Filter API response:', {
+          responseCode: data.ResponseCode,
+          message: data.Message,
+          productsCount: data.List?.Productlist?.length || 0,
+          brandsCount: data.List?.li_Brand_List?.length || 0,
+          categoriesCount: data.List?.li_Category_List?.length || 0,
+        });
+
+        return data;
+      } catch (error) {
+        console.error('Network error in getFilteredProducts:', error);
+        return {
+          List: {
+            Productlist: [],
+            li_Brand_List: [],
+            li_Category_List: [],
+            li_SubCategory_List: [],
+            li_SortBy_List: [],
+            MinPrice: 0,
+            MaxPrice: 0,
+          },
+          ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
+          Message: 'Network request failed. Please check your connection.',
+        };
+      }
     }
-
-    const data: ProductFilterResponse = await response.json();
-    console.log('Filter API response:', {
-      responseCode: data.ResponseCode,
-      message: data.Message,
-      productsCount: data.List?.Productlist?.length || 0,
-      brandsCount: data.List?.li_Brand_List?.length || 0,
-      categoriesCount: data.List?.li_Category_List?.length || 0,
-    });
-
-    return data;
-  } catch (error) {
-    console.error('Network error in getFilteredProducts:', error);
-    return {
-      List: {
-        Productlist: [],
-        li_Brand_List: [],
-        li_Category_List: [],
-        li_SubCategory_List: [],
-        li_SortBy_List: [],
-        MinPrice: 0,
-        MaxPrice: 0,
-      },
-      ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
-      Message: 'Network request failed. Please check your connection.',
-    };
-  }
+  );
 };
 
 /**
@@ -1690,7 +1748,7 @@ export const registerGuestUser = async (params: GuestUserRegistrationParams): Pr
 export async function getCheckoutCountries(): Promise<ApiResponse<CheckoutLocationDataResponse>> {
   try {
     const data = {
-      strQuery: "[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Country_List','','','','','',1,3044,''"
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Country_List','','','','','',${getCurrentCultureId()},3044,''`
     };
     return apiRequest<CheckoutLocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
   } catch (error) {
@@ -1709,7 +1767,7 @@ export async function getCheckoutCountries(): Promise<ApiResponse<CheckoutLocati
 export async function getCheckoutStates(countryXcode: string): Promise<ApiResponse<CheckoutLocationDataResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_State_List','${countryXcode}','','','','',1,3044,''`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_State_List','${countryXcode}','','','','',${getCurrentCultureId()},3044,''`
     };
     return apiRequest<CheckoutLocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
   } catch (error) {
@@ -1728,7 +1786,7 @@ export async function getCheckoutStates(countryXcode: string): Promise<ApiRespon
 export async function getCheckoutCities(stateXcode: string): Promise<ApiResponse<CheckoutLocationDataResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_City_List','${stateXcode}','','','','',1,3044,''`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_City_List','${stateXcode}','','','','',${getCurrentCultureId()},3044,''`
     };
     return apiRequest<CheckoutLocationDataResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
   } catch (error) {
@@ -1805,7 +1863,7 @@ export async function saveCheckout(params: SaveCheckoutParams): Promise<ApiRespo
       IpAddress: params.IpAddress || '127.0.0.1',
       UniqueId: params.UniqueId,
       Company: params.Company || 3044,
-      CultureId: params.CultureId || 1,
+      CultureId: params.CultureId || parseInt(getCurrentCultureId()),
       BuyNow: params.BuyNow || '',
       Location: params.Location || '304401HO',
       DifferentAddress: params.DifferentAddress,
@@ -1885,7 +1943,7 @@ export interface Address {
 export async function getDefaultBillingAddressByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','','','','','',1,3044,'${userId}'`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_BillingAddress_ByUserid','','','','','',${getCurrentCultureId()},3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -1903,7 +1961,7 @@ export async function getDefaultBillingAddressByUserId(userId: string): Promise<
 export async function getDefaultShippingAddressByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','','','','','',1,3044,'${userId}'`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_Default_ShippingAddress_ByUserid','','','','','',${getCurrentCultureId()},3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -1921,7 +1979,7 @@ export async function getDefaultShippingAddressByUserId(userId: string): Promise
 export async function getAllBillingAddressesByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','','','','','',1,3044,'${userId}'`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_BillingAddress_ByUserId','','','','','',${getCurrentCultureId()},3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
@@ -1939,7 +1997,7 @@ export async function getAllBillingAddressesByUserId(userId: string): Promise<Ap
 export async function getAllShippingAddressesByUserId(userId: string): Promise<ApiResponse<CheckoutAddressResponse>> {
   try {
     const data = {
-      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','','','','','',1,3044,'${userId}'`
+      strQuery: `[Web].[Sp_CheckoutMst_Apps_SM] 'Get_All_ShippingAddress_ByUserId','','','','','',${getCurrentCultureId()},3044,'${userId}'`
     };
     const response = await apiRequest<CheckoutAddressResponse>(ENDPOINTS.GET_DATA_JSON, 'POST', data);
     return response;
