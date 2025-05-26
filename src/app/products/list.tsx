@@ -264,9 +264,18 @@ export default function ProductListScreen() {
         setFilteredProducts(mappedProducts);
         initialLoadDone.current = true;
       } else {
-        // Set error message when API response indicates failure
-        setError(filterResponse.Message || 'Failed to load products.');
-        console.error('Product filter API error:', filterResponse.Message);
+        // Handle specific error cases
+        if (filterResponse.ResponseCode === '-4' && filterResponse.Message === 'List not Found') {
+          // This is a normal case when no products match the filter criteria
+          setAllProducts([]);
+          setFilteredProducts([]);
+          setError(null); // Don't show error for empty results
+          console.log('Product filter: No products found for current filters');
+        } else {
+          // Set error message for actual API failures
+          setError(filterResponse.Message || 'Failed to load products.');
+          console.error('Product filter API error:', filterResponse.Message);
+        }
       }
 
     } catch (e: any) {
@@ -391,8 +400,17 @@ export default function ProductListScreen() {
         
         setFilteredProducts(mappedProducts);
       } else {
-        setError(filterResponse.Message || 'Failed to apply filters.');
-        console.error('Product filter API error:', filterResponse.Message);
+        // Handle specific error cases for filters
+        if (filterResponse.ResponseCode === '-4' && filterResponse.Message === 'List not Found') {
+          // This is a normal case when no products match the filter criteria
+          setFilteredProducts([]);
+          setError(null); // Don't show error for empty filter results
+          console.log('Product filter: No products found for applied filters');
+        } else {
+          // Set error message for actual API failures
+          setError(filterResponse.Message || 'Failed to apply filters.');
+          console.error('Product filter API error:', filterResponse.Message);
+        }
       }
     } catch (e: any) {
       const errorMsg = e.message || 'An unexpected error occurred while applying filters';

@@ -807,6 +807,110 @@ const translations = {
   'features': {
     en: 'Features',
     ar: 'الميزات'
+  },
+  
+  // Orders screen
+  'my_orders_title': {
+    en: 'My Orders',
+    ar: 'طلباتي'
+  },
+  'please_log_in': {
+    en: 'Please Log In',
+    ar: 'يرجى تسجيل الدخول'
+  },
+  'login_to_view_orders': {
+    en: 'You need to be logged in to view your order history',
+    ar: 'تحتاج إلى تسجيل الدخول لعرض تاريخ طلباتك'
+  },
+  'log_in_sign_up': {
+    en: 'Log In / Sign Up',
+    ar: 'تسجيل الدخول / إنشاء حساب'
+  },
+  'search_orders': {
+    en: 'Search orders...',
+    ar: 'البحث في الطلبات...'
+  },
+  'order_number': {
+    en: 'Order #',
+    ar: 'طلب رقم '
+  },
+  'order_total': {
+    en: 'Total',
+    ar: 'المجموع'
+  },
+  'status': {
+    en: 'Status',
+    ar: 'الحالة'
+  },
+  'processing': {
+    en: 'Processing',
+    ar: 'قيد المعالجة'
+  },
+  'view_details': {
+    en: 'View Details',
+    ar: 'عرض التفاصيل'
+  },
+  'order_history_appears_here': {
+    en: 'Your order history will appear here',
+    ar: 'سيظهر تاريخ طلباتك هنا'
+  },
+  'loading_orders': {
+    en: 'Loading orders...',
+    ar: 'جاري تحميل الطلبات...'
+  },
+  'no_orders_match_search': {
+    en: 'No orders match your search',
+    ar: 'لا توجد طلبات تطابق بحثك'
+  },
+  'try_different_search': {
+    en: 'Try searching with a different order number',
+    ar: 'جرب البحث برقم طلب مختلف'
+  },
+  'orders_clear_search': {
+    en: 'Clear Search',
+    ar: 'مسح البحث'
+  },
+  
+  // Order Details page
+  'order_details_title': {
+    en: 'Order Details',
+    ar: 'تفاصيل الطلب'
+  },
+  'order_items': {
+    en: 'Order Items',
+    ar: 'عناصر الطلب'
+  },
+  'order_details_summary': {
+    en: 'Order Summary',
+    ar: 'ملخص الطلب'
+  },
+  'qty': {
+    en: 'Qty',
+    ar: 'الكمية'
+  },
+  'subtotal': {
+    en: 'Subtotal',
+    ar: 'المجموع الفرعي'
+  },
+  'total_items': {
+    en: 'Total Items',
+    ar: 'إجمالي العناصر'
+  },
+  'total_amount': {
+    en: 'Total Amount',
+    ar: 'المبلغ الإجمالي'
+  },
+  'item': {
+    en: 'item',
+    ar: 'عنصر'
+  },
+  'items': {
+    en: 'items',
+    ar: 'عناصر'
+  },
+  'loading_order_details': {
+    en: 'Loading order details...',
+    ar: 'جاري تحميل تفاصيل الطلب...'
   }
 } as const;
 

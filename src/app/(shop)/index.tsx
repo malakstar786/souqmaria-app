@@ -29,6 +29,7 @@ import { useRouter } from 'expo-router';
 import { debounce } from 'lodash';
 import useCartStore from '../../store/cart-store';
 import { useTranslation } from '../../utils/translations';
+import { parseBannerUrl, isValidCategoryCode } from '../../utils/url-parser';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const BANNER_HEIGHT = 350; // Match screenshot
@@ -160,7 +161,7 @@ export default function HomeScreen() {
     clearSearchResults(); 
     setIsSearchFocused(false);
     Keyboard.dismiss(); 
-    router.push({ pathname: `/product/${item.XCode}`, params: { name: item.XName } });
+    router.push({ pathname: `/product/[id]`, params: { id: item.XCode, name: item.XName } });
   };
 
   const handleCartPress = () => router.push('/(shop)/cart');
@@ -179,6 +180,26 @@ export default function HomeScreen() {
   const handleBannerPress = (tagUrl: string | null) => {
     if (tagUrl) {
       console.log("Banner pressed, TagUrl:", tagUrl);
+      
+              // Parse the URL to extract category and subcategory codes
+        const { categoryCode, subCategoryCode } = parseBannerUrl(tagUrl);
+      
+      if (categoryCode && isValidCategoryCode(categoryCode)) {
+        console.log("Navigating to category:", categoryCode, "subcategory:", subCategoryCode);
+        
+        // Navigate to products list with Menu page code (MN) as specified in instructions
+        router.push({
+          pathname: '/products/list',
+          params: {
+            pageCode: 'MN',
+            category: categoryCode,
+            subCategory: subCategoryCode || '',
+            name: 'Products'
+          }
+        });
+      } else {
+        console.log("Invalid or missing category code in banner URL:", tagUrl);
+      }
     } else {
       console.log("Banner pressed, no TagUrl.");
     }

@@ -730,6 +730,81 @@ export const getOrderDetails = async (userId: string, orderNo: string, cultureId
 };
 
 /**
+ * Search user orders by order ID
+ * @param userId User ID
+ * @param searchOrderId Order ID to search for
+ * @param cultureId Culture ID (defaults to current language)
+ * @returns API response with matching orders data
+ */
+export const searchMyOrders = async (userId: string, searchOrderId: string, cultureId?: string): Promise<ApiResponse<any>> => {
+  try {
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const query = SP_QUERIES.SEARCH_MY_ORDERS(userId, searchOrderId, finalCultureId);
+    console.log('📋 searchMyOrders - Query:', query);
+    
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+    
+    console.log('📋 searchMyOrders - Raw response:', JSON.stringify(response.data, null, 2));
+    
+    const result = {
+      StatusCode: 200,
+      ResponseCode: response.data.success === 1 ? '2' : '-2',
+      Message: response.data.Message || 'Orders search completed',
+      Data: response.data
+    };
+    
+    console.log('📋 searchMyOrders - Formatted result:', JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error('❌ searchMyOrders - Error:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: 'Failed to search orders. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
+ * Search order details by order ID
+ * @param userId User ID
+ * @param searchOrderId Order ID to search for details
+ * @param cultureId Culture ID (defaults to current language)
+ * @returns API response with matching order details data
+ */
+export const searchOrderDetails = async (userId: string, searchOrderId: string, cultureId?: string): Promise<ApiResponse<any>> => {
+  try {
+    const finalCultureId = cultureId || getCurrentCultureId();
+    const query = SP_QUERIES.SEARCH_ORDER_DETAILS(userId, searchOrderId, finalCultureId);
+    console.log('📋 searchOrderDetails - Query:', query);
+    
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+    
+    console.log('📋 searchOrderDetails - Raw response:', JSON.stringify(response.data, null, 2));
+    
+    return {
+      StatusCode: 200,
+      ResponseCode: response.data.success === 1 ? '2' : '-2',
+      Message: response.data.Message || 'Order details search completed',
+      Data: response.data
+    };
+  } catch (error) {
+    console.error('❌ searchOrderDetails - Error:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: 'Failed to search order details. Please try again.',
+      Data: null
+    };
+  }
+};
+
+/**
  * Get list of product categories
  * @param cultureId Culture ID (defaults to English)
  * @param userId User ID (optional, pass empty string if not logged in)
@@ -745,20 +820,20 @@ export const getCategories = async (cultureId?: string, userId: string = ''): Pr
     cacheParams,
     finalCultureId,
     async () => {
-      try {
+  try {
         const query = SP_QUERIES.GET_CATEGORY_LIST(finalCultureId, userId); // This is Get_HomePage_Category_List
-        // Use the updated apiRequest directly
-        return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
+    // Use the updated apiRequest directly
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
 
-      } catch (error) {
-        console.error('Error getting categories (homepage):', error);
-        return {
-          StatusCode: 500,
-          ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-          Message: 'Failed to fetch homepage categories. Please try again.',
-          Data: null // Or { success: 0, row: [], Message: '...' }
-        };
-      }
+  } catch (error) {
+    console.error('Error getting categories (homepage):', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch homepage categories. Please try again.',
+      Data: null // Or { success: 0, row: [], Message: '...' }
+    };
+  }
     },
     true // Mark as critical for longer caching
   );
@@ -780,20 +855,20 @@ export const getAllCategories = async (cultureId?: string, userId: string = ''):
     cacheParams,
     finalCultureId,
     async () => {
-      try {
+  try {
         const query = SP_QUERIES.GET_ALL_CATEGORY_LIST(finalCultureId, userId); // This is Get_All_HomePage_Category_List
-        // Use the updated apiRequest directly
-        return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
+    // Use the updated apiRequest directly
+    return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
 
-      } catch (error) {
-        console.error('Error getting all categories:', error);
-        return {
-          StatusCode: 500,
-          ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-          Message: 'Failed to fetch all categories. Please try again.',
-          Data: null // Or { success: 0, row: [], Message: '...' }
-        };
-      }
+  } catch (error) {
+    console.error('Error getting all categories:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to fetch all categories. Please try again.',
+      Data: null // Or { success: 0, row: [], Message: '...' }
+    };
+  }
     },
     true // Mark as critical for longer caching
   );
@@ -1638,62 +1713,62 @@ export const getFilteredProducts = async (
     params,
     cultureId,
     async () => {
-      try {
-        const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_FILTER}`;
-        console.log('Filter API request:', JSON.stringify(params, null, 2));
+  try {
+    const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_FILTER}`;
+    console.log('Filter API request:', JSON.stringify(params, null, 2));
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify(params),
-        });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
 
-        if (!response.ok) {
-          console.error(`Error fetching filtered products: ${response.status}`);
-          return {
-            List: {
-              Productlist: [],
-              li_Brand_List: [],
-              li_Category_List: [],
-              li_SubCategory_List: [],
-              li_SortBy_List: [],
-              MinPrice: 0,
-              MaxPrice: 0,
-            },
-            ResponseCode: String(response.status),
-            Message: `HTTP error ${response.status}`,
-          };
-        }
+    if (!response.ok) {
+      console.error(`Error fetching filtered products: ${response.status}`);
+      return {
+        List: {
+          Productlist: [],
+          li_Brand_List: [],
+          li_Category_List: [],
+          li_SubCategory_List: [],
+          li_SortBy_List: [],
+          MinPrice: 0,
+          MaxPrice: 0,
+        },
+        ResponseCode: String(response.status),
+        Message: `HTTP error ${response.status}`,
+      };
+    }
 
-        const data: ProductFilterResponse = await response.json();
-        console.log('Filter API response:', {
-          responseCode: data.ResponseCode,
-          message: data.Message,
-          productsCount: data.List?.Productlist?.length || 0,
-          brandsCount: data.List?.li_Brand_List?.length || 0,
-          categoriesCount: data.List?.li_Category_List?.length || 0,
-        });
+    const data: ProductFilterResponse = await response.json();
+    console.log('Filter API response:', {
+      responseCode: data.ResponseCode,
+      message: data.Message,
+      productsCount: data.List?.Productlist?.length || 0,
+      brandsCount: data.List?.li_Brand_List?.length || 0,
+      categoriesCount: data.List?.li_Category_List?.length || 0,
+    });
 
-        return data;
-      } catch (error) {
-        console.error('Network error in getFilteredProducts:', error);
-        return {
-          List: {
-            Productlist: [],
-            li_Brand_List: [],
-            li_Category_List: [],
-            li_SubCategory_List: [],
-            li_SortBy_List: [],
-            MinPrice: 0,
-            MaxPrice: 0,
-          },
-          ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
-          Message: 'Network request failed. Please check your connection.',
-        };
-      }
+    return data;
+  } catch (error) {
+    console.error('Network error in getFilteredProducts:', error);
+    return {
+      List: {
+        Productlist: [],
+        li_Brand_List: [],
+        li_Category_List: [],
+        li_SubCategory_List: [],
+        li_SortBy_List: [],
+        MinPrice: 0,
+        MaxPrice: 0,
+      },
+      ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
+      Message: 'Network request failed. Please check your connection.',
+    };
+  }
     }
   );
 };

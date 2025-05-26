@@ -157,9 +157,15 @@ export const SP_QUERIES = {
   
   // Order queries with proper currency values
   GET_MY_ORDERS: (userId: string, cultureId: string = '1') => 
-    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Parent','${userId}','','','KWD','KD',${COMMON_PARAMS.Company},${cultureId}`,
+    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Parent','${userId}','','','','',${cultureId},${COMMON_PARAMS.Company}`,
   GET_ORDER_DETAILS: (userId: string, orderNo: string, cultureId: string = '1') => 
-    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child','${userId}','${orderNo}','','KWD','KD',${COMMON_PARAMS.Company},${cultureId}`,
+    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child','${userId}','${orderNo}','','','',${cultureId},${COMMON_PARAMS.Company}`,
+  
+  // Order search queries
+  SEARCH_MY_ORDERS: (userId: string, searchOrderId: string, cultureId: string = '1') => 
+    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Parent_Search','${userId}','${searchOrderId}','','','',${cultureId},${COMMON_PARAMS.Company}`,
+  SEARCH_ORDER_DETAILS: (userId: string, searchOrderId: string, cultureId: string = '1') => 
+    `[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child_Search','${userId}','${searchOrderId}','','','',${cultureId},${COMMON_PARAMS.Company}`,
     
   // Promo code queries
   GET_PROMO_CODES_LIST: (cultureId: string = '1') => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_Promo_Coupons_List','','','','','',${cultureId},3044,''`,

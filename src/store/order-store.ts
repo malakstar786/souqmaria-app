@@ -1,28 +1,23 @@
 import { create } from 'zustand';
-import { getMyOrders, getOrderDetails } from '../utils/api-service';
+import { getMyOrders, getOrderDetails, searchMyOrders, searchOrderDetails } from '../utils/api-service';
+import useLanguageStore from './language-store';
 
-// Types for order data
+// Types for order data based on actual API response
 export interface OrderItem {
-  OrderID: string;
-  OrderNo: string;
-  OrderDate: string;
-  TotalAmount: number;
-  Status: string;
-  ItemCount: number;
+  OrderId: string;        // Order tracking ID (e.g., "TR00001859")
+  OrderOn: string;        // Order date (e.g., "26/05/2025")
+  OrderTotal: number;     // Total order amount (e.g., 1.300)
   // Additional properties that may be in the response
   [key: string]: any;
 }
 
 export interface OrderDetailItem {
-  OrderID: string;
-  OrderNo: string;
-  OrderDate: string;
-  ProductName: string;
-  Quantity: number;
-  UnitPrice: number;
-  Discount: number;
-  TotalAmount: number;
-  ImageURL: string;
+  OrderId: string;        // Order tracking ID
+  ItemImage: string;      // Product image filename
+  ItemCode: string;       // Product code
+  ItemName: string;       // Product name
+  Quantity: number;       // Quantity ordered
+  ProdPrice: number;      // Product price per unit
   // Additional properties that may be in the response
   [key: string]: any;
 }
@@ -35,10 +30,15 @@ interface OrderState {
   isLoadingDetails: boolean;
   error: string | null;
   errorDetails: string | null;
+  searchQuery: string;
+  isSearching: boolean;
   
   // Actions
   fetchOrders: (userId: string) => Promise<void>;
   fetchOrderDetails: (userId: string, orderNo: string) => Promise<void>;
+  searchOrders: (userId: string, searchQuery: string) => Promise<void>;
+  clearSearch: () => void;
+  setSearchQuery: (query: string) => void;
   clearError: () => void;
   clearOrderDetails: () => void;
 }
@@ -51,6 +51,8 @@ const useOrderStore = create<OrderState>((set) => ({
   isLoadingDetails: false,
   error: null,
   errorDetails: null,
+  searchQuery: '',
+  isSearching: false,
   
   // Fetch all orders for a user
   fetchOrders: async (userId: string) => {
@@ -58,7 +60,12 @@ const useOrderStore = create<OrderState>((set) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await getMyOrders(userId);
+      // Get current culture ID from language store
+      const { getCultureId } = useLanguageStore.getState();
+      const cultureId = getCultureId();
+      console.log('📋 My Orders - Using culture ID:', cultureId);
+      
+      const response = await getMyOrders(userId, cultureId);
       console.log('📋 My Orders - API Response:', JSON.stringify(response, null, 2));
       
       if (response.StatusCode === 200 && response.Data?.success === 1) {
@@ -103,7 +110,12 @@ const useOrderStore = create<OrderState>((set) => ({
     set({ isLoadingDetails: true, errorDetails: null });
     
     try {
-      const response = await getOrderDetails(userId, orderNo);
+      // Get current culture ID from language store
+      const { getCultureId } = useLanguageStore.getState();
+      const cultureId = getCultureId();
+      console.log('📋 Order Details - Using culture ID:', cultureId);
+      
+      const response = await getOrderDetails(userId, orderNo, cultureId);
       
       if (response.StatusCode === 200 && response.Data?.success === 1) {
         // API returned order details successfully
@@ -126,6 +138,64 @@ const useOrderStore = create<OrderState>((set) => ({
         errorDetails: 'An unexpected error occurred while fetching order details.'
       });
     }
+  },
+  
+  // Search orders by order ID
+  searchOrders: async (userId: string, searchQuery: string) => {
+    console.log('📋 Search Orders - Searching for:', searchQuery);
+    set({ isSearching: true, error: null });
+    
+    try {
+      // Get current culture ID from language store
+      const { getCultureId } = useLanguageStore.getState();
+      const cultureId = getCultureId();
+      console.log('📋 Search Orders - Using culture ID:', cultureId);
+      
+      const response = await searchMyOrders(userId, searchQuery, cultureId);
+      console.log('📋 Search Orders - API Response:', JSON.stringify(response, null, 2));
+      
+      if (response.StatusCode === 200 && response.Data?.success === 1) {
+        // API returned search results successfully
+        console.log('📋 Search Orders - Results found:', response.Data.row?.length || 0);
+        set({ 
+          orders: response.Data.row || [],
+          isSearching: false,
+          error: null
+        });
+      } else if (response.StatusCode === 200 && response.Data?.success === 0) {
+        // API was successful but no results found
+        console.log('📋 Search Orders - No results found. Message:', response.Message);
+        set({
+          orders: [],
+          isSearching: false,
+          error: null
+        });
+      } else {
+        // Actual API error
+        console.log('📋 Search Orders - API error. Message:', response.Message);
+        set({
+          orders: [],
+          isSearching: false,
+          error: response.Message || 'Failed to search orders. Please try again.'
+        });
+      }
+    } catch (error) {
+      console.error('❌ Search Orders - Error:', error);
+      set({
+        isSearching: false,
+        error: 'An unexpected error occurred while searching orders.'
+      });
+    }
+  },
+  
+  // Clear search and reload all orders
+  clearSearch: () => {
+    set({ searchQuery: '', orders: [] });
+  },
+  
+  // Set search query
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query });
   },
   
   // Clear any errors

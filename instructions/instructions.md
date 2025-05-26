@@ -2,27 +2,27 @@
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Technical Architecture](#technical-architecture)
-3. [Development Environment Setup](#development-environment-setup)
-4. [Application Structure](#application-structure)
-5. [API Documentation](#api-documentation)
-6. [User Interface Specifications](#user-interface-specifications)
-7. [Core Features Implementation](#core-features-implementation)
-8. [State Management](#state-management)
-9. [Performance Optimization](#performance-optimization)
-10. [Deployment Guide](#deployment-guide)
-11. [Testing Strategy](#testing-strategy)
-12. [Troubleshooting](#troubleshooting)
+1. [Project Overview](#1-project-overview)
+2. [Technical Architecture](#2-technical-architecture)
+3. [Development Environment Setup](#3-development-environment-setup)
+4. [Application Structure](#4-application-structure)
+5. [API Documentation](#5-api-documentation)
+6. [User Interface Specifications](#6-user-interface-specifications)
+7. [Core Features Implementation](#7-core-features-implementation)
+8. [State Management](#8-state-management)
+9. [Performance Optimization](#9-performance-optimization)
+10. [Deployment Guide](#10-deployment-guide)
+11. [Testing Strategy](#11-testing-strategy)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
-## Project Overview
+## 1. Project Overview
 
-### Business Context
+### 1.1 Business Context
 SouqMaria is a Kuwait-based e-commerce mobile application specializing in mobile phones, tablets, and electronics. The application provides a seamless shopping experience with bilingual support (English/Arabic) and cash-on-delivery payment options.
 
-### Key Business Requirements
+### 1.2 Key Business Requirements
 - **Target Market**: Kuwait electronics consumers
 - **Product Categories**: Mobile phones, tablets, accessories, smartwatches, speakers, headphones, electronics appliances
 - **Payment Method**: Cash on Delivery (COD) only
@@ -30,7 +30,7 @@ SouqMaria is a Kuwait-based e-commerce mobile application specializing in mobile
 - **User Types**: Guest users and registered users
 - **Core Functionality**: Product browsing, cart management, wishlist, user accounts, order tracking
 
-### Success Metrics
+### 1.3 Success Metrics
 - App startup time < 3 seconds
 - Category page load time < 2 seconds
 - Smooth 60fps scrolling performance
@@ -40,9 +40,9 @@ SouqMaria is a Kuwait-based e-commerce mobile application specializing in mobile
 
 ---
 
-## Technical Architecture
+## 2. Technical Architecture
 
-### Technology Stack
+### 2.1 Technology Stack
 
 #### Frontend Framework
 - **React Native**: 0.72+
@@ -67,7 +67,7 @@ SouqMaria is a Kuwait-based e-commerce mobile application specializing in mobile
 - **TypeScript**: Type checking
 - **Expo Dev Tools**: Development and debugging
 
-### Architecture Patterns
+### 2.2 Architecture Patterns
 
 #### Component Architecture
 ```
@@ -92,7 +92,7 @@ UI Components → Zustand Stores → API Services → Backend APIs
 User Actions    State Updates   Data Fetching
 ```
 
-### Performance Architecture
+### 2.3 Performance Architecture
 
 #### Caching Strategy
 - **API Cache**: 30 minutes for general data, 1 hour for critical data
@@ -106,9 +106,9 @@ User Actions    State Updates   Data Fetching
 
 ---
 
-## Development Environment Setup
+## 3. Development Environment Setup
 
-### Prerequisites
+### 3.1 Prerequisites
 
 #### System Requirements
 - **Node.js**: 18.0.0 or higher
@@ -130,7 +130,7 @@ User Actions    State Updates   Data Fetching
 - Android Emulator or physical device
 - Google Play Console Account (for deployment)
 
-### Installation Steps
+### 3.2 Installation Steps
 
 #### 1. Clone Repository
 ```bash
@@ -174,7 +174,7 @@ npm run ios
 npm run android
 ```
 
-### Development Tools Setup
+### 3.3 Development Tools Setup
 
 #### VS Code Extensions
 - ES7+ React/Redux/React-Native snippets
@@ -191,9 +191,9 @@ npm run android
 
 ---
 
-## Application Structure
+## 4. Application Structure
 
-### File System Organization
+### 4.1 File System Organization
 
 ```
 mobile-app-sm/
@@ -202,44 +202,113 @@ mobile-app-sm/
 ├── eas.json                 # EAS Build configuration
 ├── package.json             # Dependencies and scripts
 ├── tsconfig.json            # TypeScript configuration
+├── expo-env.d.ts            # Expo TypeScript environment definitions
+├── app-store-metadata.json  # App Store metadata configuration
+├── DEPLOYMENT_CHECKLIST.md  # Deployment checklist
+├── DEPLOYMENT_README.md     # Deployment documentation
+├── scripts/                 # Build and deployment scripts
+│   ├── build-production.sh  # Production build script
+│   └── pre-deployment-test.sh # Pre-deployment testing script
+├── legal/                   # Legal documents
+│   └── privacy-policy.md    # Privacy policy
+├── instructions/            # Project documentation
+│   ├── instructions.md      # Complete developer documentation
+│   └── UI/                  # UI design references
+│       ├── account/         # Account section UI
+│       ├── cart/            # Cart UI designs
+│       ├── categories/      # Categories UI designs
+│       ├── checkout/        # Checkout flow UI
+│       ├── product_pages/   # Product pages UI
+│       ├── homepage.png     # Homepage design
+│       └── splash.png       # Splash screen design
 ├── src/
 │   ├── app/                 # Expo Router pages
 │   │   ├── (shop)/          # Main app screens
-│   │   │   ├── _layout.tsx  # Shop layout
+│   │   │   ├── _layout.tsx  # Shop layout with bottom tabs
 │   │   │   ├── index.tsx    # Home screen
-│   │   │   ├── categories.tsx
-│   │   │   ├── cart.tsx
+│   │   │   ├── categories.tsx # Categories listing
+│   │   │   ├── cart.tsx     # Shopping cart
 │   │   │   └── account/     # Account section
+│   │   │       ├── _layout.tsx # Account layout
+│   │   │       ├── index.tsx   # Account dashboard
+│   │   │       ├── address/    # Address management
+│   │   │       ├── details/    # User details
+│   │   │       ├── orders/     # Order history
+│   │   │       ├── language.tsx # Language settings
+│   │   │       ├── policies.tsx # Terms & policies
+│   │   │       └── wishlist.tsx # User wishlist
+│   │   ├── +not-found.tsx   # 404 page
 │   │   ├── product/         # Product pages
+│   │   │   └── [id].tsx     # Product details
+│   │   ├── products/        # Product listings
+│   │   │   ├── _layout.tsx  # Products layout
+│   │   │   └── list.tsx     # Filtered products
 │   │   ├── checkout.tsx     # Checkout flow
-│   │   └── thank-you.tsx    # Order confirmation
+│   │   ├── thank-you.tsx    # Order confirmation
+│   │   ├── signup.tsx       # User registration
+│   │   └── forgot-password.tsx # Password reset
+│   ├── assets/              # Static assets
+│   │   ├── account_tab/     # Account section icons
+│   │   ├── checkout/        # Checkout flow assets
+│   │   ├── icon.png         # App icon
+│   │   ├── logo.png         # App logo
+│   │   ├── splash.png       # Splash screen
+│   │   └── empty_wishlist.png # Empty wishlist image
 │   ├── components/          # Reusable components
 │   │   ├── common/          # Shared UI components
-│   │   ├── forms/           # Form components
-│   │   └── modals/          # Modal components
-│   ├── store/               # Zustand stores
-│   │   ├── auth-store.ts
-│   │   ├── cart-store.ts
-│   │   ├── category-store.ts
-│   │   └── language-store.ts
-│   ├── utils/               # Utility functions
-│   │   ├── api-service.ts   # API integration
-│   │   ├── api-cache.ts     # Caching logic
-│   │   └── localization.ts  # i18n support
+│   │   │   └── TopBar.tsx   # Top navigation bar
+│   │   ├── add-edit-address.tsx # Address form component
+│   │   ├── AddAddressModal.tsx  # Add address modal
+│   │   ├── AddressDropdown.tsx  # Address selection dropdown
+│   │   ├── AuthModal.tsx        # Authentication modal
+│   │   ├── browse-drawer.tsx    # Browse categories drawer
+│   │   ├── CartIcon.tsx         # Cart icon with badge
+│   │   ├── CategoryCard.tsx     # Category display card
+│   │   ├── ChangeAddressModal.tsx # Address change modal
+│   │   ├── CreateAddressModal.tsx # Create address modal
+
+│   │   ├── GuestCheckoutAddressForm.tsx # Guest checkout address
+│   │   ├── GuestCheckoutShippingForm.tsx # Guest shipping form
+│   │   ├── HeaderCartIcon.tsx   # Header cart icon
+│   │   ├── LanguageSelector.tsx # Language switcher
+│   │   ├── ProductCard.tsx      # Product display card
+│   │   ├── ProductFilters.tsx   # Product filtering
+│   │   ├── PromoCodeModal.tsx   # Promo code modal
+│   │   └── SearchBarWithSuggestions.tsx # Search with autocomplete
+│   ├── config/              # App configuration
+│   │   └── app-config.ts    # Application configuration
 │   ├── constants/           # App constants
 │   │   └── colors.ts        # Color palette
-│   └── types/               # TypeScript definitions
-├── assets/                  # Static assets
-│   ├── images/
-│   ├── icons/
-│   └── fonts/
-└── docs/                    # Documentation
-    ├── api/                 # API documentation
-    ├── ui/                  # UI specifications
-    └── deployment/          # Deployment guides
+│   ├── store/               # Zustand stores
+│   │   ├── address-store.ts     # Address management
+│   │   ├── advertisement-store.ts # Advertisements
+│   │   ├── all-category-store.ts # All categories
+│   │   ├── auth-store.ts        # Authentication
+│   │   ├── banner-store.ts      # Banners
+│   │   ├── cart-store.ts        # Shopping cart
+│   │   ├── category-store.ts    # Homepage categories
+│   │   ├── checkout-store.ts    # Checkout process
+│   │   ├── language-store.ts    # Language settings
+│   │   ├── location-store.ts    # Location data
+│   │   ├── menu-store.ts        # Menu categories
+│   │   ├── order-store.ts       # Order management
+│   │   ├── promo-store.ts       # Promo codes
+│   │   ├── search-store.ts      # Search functionality
+│   │   └── wishlist-store.ts    # Wishlist management
+│   ├── utils/               # Utility functions
+│   │   ├── api-cache.ts     # API response caching
+│   │   ├── api-config.ts    # API configuration
+│   │   ├── api-service.ts   # API integration
+│   │   ├── localization.ts  # i18n support
+│   │   ├── network-monitor.ts # Network monitoring
+│   │   ├── performance-monitor.ts # Performance tracking
+│   │   ├── preloader.ts     # App preloader
+│   │   ├── rtl.ts           # RTL support
+│   │   └── translations.ts  # Translation strings
+│   └── theme.ts             # App theme configuration
 ```
 
-### Navigation Structure
+### 4.2 Navigation Structure
 
 #### Route Hierarchy
 ```
@@ -271,9 +340,9 @@ mobile-app-sm/
 
 ---
 
-## API Documentation
+## 5. API Documentation
 
-### API Architecture
+### 5.1 API Architecture
 
 #### Base Configuration
 ```typescript
@@ -282,6 +351,7 @@ const API_CONFIG = {
   COMPANY_ID: 3044,
   LOCATION_ID: '304401HO',
   SALESMAN_ID: '3044SMOL',
+  CULTURE_ID: 1 | 2
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3
 };
@@ -294,7 +364,7 @@ All API requests include these standard parameters:
 - **Location**: `304401HO` (Fixed location identifier)
 - **Salesman**: `3044SMOL` (Fixed salesman identifier)
 
-### Authentication APIs
+### 5.2 Authentication APIs
 
 #### User Registration
 **Endpoint**: `POST /SaveUserRegistration/`
@@ -335,9 +405,9 @@ interface ApiResponse {
 **Request Body**:
 ```typescript
 interface LoginRequest {
-  UserName: string;        // Email or mobile
-  Password: string;        // User password
-  CompanyId: number;       // Fixed: 3044
+  userName: string;        // Email or mobile (lowercase)
+  password: string;        // User password (lowercase)
+  companyId: number;       // Fixed: 3044 (lowercase)
 }
 ```
 
@@ -352,20 +422,48 @@ interface LoginResponse {
     FullName: string;
     Email: string;
     Mobile: string;
-    // Additional user data
+    UserName?: string | null;
+    Password?: string;
   };
 }
 ```
 
-### Product APIs
+#### Update User Details
+**Endpoint**: `POST /Update_Account_Info/`
 
-#### Get Categories
+**Request Body**:
+```typescript
+interface UpdateUserDetailsRequest {
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  Password?: string;       // Optional
+  UserId: string;
+  IpAddress: string;
+  CompanyId: number;
+}
+```
+
+#### Forgot Password
+**Endpoint**: `POST /ForgetPassword/`
+
+**Request Body**:
+```typescript
+interface ForgotPasswordRequest {
+  Email: string;
+  CompanyId: number;       // Fixed: 3044
+}
+```
+
+### 5.3 Product APIs
+
+#### Get Homepage Categories
 **Endpoint**: `POST /getData_JSON/`
 
 **Request Body**:
 ```typescript
 {
-  strQuery: "[Web].[Sp_Get_SM_Apps] 'Get_HomePage_Category_List','','','','','',1,3044,''"
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_HomePage_Category_List','','','','','',CULTURE_ID,'3044','USER_ID'"
 }
 ```
 
@@ -384,13 +482,73 @@ interface CategoryResponse {
 }
 ```
 
+#### Get All Categories
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_All_HomePage_Category_List','','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
+#### Get Menu Categories (Browse Drawer)
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_Menu_Category_List','','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
+#### Get Menu Subcategories
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_Menu_SubCategory_List_ByCategory','CATEGORY_XCODE','','','','','CULTURE_ID','3044','USER_ID'"
+}
+```
+
+#### Get Banners
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_Banner_List','','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
+#### Get Advertisements
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_Ads_List','','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
+#### Search Items
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_ItemName_List_BySearch','SEARCH_TEXT','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
 #### Get Product Details
 **Endpoint**: `POST /getData_JSON/`
 
 **Request Body**:
 ```typescript
 {
-  strQuery: "[Web].[Sp_Get_SM_Apps] 'Get_ProductDetails_ByItemCode','ITEM_CODE','304401HO','','','',1,3044,''"
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_ProductDetails_ByItemCode','ITEM_CODE','304401HO','','','',CULTURE_ID,'3044','USER_ID'"
 }
 ```
 
@@ -417,7 +575,68 @@ interface ProductResponse {
 }
 ```
 
-### Cart Management APIs
+#### Get Product Special Description
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_Special_Description_List_ByItemCode','ITEM_CODE','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
+#### Get Related Products
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Get_SM_Apps]'Get_Related_Products_List_ByItemCode','ITEM_CODE','','','','',CULTURE_ID,'3044','USER_ID'"
+}
+```
+
+#### Get All Products (Direct)
+**Endpoint**: `GET /Get_AllProduct_List`
+
+**Query Parameters**:
+```typescript
+interface GetAllProductsParams {
+  Company: string;          // Company ID (3044)
+  CultureId: string;        // Culture ID (1 or 2)
+  PageCode: string;         // Page identifier
+  Category?: string;        // Category filter
+  SubCategory?: string;     // Subcategory filter
+  SearchName?: string;      // Search term
+  HomePageCatSrNo?: string; // Homepage category number
+  UserId?: string;          // User ID (optional)
+}
+```
+
+#### Get Filtered Products
+**Endpoint**: `POST /Get_AllProduct_List_FilterApply`
+
+**Request Body**:
+```typescript
+interface ProductFilterRequest {
+  PageCode: string;
+  Category?: string;
+  SubCategory?: string;
+  SearchName?: string;
+  HomePageCatSrNo?: string;
+  UserId?: string;
+  Company: string | number;
+  CultureId: string | number;
+  Arry_Category: string[];
+  Arry_SubCategory: string[];
+  Arry_Brand: string[];
+  Arry_Color: string[];
+  MinPrice: number;
+  MaxPrice: number;
+  SortBy: string;
+}
+```
+
+### 5.4 Cart Management APIs
 
 #### Add to Cart
 **Endpoint**: `POST /AddToCart/`
@@ -432,7 +651,7 @@ interface AddToCartRequest {
   UserId: string;          // User ID (empty for guests)
   UniqueId: string;        // Cart identifier
   IpAddress: string;       // Client IP
-  Company: string;         // Company ID
+  Company: number;         // Company ID
   Location: string;        // Location ID
   Qty: number;            // Quantity
 }
@@ -450,18 +669,261 @@ interface AddToCartRequest {
 **Request Body**:
 ```typescript
 {
-  strQuery: "[Web].[SP_Template1_Get_CartProductsDetails_Apps] 'USER_ID','IP_ADDRESS','UNIQUE_ID',3044,1"
+  strQuery: "[Web].[SP_Template1_Get_CartProductsDetails_Apps]'USER_ID','IP_ADDRESS','UNIQUE_ID',3044,CULTURE_ID"
 }
 ```
 
-### Address Management APIs
+#### Update Cart Quantity
+**Endpoint**: `POST /UpdateCartQty/`
 
-#### Save Address
+**Request Body**:
+```typescript
+interface UpdateCartQtyRequest {
+  CartId: number;           // Cart item ID
+  Qty: number;              // New quantity
+  Company: string;          // Company ID
+  Location: string;         // Location ID
+}
+```
+
+**Response Codes**:
+- `2`: Quantity updated successfully
+- `-2`: Update failed
+- `-4`: Stock not available
+- `-10`: General error
+
+#### Delete Cart Item
+**Endpoint**: `POST /DeleteCartItem/`
+
+**Request Body**:
+```typescript
+interface DeleteCartItemRequest {
+  CartId: number;           // Cart item ID
+  Company: string;          // Company ID
+}
+```
+
+**Response Codes**:
+- `2`: Item deleted successfully
+- `-2`: Delete failed
+- `-4`: Item not found
+- `-10`: General error
+
+### 5.5 Wishlist APIs
+
+#### Add to Wishlist
+**Endpoint**: `POST /CRUD_Wishlist/`
+
+**Request Body**:
+```typescript
+interface AddWishlistRequest {
+  ItemCode: string;         // Product code
+  UserId: string;           // User ID
+  IpAddress: string;        // Client IP
+  CompanyId: number;        // Company ID
+  Command: 'Save';          // Action type
+}
+```
+
+#### Remove from Wishlist
+**Endpoint**: `POST /CRUD_Wishlist/`
+
+**Request Body**:
+```typescript
+interface RemoveWishlistRequest {
+  ItemCode: string;         // Product code
+  UserId: string;           // User ID
+  IpAddress: string;        // Client IP
+  CompanyId: number;        // Company ID
+  Command: 'Delete';        // Action type
+}
+```
+
+#### Get Wishlist Items
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Templete1_Get_MyWishlist_Apps]'Get_MyWishlist','USER_ID','','','','',CULTURE_ID,3044"
+}
+```
+
+### 5.6 Promo Code APIs
+
+#### Apply Promo Code
+**Endpoint**: `POST /Apply_PromoCode/`
+
+**Request Body**:
+```typescript
+interface ApplyPromoCodeRequest {
+  PromoCode: string;        // Promo code
+  UserId: string;           // User ID
+  IpAddress: string;        // Client IP
+  UniqueId: string;         // Cart unique ID
+  BuyNow: string;           // Buy now item or empty
+  Company: number;          // Company ID
+}
+```
+
+**Response Codes**:
+- `2`: Promo code applied successfully
+- `-2`: Promo code not applied
+- `-4`: Invalid discount code
+- `-6`: Invalid discount code (alternative)
+- `-8`: Minimum cart value requirement not met
+- `-10`: Promo items not available in cart
+- `-12`: Invalid promo code
+- `-14`: Invalid promo code (alternative)
+- `-16`: Login required to use promo code
+- `-18`: Cart item is not valid
+- `-20`: General error in promo code application
+
+#### Remove Promo Code
+**Endpoint**: `POST /Remove_PromoCode/`
+
+**Request Body**:
+```typescript
+interface RemovePromoCodeRequest {
+  PromoCode: string;        // Promo code to remove
+  UserId: string;           // User ID
+  IpAddress: string;        // Client IP
+  UniqueId: string;         // Cart unique ID
+  BuyNow: string;           // Buy now item or empty
+  Company: number;          // Company ID
+}
+```
+
+**Response Codes**:
+- `2`: Promo code removed successfully
+- `-2`: Promo code not removed
+- `-10`: General error in promo code removal
+
+#### Get Available Promo Codes
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_CheckoutMst_Apps_SM]'Get_Promo_Coupons_List','','','','','',CULTURE_ID,3044,''"
+}
+```
+
+### 5.7 Order Management APIs
+
+#### Get User Orders
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Parent','USER_ID','','','','',CULTURE_ID,3044"
+}
+```
+
+**Response**:
+```typescript
+interface OrdersResponse {
+  success: 1 | 0;
+  row: Array<{
+    OrderId: string;        // Order tracking ID (e.g., "TR00001859")
+    OrderOn: string;        // Order date (e.g., "26/05/2025")
+    OrderTotal: number;     // Total order amount (e.g., 1.300)
+  }>;
+  Message: string;          // Response message
+}
+```
+
+#### Get Order Details
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child','USER_ID','ORDER_ID','','','',CULTURE_ID,3044"
+}
+```
+
+**Response**:
+```typescript
+interface OrderDetailsResponse {
+  success: 1 | 0;
+  row: Array<{
+    OrderId: string;        // Order tracking ID
+    ItemImage: string;      // Product image filename
+    ItemCode: string;       // Product code
+    ItemName: string;       // Product name
+    Quantity: number;       // Quantity ordered
+    ProdPrice: number;      // Product price per unit
+  }>;
+  Message: string;          // Response message
+}
+```
+
+#### Search User Orders
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Parent_Search','USER_ID','SEARCH_ORDER_ID','','','',CULTURE_ID,3044"
+}
+```
+
+**Response**:
+```typescript
+interface OrdersSearchResponse {
+  success: 1 | 0;
+  row: Array<{
+    OrderId: string;        // Order tracking ID (e.g., "TR00001859")
+    OrderOn: string;        // Order date (e.g., "26/05/2025")
+    OrderTotal: number;     // Total order amount (e.g., 1.300)
+  }>;
+  Message: string;          // Response message
+}
+```
+
+**Note**: API may return duplicate OrderIds in some cases. The app handles this by generating unique React keys using index and timestamp to prevent console errors.
+
+**API Testing Results**:
+- Order Review API tested with cart items - returns proper ShippingCharge field
+- Product Filter API returns ResponseCode "-4" with Message "List not Found" when no products match filters - this is handled as normal empty state, not an error
+- Banner TagUrl format: "https://souqmaria.com/AllProducts/CATEGORY_CODE" or "https://souqmaria.com/AllProducts/CATEGORY_CODE/SUBCATEGORY_CODE"
+
+#### Search Order Details
+**Endpoint**: `POST /getData_JSON/`
+
+**Request Body**:
+```typescript
+{
+  strQuery: "[Web].[Sp_Template1_Get_MyOrders_Apps]'Get_MyOrders_Child_Search','USER_ID','SEARCH_ORDER_ID','','','',CULTURE_ID,3044"
+}
+```
+
+**Response**:
+```typescript
+interface OrderDetailsSearchResponse {
+  success: 1 | 0;
+  row: Array<{
+    OrderId: string;        // Order tracking ID
+    ItemImage: string;      // Product image filename
+    ItemCode: string;       // Product code
+    ItemName: string;       // Product name
+    Quantity: number;       // Quantity ordered
+    ProdPrice: number;      // Product price per unit
+  }>;
+  Message: string;          // Response message
+}
+```
+
+### 5.8 Address Management APIs
+
+#### Save Billing Address
 **Endpoint**: `POST /CRUD_Billing_Manage_Address/`
 
 **Request Body**:
 ```typescript
-interface SaveAddressRequest {
+interface SaveBillingAddressRequest {
   BillingAddressId: number; // 0 for new address
   FullName: string;         // Max 100 chars
   Email: string;            // Max 128 chars
@@ -482,7 +944,131 @@ interface SaveAddressRequest {
 }
 ```
 
-### Checkout APIs
+#### Save Shipping Address
+**Endpoint**: `POST /CRUD_Shipping_Manage_Address/`
+
+**Request Body**:
+```typescript
+interface SaveShippingAddressRequest {
+  ShippingAddressId: number; // 0 for new address
+  FullName: string;         // Max 100 chars
+  Email: string;            // Max 128 chars
+  Mobile: string;           // Max 50 chars
+  Address2: string;         // Optional line 2
+  Country: string;          // Country code
+  State: string;            // State code
+  City: string;             // City code
+  Block: string;            // Block number
+  Street: string;           // Street name
+  House: string;            // House number
+  Apartment: string;        // Apartment number
+  IsDefault: boolean;       // Default flag
+  Command: 'Save' | 'Update' | 'Delete';
+  UserId: string;           // User ID
+  CompanyId: number;        // Company ID
+  IpAddress: string;        // Client IP
+}
+```
+
+### 5.9 Checkout APIs
+
+#### Guest User Registration
+**Endpoint**: `POST /Guest_SaveUserRegistration/`
+
+**Request Body**:
+```typescript
+interface GuestUserRegistrationRequest {
+  FullName: string;         // Guest full name
+  Email: string;            // Guest email
+  Mobile: string;           // Guest mobile
+  IpAddress: string;        // Client IP
+  Source: 'iOS' | 'Android'; // Platform
+  CompanyId: number;        // Fixed: 3044
+}
+```
+
+**Response Codes**:
+- `2`: Guest registration successful
+- `4`: User already registered
+- `-2`: General error in guest registration
+
+#### Order Review Checkout
+**Endpoint**: `POST /Order_Review_Checkout/`
+
+**Request Body**:
+```typescript
+interface OrderReviewCheckoutRequest {
+  Country: string;          // Country code (empty for initial guest call)
+  State: string;            // State code (empty for initial guest call)
+  City: string;             // City code (empty for initial guest call)
+  UniqueId: string;         // Cart unique ID
+  IpAddress: string;        // Client IP address
+  CultureId: number;        // Culture ID (1 for English, 2 for Arabic)
+  Company: number;          // Company ID (3044)
+  UserId: string;           // User ID or empty string for guest
+  BuyNow: string;           // Buy now item code or empty string
+}
+```
+
+**Response**:
+```typescript
+interface OrderReviewResponse {
+  li: Array<{
+    CartItemsList: Array<{
+      Sr: number;
+      CartId: number;
+      ItemCode: string;
+      ItemName: string;
+      Image1: string;
+      NewPrice: number;
+      Quantity: number;
+      SubTotal: number;
+    }>;
+    CartCount: number;
+    SubTotal: number;
+    Discount: number;
+    ShippingCharge: number;    // IMPORTANT: Use this for shipping fee, not hardcoded values
+    GrandTotal: number;
+    PromoCode: string;
+    PromoName: string;
+    Percentage: string;
+  }>;
+  ResponseCode: string;
+  Message: string;
+}
+```
+
+**Tested Response Example**:
+```json
+{
+  "li": [
+    {
+      "CartItemsList": [
+        {
+          "Sr": 0,
+          "CartId": 28885,
+          "ItemCode": "IM31790047",
+          "ItemName": "oppo A77 (4GB RAM 128GB Storage) Sky Blue",
+          "Image1": "74ebc450_IM31110511_1.png",
+          "NewPrice": 50.000,
+          "Quantity": 1,
+          "SubTotal": 50.000
+        }
+      ],
+      "CartCount": 1,
+      "SubTotal": 50.000,
+      "Discount": 0.0,
+      "ShippingCharge": 0.0,
+      "GrandTotal": 50.000,
+      "PromoCode": "",
+      "PromoName": "",
+      "Percentage": ""
+    }
+  ],
+  "ResponseCode": "2",
+  "Message": ""
+}
+```
 
 #### Save Checkout
 **Endpoint**: `POST /Save_Checkout/`
@@ -490,23 +1076,23 @@ interface SaveAddressRequest {
 **Request Body**:
 ```typescript
 interface CheckoutRequest {
-  UserID: string;           // User or guest ID
+  UserID: string;           // User or guest ID (TrackId for guests)
   IpAddress: string;        // Client IP
   UniqueId: string;         // Cart ID
   Company: number;          // Company ID
   CultureId: number;        // Language ID
-  BuyNow: string;           // Direct purchase item
+  BuyNow: string;           // Leave Empty for multiple items in cart
   Location: string;         // Location ID
   DifferentAddress: boolean; // Shipping flag
   BillingAddressId: number; // Billing address
-  ShippingAddressId: number; // Shipping address
-  SCountry: string;         // Shipping country
-  SState: string;           // Shipping state
-  SCity: string;            // Shipping city
+  ShippingAddressId: number; // Shipping address (always required)
+  SCountry: string;         // Shipping country Xcode (always required)
+  SState: string;           // Shipping state Xcode (always required)
+  SCity: string;            // Shipping city Xcode (always required)
   PaymentMode: string;      // Payment method
   Source: string;           // Platform
-  OrderNote: string;        // Order notes
-  Salesman: string;         // Salesman ID
+  OrderNote: string;        // Order notes (always required, can be empty)
+  Salesman: string;         // Salesman ID (always required)
 }
 ```
 
@@ -520,7 +1106,7 @@ interface CheckoutResponse {
 }
 ```
 
-### Error Handling
+### 5.10 Error Handling
 
 #### Standard Error Response
 ```typescript
@@ -558,9 +1144,9 @@ const handleApiError = (error: any): string => {
 
 ---
 
-## User Interface Specifications
+## 6. User Interface Specifications
 
-### Design System
+### 6.1 Design System
 
 #### Color Palette
 ```typescript
@@ -638,7 +1224,7 @@ export const SPACING = {
 };
 ```
 
-### Screen Specifications
+### 6.2 Screen Specifications
 
 #### Home Screen
 **Layout Components**:
@@ -697,7 +1283,7 @@ export const SPACING = {
 - Empty cart state
 - Loading states for operations
 
-### Responsive Design
+### 6.3 Responsive Design
 
 #### Screen Size Support
 - **Small phones**: 320px width minimum
@@ -709,7 +1295,7 @@ export const SPACING = {
 - **Portrait**: Primary orientation
 - **Landscape**: Limited support for media viewing
 
-### Accessibility
+### 6.4 Accessibility
 
 #### WCAG 2.1 AA Compliance
 - **Color Contrast**: Minimum 4.5:1 ratio
@@ -732,7 +1318,7 @@ export const SPACING = {
 </TouchableOpacity>
 ```
 
-### Internationalization (i18n)
+### 6.5 Internationalization (i18n)
 
 #### Language Support
 - **English**: Default language (LTR)
@@ -769,9 +1355,9 @@ export const t = (key: string, params?: Record<string, any>): string => {
 
 ---
 
-## Core Features Implementation
+## 7. Core Features Implementation
 
-### Authentication System
+### 7.1 Authentication System
 
 #### User Registration Flow
 ```typescript
@@ -793,32 +1379,32 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   error: null,
   
   register: async (userData) => {
-    set({ isLoading: true, error: null });
-    
-    try {
+  set({ isLoading: true, error: null });
+  
+  try {
       const response = await registerUser(userData);
       
       if (response.responseCode === 2) {
         // Registration successful
-        set({ 
-          isLoading: false,
+      set({
+        isLoading: false,
           user: response.data,
           error: null 
-        });
-        return true;
-      } else {
-        // Handle specific error codes
-        const errorMessage = getErrorMessage(response.responseCode);
-        set({ isLoading: false, error: errorMessage });
-        return false;
-      }
-    } catch (error) {
-      set({ 
-        isLoading: false, 
-        error: 'Registration failed. Please try again.' 
       });
+      return true;
+    } else {
+      // Handle specific error codes
+        const errorMessage = getErrorMessage(response.responseCode);
+      set({ isLoading: false, error: errorMessage });
       return false;
     }
+  } catch (error) {
+    set({ 
+      isLoading: false, 
+        error: 'Registration failed. Please try again.' 
+    });
+    return false;
+  }
   },
   
   // ... other methods
@@ -872,7 +1458,7 @@ const LoginScreen = () => {
 };
 ```
 
-### Product Catalog System
+### 7.2 Product Catalog System
 
 #### Category Management
 ```typescript
@@ -966,7 +1552,7 @@ const useProductSearch = () => {
 };
 ```
 
-### Shopping Cart System
+### 7.3 Shopping Cart System
 
 #### Cart State Management
 ```typescript
@@ -1070,7 +1656,7 @@ const useCartStore = create<CartStore>((set, get) => ({
 }));
 ```
 
-### Checkout System
+### 7.4 Checkout System
 
 #### Guest Checkout Flow
 ```typescript
@@ -1166,7 +1752,7 @@ const GuestCheckoutFlow = () => {
 };
 ```
 
-### Wishlist System
+### 7.5 Wishlist System
 
 #### Wishlist Management
 ```typescript
@@ -1230,9 +1816,9 @@ const useWishlistStore = create<WishlistStore>((set, get) => ({
 
 ---
 
-## State Management
+## 8. State Management
 
-### Zustand Store Architecture
+### 8.1 Zustand Store Architecture
 
 #### Store Structure
 ```typescript
@@ -1374,7 +1960,7 @@ const useLanguageStore = create<LanguageStore>()(
 );
 ```
 
-### Data Persistence Strategy
+### 8.2 Data Persistence Strategy
 
 #### AsyncStorage Integration
 ```typescript
@@ -1479,9 +2065,9 @@ const useCacheStore = create<CacheStore>((set, get) => ({
 
 ---
 
-## Performance Optimization
+## 9. Performance Optimization
 
-### Caching Strategy
+### 9.1 Caching Strategy
 
 #### API Response Caching
 ```typescript
@@ -1603,7 +2189,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 };
 ```
 
-### List Performance Optimization
+### 9.2 List Performance Optimization
 
 #### FlatList Configuration
 ```typescript
@@ -1666,7 +2252,7 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
 });
 ```
 
-### Memory Management
+### 9.3 Memory Management
 
 #### Component Cleanup
 ```typescript
@@ -1709,7 +2295,7 @@ const ProductScreen = () => {
 };
 ```
 
-### Performance Monitoring
+### 9.4 Performance Monitoring
 
 #### Performance Metrics
 ```typescript
@@ -1771,12 +2357,12 @@ const usePerformanceTracking = (screenName: string) => {
 
 ---
 
-## Deployment Guide
+## 10. Deployment Guide
 
-### Build Configuration
+### 10.1 Build Configuration
 
 #### EAS Build Setup
-```json
+  ```json
 // eas.json
 {
   "cli": {
@@ -1835,7 +2421,7 @@ const usePerformanceTracking = (screenName: string) => {
 ```
 
 #### App Configuration
-```json
+  ```json
 // app.json
 {
   "expo": {
@@ -1899,7 +2485,7 @@ const usePerformanceTracking = (screenName: string) => {
 }
 ```
 
-### Environment Configuration
+### 10.2 Environment Configuration
 
 #### Production Environment Variables
 ```env
@@ -1927,7 +2513,7 @@ CACHE_TTL_CRITICAL=3600000
 CACHE_TTL_STANDARD=1800000
 ```
 
-### Build Scripts
+### 10.3 Build Scripts
 
 #### Production Build Script
 ```bash
@@ -2037,7 +2623,7 @@ esac
 print_success "Production build completed successfully!"
 ```
 
-### Pre-deployment Testing
+### 10.4 Pre-deployment Testing
 
 #### Testing Script
 ```bash
@@ -2123,7 +2709,7 @@ else
 fi
 ```
 
-### App Store Deployment
+### 10.5 App Store Deployment
 
 #### iOS App Store Checklist
 - [ ] App icons (1024x1024 for App Store, various sizes for app)
@@ -2147,7 +2733,7 @@ fi
 - [ ] Internal testing completed
 - [ ] Play Console metadata complete
 
-### Deployment Commands
+### 10.6 Deployment Commands
 
 #### Build Commands
 ```bash
@@ -2179,9 +2765,9 @@ eas submit --platform all --profile production
 
 ---
 
-## Testing Strategy
+## 11. Testing Strategy
 
-### Testing Pyramid
+### 11.1 Testing Pyramid
 
 #### Unit Testing (70%)
 **Framework**: Jest + React Native Testing Library
@@ -2324,7 +2910,7 @@ describe('Checkout Flow', () => {
 });
 ```
 
-### API Testing
+### 11.2 API Testing
 
 #### API Test Suite
 ```typescript
@@ -2362,7 +2948,7 @@ describe('Authentication API', () => {
 });
 ```
 
-### Performance Testing
+### 11.3 Performance Testing
 
 #### Performance Benchmarks
 ```typescript
@@ -2393,7 +2979,7 @@ describe('ProductList Performance', () => {
 });
 ```
 
-### Test Configuration
+### 11.4 Test Configuration
 
 #### Jest Configuration
 ```javascript
@@ -2459,9 +3045,9 @@ beforeEach(() => {
 
 ---
 
-## Troubleshooting
+## 12. Troubleshooting
 
-### Common Issues and Solutions
+### 12.1 Common Issues and Solutions
 
 #### Build Issues
 
@@ -2596,7 +3182,7 @@ const apiRequest = async (url: string, options: RequestInit) => {
 };
 ```
 
-### Debug Tools
+### 12.2 Debug Tools
 
 #### React Native Debugger Setup
 ```bash
@@ -2628,7 +3214,7 @@ const onRenderCallback = (id, phase, actualDuration) => {
 </Profiler>
 ```
 
-### Logging and Monitoring
+### 12.3 Logging and Monitoring
 
 #### Production Logging
 ```typescript
@@ -2680,5 +3266,4 @@ crashlytics().setAttributes({
 
 ---
 
-This completes the comprehensive SouqMaria Mobile Application Developer Documentation. This document provides everything a professional developer needs to understand, develop, deploy, and maintain the application successfully.
-
+This completes the comprehensive SouqMaria Mobile Application Developer Documentation. This document provides everything a professional developer needs to understand, develop, deploy, and maintain the application successfully. 

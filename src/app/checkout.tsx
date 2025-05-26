@@ -213,7 +213,8 @@ export default function CheckoutScreen() {
     total + (item.Price * (item.Quantity || 1)), 0);
   
   // Constants for checkout calculations
-  const shippingFee = 5.00;
+  // Use shipping charge from order review data, fallback to 0 if not available
+  const shippingFee = orderReviewData?.ShippingCharge || 0.00;
   const discount = promoDiscount || 0.00;
   const grandTotal = correctTotalAmount + shippingFee - discount;
   
@@ -1339,7 +1340,7 @@ export default function CheckoutScreen() {
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryLabel}>{t('shipping_fee')}</Text>
                       <Text style={styles.summaryValue}>
-                        KD {orderReviewData ? orderReviewData.ShippingCharge.toFixed(2) : shippingFee.toFixed(2)}
+                        KD {shippingFee.toFixed(2)}
                       </Text>
                     </View>
                     <View style={[styles.summaryItem, styles.totalItem]}>

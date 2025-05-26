@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, I18nManager } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
 import useAuthStore from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
+import useLanguageStore from '../../../../store/language-store';
+import { useTranslation } from '../../../../utils/translations';
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
@@ -12,7 +14,11 @@ export default function OrderDetailsScreen() {
   const orderNo = slug as string;
   
   const { user } = useAuthStore();
-  const { orderDetails, isLoadingDetails, errorDetails, fetchOrderDetails } = useOrderStore();
+  const { orderDetails, isLoadingDetails, errorDetails, fetchOrderDetails, orders } = useOrderStore();
+  const { currentLanguage } = useLanguageStore();
+  const { t } = useTranslation();
+  
+  const isRTL = currentLanguage.isRTL;
 
   // Fetch order details when the screen loads
   useEffect(() => {
@@ -21,36 +27,32 @@ export default function OrderDetailsScreen() {
     }
   }, [user, orderNo]);
 
-  // Format date to a more readable format
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return 'Unknown Date';
-    
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) 
-      ? dateString // Return original if parsing fails
-      : date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
-        });
-  };
-
   // Format currency
   const formatPrice = (price: number): string => {
     if (price === undefined || price === null) return '--';
-    return `KD ${parseFloat(price.toString()).toFixed(2)}`;
+    return `${parseFloat(price.toString()).toFixed(3)} ${t('order_total')}`;
   };
 
   // Extract order summary information from the first item (all items have the same order info)
   const orderSummary = orderDetails.length > 0 ? orderDetails[0] : null;
+  
+  // Get the total amount from the parent order data (from API)
+  const parentOrder = orders.find(order => order.OrderId === orderNo);
+  const orderTotalFromAPI = parentOrder?.OrderTotal;
+
+  // Get product image URL
+  const getProductImageUrl = (imageName: string): string => {
+    if (!imageName) return '';
+    return `https://erp.merpec.com/Upload/CompanyLogo/3044/${imageName}`;
+  };
 
   // Render an individual order item
-  const renderOrderItem = ({ item }: { item: any }) => (
-    <View style={styles.itemCard}>
-      <View style={styles.itemImageContainer}>
-        {item.ImageURL ? (
+  const renderOrderItem = ({ item, index }: { item: any; index: number }) => (
+    <View style={[styles.itemCard, isRTL && styles.itemCardRTL]}>
+      <View style={[styles.itemImageContainer, isRTL && styles.itemImageContainerRTL]}>
+        {item.ItemImage ? (
           <Image 
-            source={{ uri: item.ImageURL }} 
+            source={{ uri: getProductImageUrl(item.ItemImage) }} 
             style={styles.itemImage} 
             resizeMode="contain"
           />
@@ -61,16 +63,13 @@ export default function OrderDetailsScreen() {
         )}
       </View>
       
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemName} numberOfLines={2}>{item.ProductName}</Text>
-        <Text style={styles.itemQuantity}>Qty: {item.Quantity}</Text>
-        <View style={styles.itemPriceRow}>
-          <Text style={styles.itemPrice}>{formatPrice(item.UnitPrice)}</Text>
-          {item.Discount > 0 && (
-            <Text style={styles.itemDiscount}>-{formatPrice(item.Discount)}</Text>
-          )}
+      <View style={[styles.itemDetails, isRTL && styles.itemDetailsRTL]}>
+        <Text style={[styles.itemName, isRTL && styles.textRTL]} numberOfLines={2}>{item.ItemName}</Text>
+        <Text style={[styles.itemQuantity, isRTL && styles.textRTL]}>{t('qty')}: {item.Quantity}</Text>
+        <View style={[styles.itemPriceRow, isRTL && styles.itemPriceRowRTL]}>
+          <Text style={[styles.itemPrice, isRTL && styles.textRTL]}>{formatPrice(item.ProdPrice)}</Text>
         </View>
-        <Text style={styles.itemTotal}>Subtotal: {formatPrice(item.TotalAmount)}</Text>
+        <Text style={[styles.itemTotal, isRTL && styles.textRTL]}>{t('subtotal')}: {formatPrice(item.ProdPrice * item.Quantity)}</Text>
       </View>
     </View>
   );
@@ -79,25 +78,29 @@ export default function OrderDetailsScreen() {
   const renderEmptyOrderDetails = () => (
     <View style={styles.emptyContainer}>
       <FontAwesome name="exclamation-circle" size={64} color={colors.lightGray} />
-      <Text style={styles.emptyText}>No order details found</Text>
+      <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t('no_order_details_found')}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={20} color={colors.black} />
+          <FontAwesome 
+            name={isRTL ? "arrow-right" : "arrow-left"} 
+            size={20} 
+            color={colors.black} 
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('order_details_title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Error message */}
       {errorDetails && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorDetails}</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorDetails}</Text>
         </View>
       )}
 
@@ -105,70 +108,46 @@ export default function OrderDetailsScreen() {
       {isLoadingDetails ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={styles.loadingText}>Loading order details...</Text>
+          <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('loading_order_details')}</Text>
         </View>
       ) : (
         <FlatList
           data={orderDetails}
           renderItem={renderOrderItem}
-          keyExtractor={(item, index) => `${item.ProductID || item.OrderID || ''}-${index}`}
+          keyExtractor={(item, index) => `${item.ItemCode || item.OrderId || 'item'}-${index}-${Date.now()}`}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyOrderDetails}
           ListHeaderComponent={orderSummary ? (
             <View style={styles.orderSummary}>
-              <View style={styles.orderHeader}>
-                <Text style={styles.orderTitle}>Order #{orderNo}</Text>
-                <Text style={styles.orderDate}>
-                  {formatDate(orderSummary.OrderDate)}
+              <View style={[styles.orderHeader, isRTL && styles.orderHeaderRTL]}>
+                <Text style={[styles.orderTitle, isRTL && styles.textRTL]}>{t('order_number')}{orderNo}</Text>
+                <Text style={[styles.orderDate, isRTL && styles.textRTL]}>
                 </Text>
               </View>
               
               <View style={styles.divider} />
               
-              <Text style={styles.sectionTitle}>Order Items</Text>
+              <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('order_items')}</Text>
             </View>
           ) : null}
           ListFooterComponent={orderSummary ? (
             <View style={styles.orderFooter}>
               <View style={styles.divider} />
               
-              <Text style={styles.sectionTitle}>Order Summary</Text>
+              <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('order_details_summary')}</Text>
               
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Order Status:</Text>
-                <Text style={[styles.summaryValue, styles.statusText]}>
-                  {orderSummary.Status || 'Processing'}
+              <View style={[styles.totalRow, isRTL && styles.totalRowRTL]}>
+                <Text style={[styles.totalLabel, isRTL && styles.textRTL]}>{t('total_items')}:</Text>
+                <Text style={[styles.totalValue, isRTL && styles.textRTL]}>
+                  {orderDetails.length} {orderDetails.length === 1 ? t('item') : t('items')}
                 </Text>
               </View>
               
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal:</Text>
-                <Text style={styles.summaryValue}>
-                  {formatPrice(orderSummary.SubTotal || 0)}
-                </Text>
-              </View>
-              
-              {orderSummary.Discount > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Discount:</Text>
-                  <Text style={[styles.summaryValue, styles.discountText]}>
-                    -{formatPrice(orderSummary.Discount)}
-                  </Text>
-                </View>
-              )}
-              
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Shipping Fee:</Text>
-                <Text style={styles.summaryValue}>
-                  {formatPrice(orderSummary.ShippingFee || 0)}
-                </Text>
-              </View>
-              
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalValue}>
-                  {formatPrice(orderSummary.TotalAmount)}
+              <View style={[styles.totalRow, isRTL && styles.totalRowRTL]}>
+                <Text style={[styles.totalLabel, isRTL && styles.textRTL]}>{t('total_amount')}:</Text>
+                <Text style={[styles.totalValue, isRTL && styles.textRTL]}>
+                  {orderTotalFromAPI ? formatPrice(orderTotalFromAPI) : formatPrice(orderDetails.reduce((sum, item) => sum + (item.ProdPrice * item.Quantity), 0))}
                 </Text>
               </View>
             </View>
@@ -190,6 +169,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: spacing.md,
     backgroundColor: colors.lightBlue,
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
   },
   backButton: {
     padding: spacing.sm,
@@ -235,6 +217,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
+  orderHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
   orderTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -250,7 +235,7 @@ const styles = StyleSheet.create({
     marginVertical: spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: spacing.md,
     color: colors.black,
@@ -264,12 +249,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lightGray,
   },
+  itemCardRTL: {
+    flexDirection: 'row-reverse',
+  },
   itemImageContainer: {
     width: 80,
     height: 80,
     borderRadius: radii.sm,
     overflow: 'hidden',
     marginRight: spacing.md,
+  },
+  itemImageContainerRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
   },
   itemImage: {
     width: '100%',
@@ -286,6 +278,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
   },
+  itemDetailsRTL: {
+    alignItems: 'flex-end',
+  },
   itemName: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -300,6 +295,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xs,
+  },
+  itemPriceRowRTL: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'flex-end',
   },
   itemPrice: {
     fontSize: 14,
@@ -344,6 +343,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.lightGray,
   },
+  totalRowRTL: {
+    flexDirection: 'row-reverse',
+  },
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -364,5 +366,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textGray,
     textAlign: 'center',
+  },
+  // RTL text alignment
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
 }); 

@@ -1,56 +1,105 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '../../../../theme';
 import useAuthStore from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
+import { useTranslation } from '../../../../utils/translations';
+import useLanguageStore from '../../../../store/language-store';
 
-// Define the Order interface based on usage in this component
-// It can extend or be similar to StoreOrder if that's appropriate
+// Define the Order interface based on the actual API response
 interface Order {
-  OrderID?: string;
-  OrderNo: string;
-  OrderDate: string;
-  TotalAmount?: number | string;
-  Status?: string;
-  ItemCount?: number;
+  OrderId: string;        // Order tracking ID (e.g., "TR00001859")
+  OrderOn: string;        // Order date (e.g., "26/05/2025")
+  OrderTotal: number;     // Total order amount (e.g., 1.300)
 }
 
 export default function OrdersScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { orders, isLoading, error, fetchOrders } = useOrderStore();
+  const { user, isLoggedIn } = useAuthStore();
+  const { orders, isLoading, error, fetchOrders, searchOrders, clearSearch, searchQuery, setSearchQuery, isSearching } = useOrderStore();
+  const { t } = useTranslation();
+  const { currentLanguage } = useLanguageStore();
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+
+  // Check if user is logged in - if not, show login prompt
+  if (!isLoggedIn || !user) {
+    return (
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <FontAwesome name="arrow-left" size={20} color={colors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('my_orders_title')}</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* Login prompt */}
+        <View style={styles.loginPromptContainer}>
+          <FontAwesome name="user-circle" size={64} color={colors.lightGray} />
+          <Text style={styles.loginPromptTitle}>{t('please_log_in')}</Text>
+          <Text style={styles.loginPromptText}>
+            {t('login_to_view_orders')}
+          </Text>
+          <TouchableOpacity 
+            style={styles.loginButton}
+            onPress={() => router.push('/signup')}
+          >
+            <Text style={styles.loginButtonText}>{t('log_in_sign_up')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // Fetch orders when the screen loads
   useEffect(() => {
     console.log('📋 Orders Screen - useEffect triggered');
     console.log('📋 Orders Screen - Full user object:', JSON.stringify(user, null, 2));
-    console.log('📋 Orders Screen - user?.id:', user?.id);
-    console.log('📋 Orders Screen - user?.UserID:', user?.UserID);
     
     const userId = user?.id || user?.UserID;
     console.log('📋 Orders Screen - Final userId to use:', userId);
     
-    // Check if user is a guest (guest users typically have numeric IDs like "8028")
-    const isGuestUser = userId && /^\d+$/.test(userId) && parseInt(userId) > 1000;
-    console.log('📋 Orders Screen - Is guest user:', isGuestUser);
-    
-    if (userId && !isGuestUser) {
+    if (userId) {
       console.log('📋 Orders Screen - Calling fetchOrders with userId:', userId);
-      fetchOrders(userId);
-    } else if (isGuestUser) {
-      console.log('📋 Orders Screen - Guest user detected, orders may not be available');
-      // Still try to fetch orders for guest users, but they might not have any
       fetchOrders(userId);
     } else {
       console.log('📋 Orders Screen - No userId found, not calling fetchOrders');
     }
   }, [user, fetchOrders]);
 
+  // Handle search functionality
+  const handleSearch = (query: string) => {
+    setLocalSearchQuery(query);
+    const userId = user?.id || user?.UserID;
+    
+    if (!userId) return;
+    
+    if (query.trim() === '') {
+      // If search is cleared, fetch all orders
+      clearSearch();
+      fetchOrders(userId);
+    } else {
+      // Search for specific order
+      searchOrders(userId, query.trim());
+    }
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setLocalSearchQuery('');
+    const userId = user?.id || user?.UserID;
+    if (userId) {
+      clearSearch();
+      fetchOrders(userId);
+    }
+  };
+
   // Handle navigation to order details
   const handleOrderPress = (order: Order) => {
-    router.push(`/account/orders/${order.OrderNo}`);
+    router.push(`/account/orders/${order.OrderId}`);
   };
 
   // Format date to a more readable format (e.g., "Jun 15, 2023")
@@ -78,43 +127,59 @@ export default function OrdersScreen() {
   // Render an individual order card
   const renderOrderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity 
-      style={styles.orderCard} 
+      style={[styles.orderCard, currentLanguage.isRTL && styles.orderCardRTL]} 
       onPress={() => handleOrderPress(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.orderHeader}>
-        <Text style={styles.orderNumber}>Order #{item.OrderNo}</Text>
-        <Text style={styles.orderDate}>{formatDate(item.OrderDate)}</Text>
+      <View style={[styles.orderHeader, currentLanguage.isRTL && styles.orderHeaderRTL]}>
+        <Text style={[styles.orderNumber, currentLanguage.isRTL && styles.textRTL]}>
+          {t('order_number')}{item.OrderId}
+        </Text>
+        <Text style={[styles.orderDate, currentLanguage.isRTL && styles.textRTL]}>
+          {formatDate(item.OrderOn)}
+        </Text>
       </View>
       
       <View style={styles.orderInfo}>
-        <Text style={styles.orderTotal}>Total: {formatPrice(item.TotalAmount)}</Text>
-        <Text style={styles.orderStatus}>
-          Status: <Text style={[styles.statusText, 
-            item.Status === 'SUCCESS' ? styles.statusSuccess : 
-            item.Status === 'PENDING' ? styles.statusPending : 
-            styles.statusDefault
-          ]}>{item.Status || 'Processing'}</Text>
+        <Text style={[styles.orderTotal, currentLanguage.isRTL && styles.textRTL]}>
+          {t('total_amount')}: {formatPrice(item.OrderTotal)}
         </Text>
       </View>
       
-      <View style={styles.orderFooter}>
-        <Text style={styles.itemCount}>
-          {item.ItemCount || 0} {item.ItemCount === 1 ? 'item' : 'items'}
+      <View style={[styles.orderFooter, currentLanguage.isRTL && styles.orderFooterRTL]}>
+        <Text style={[styles.itemCount, currentLanguage.isRTL && styles.textRTL]}>
+          {t('view_details')}
         </Text>
-        <FontAwesome name="chevron-right" size={14} color={colors.textGray} />
+        <FontAwesome 
+          name={currentLanguage.isRTL ? "chevron-left" : "chevron-right"} 
+          size={14} 
+          color={colors.textGray} 
+        />
       </View>
     </TouchableOpacity>
   );
 
   // Render empty state when no orders found
-  const renderEmptyOrders = () => (
-    <View style={styles.emptyContainer}>
-      <FontAwesome name="shopping-bag" size={64} color={colors.lightGray} />
-      <Text style={styles.emptyText}>No orders found</Text>
-      <Text style={styles.emptySubText}>Your order history will appear here</Text>
-    </View>
-  );
+  const renderEmptyOrders = () => {
+    const isSearchActive = localSearchQuery.trim() !== '';
+    
+    return (
+      <View style={styles.emptyContainer}>
+        <FontAwesome name="shopping-bag" size={64} color={colors.lightGray} />
+        <Text style={[styles.emptyText, currentLanguage.isRTL && styles.textRTL]}>
+          {isSearchActive ? t('no_orders_match_search') : t('no_orders_found')}
+        </Text>
+        <Text style={[styles.emptySubText, currentLanguage.isRTL && styles.textRTL]}>
+          {isSearchActive ? t('try_different_search') : t('order_history_appears_here')}
+        </Text>
+        {isSearchActive && (
+          <TouchableOpacity style={styles.clearSearchButton} onPress={handleClearSearch}>
+            <Text style={styles.clearSearchText}>{t('orders_clear_search')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -123,8 +188,32 @@ export default function OrdersScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <FontAwesome name="arrow-left" size={20} color={colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Orders</Text>
+        <Text style={styles.headerTitle}>{t('my_orders_title')}</Text>
         <View style={styles.placeholder} />
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <FontAwesome 
+            name="search" 
+            size={16} 
+            color={colors.textGray} 
+            style={styles.searchIcon} 
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('search_orders')}
+            value={localSearchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor={colors.textGray}
+          />
+          {localSearchQuery.length > 0 && (
+            <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
+              <FontAwesome name="times" size={16} color={colors.textGray} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Error message */}
@@ -135,16 +224,18 @@ export default function OrdersScreen() {
       )}
 
       {/* Orders list or loading indicator */}
-      {isLoading ? (
+      {(isLoading || isSearching) ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <Text style={styles.loadingText}>
+            {isSearching ? 'Searching...' : t('loading_orders')}
+          </Text>
         </View>
       ) : (
         <FlatList
           data={orders as Order[]}
           renderItem={renderOrderItem}
-          keyExtractor={(item) => item.OrderID || item.OrderNo || String(Math.random())}
+          keyExtractor={(item, index) => `${item.OrderId || 'order'}-${index}-${Date.now()}`}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyOrders}
@@ -285,6 +376,94 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: typography.body.fontSize,
     color: colors.textGray,
+    textAlign: 'center',
+  },
+  loginPromptContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  loginPromptTitle: {
+    marginTop: spacing.md,
+    fontSize: typography.title.fontSize,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  loginPromptText: {
+    marginTop: spacing.sm,
+    fontSize: typography.body.fontSize,
+    color: colors.textGray,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginButton: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.blue,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+  },
+  loginButtonText: {
+    color: colors.white,
+    fontSize: typography.body.fontSize,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  
+  // Search styles
+  searchContainer: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.lightGray,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.body.fontSize,
+    color: colors.text,
+  },
+  clearButton: {
+    padding: spacing.xs,
+    marginLeft: spacing.sm,
+  },
+  
+  // RTL styles
+  textRTL: {
+    textAlign: 'right',
+  },
+  orderCardRTL: {
+    // RTL specific card styles if needed
+  },
+  orderHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  orderFooterRTL: {
+    flexDirection: 'row-reverse',
+  },
+  
+  // Clear search button
+  clearSearchButton: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.blue,
+    borderRadius: radii.sm,
+  },
+  clearSearchText: {
+    color: colors.white,
+    fontSize: typography.body.fontSize,
     textAlign: 'center',
   },
 }); 
