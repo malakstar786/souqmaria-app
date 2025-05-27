@@ -15,6 +15,10 @@
 11. [Testing Strategy](#11-testing-strategy)
 12. [Troubleshooting](#12-troubleshooting)
 
+Test Credentials: 
+Email: hb@test.com
+Password: test@5253
+
 ---
 
 ## 1. Project Overview

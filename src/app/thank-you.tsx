@@ -99,7 +99,7 @@ export default function ThankYouScreen() {
   
   const handleContinueShopping = () => {
     // Navigate to home page for both guest and logged-in users
-    router.replace('/(shop)/home');
+    router.replace('/(shop)');
   };
   
   const handleTryAgain = () => {

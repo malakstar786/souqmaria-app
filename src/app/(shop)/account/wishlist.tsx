@@ -17,6 +17,7 @@ import { colors, spacing, radii, typography } from '@theme';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../../store/auth-store';
 import useWishlistStore from '../../../store/wishlist-store';
+import AuthModal from '../../../components/AuthModal';
 import { PRODUCT_IMAGE_BASE_URL } from '../../../utils/api-config';
 
 const { width } = Dimensions.get('window');
@@ -36,6 +37,9 @@ export default function WishlistScreen() {
   // State for delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{itemCode: string, name: string} | null>(null);
+  
+  // State for auth modal
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Fetch wishlist items when screen loads or login state changes
   useEffect(() => {
@@ -138,11 +142,21 @@ export default function WishlistScreen() {
           <Text style={styles.emptyText}>Please login to view your wishlist</Text>
           <TouchableOpacity 
             style={styles.loginButton}
-            onPress={() => router.push('/auth')}
+            onPress={() => setShowAuthModal(true)}
           >
             <Text style={styles.loginButtonText}>LOGIN</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Auth Modal */}
+        <AuthModal
+          isVisible={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          initialTab="login"
+          onSuccess={() => {
+            setShowAuthModal(false);
+          }}
+        />
       </SafeAreaView>
     );
   }
@@ -237,6 +251,16 @@ export default function WishlistScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isVisible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialTab="login"
+        onSuccess={() => {
+          setShowAuthModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

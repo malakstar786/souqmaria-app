@@ -50,14 +50,6 @@ export default function AccountDetailsScreen() {
   }, [user?.fullName]);
 
   useEffect(() => {
-    if (!user) {
-      console.log('No user data available'); // Debug log
-      router.replace('/auth'); // Redirect to auth if no user data
-      return;
-    }
-  }, [user, router]);
-
-  useEffect(() => {
     if (errorUpdate) {
       Alert.alert('Update Failed', errorUpdate, [{ text: 'OK', onPress: clearUpdateError }]);
     }
@@ -89,7 +81,7 @@ export default function AccountDetailsScreen() {
     if (!user || !user.UserID) { 
       console.log('Missing user data:', user); // Debug log
       Alert.alert('Error', 'User data is not available. Please log in again.');
-      router.replace('/auth');
+      router.replace('/(shop)/account');
       return;
     }
 

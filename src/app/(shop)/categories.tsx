@@ -96,7 +96,7 @@ export default function CategoriesScreen() {
     setSearchQuery('');
     clearSearchResults();
     Keyboard.dismiss();
-    router.push({ pathname: `/product/${item.XCode}`, params: { name: item.XName } });
+    router.push({ pathname: `/product/[id]`, params: { id: item.XCode, name: item.XName } });
   };
 
   const handleCartPress = () => router.push('/cart');

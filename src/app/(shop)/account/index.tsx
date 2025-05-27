@@ -67,11 +67,6 @@ export default function AccountScreen() {
     );
   };
 
-  // Handle account options navigation
-  const handleOptionPress = (path: string) => {
-    router.push(path);
-  };
-
   // Render account options when logged in
   const renderLoggedInView = () => (
     <>
@@ -79,27 +74,27 @@ export default function AccountScreen() {
       <View style={styles.optionsContainer}>
         <AccountOption 
           label={t('my_details')} 
-          onPress={() => handleOptionPress('/account/details')} 
+          onPress={() => router.push('/(shop)/account/details')} 
           iconSource={detailsIcon} 
         />
         <AccountOption 
           label={t('my_address')} 
-          onPress={() => handleOptionPress('/account/address')} 
+          onPress={() => router.push('/(shop)/account/address')} 
           iconSource={addressIcon} 
         />
         <AccountOption 
           label={t('my_orders')} 
-          onPress={() => handleOptionPress('/account/orders')} 
+          onPress={() => router.push('/(shop)/account/orders')} 
           iconSource={ordersIcon} 
         />
         <AccountOption 
           label={t('wishlist')} 
-          onPress={() => handleOptionPress('/account/wishlist')} 
+          onPress={() => router.push('/(shop)/account/wishlist')} 
           iconSource={wishlistIcon} 
         />
         <AccountOption 
           label={t('policies')} 
-          onPress={() => handleOptionPress('/account/policies')} 
+          onPress={() => router.push('/(shop)/account/policies')} 
           iconSource={policiesIcon} 
         />
       </View>

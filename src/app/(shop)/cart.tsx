@@ -18,6 +18,7 @@ import { useRouter, Link } from 'expo-router';
 import useCartStore from '../../store/cart-store';
 import useAuthStore from '../../store/auth-store';
 import useWishlistStore from '../../store/wishlist-store';
+import AuthModal from '../../components/AuthModal';
 import { useTranslation } from '../../utils/translations';
 import { useRTL } from '../../utils/rtl';
 
@@ -42,6 +43,9 @@ export default function CartScreen() {
   // State for delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{id: number, name: string} | null>(null);
+  
+  // State for auth modal
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Fetch cart items when screen loads
   useEffect(() => {
@@ -88,7 +92,7 @@ export default function CartScreen() {
         t('please_login_to_add_wishlist'), 
         [
           { text: t('cancel'), style: 'cancel' },
-          { text: t('login'), onPress: () => router.push('/auth') }
+          { text: t('login'), onPress: () => setShowAuthModal(true) }
         ]
       );
       return;
@@ -283,6 +287,16 @@ export default function CartScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isVisible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialTab="login"
+        onSuccess={() => {
+          setShowAuthModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
