@@ -13,12 +13,15 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAuthStore } from '../store/auth-store';
 import { colors, spacing, radii } from '@theme';
+import { authenticateWithGoogle } from '../utils/google-auth';
 
 const { height: screenHeight } = Dimensions.get('window');
+const googleIcon = require('../assets/google_icon.png');
 
 interface AuthModalProps {
   isVisible: boolean;
@@ -34,7 +37,7 @@ export default function AuthModal({
   onSuccess 
 }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const { login, register, isLoading, error, clearError } = useAuthStore();
+  const { login, register, googleLogin, googleRegister, isLoading, error, clearError } = useAuthStore();
   
   // Add forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -193,6 +196,63 @@ export default function AuthModal({
     }
   }, [error, clearError]);
 
+  // Handle Google authentication
+  const handleGoogleAuth = async () => {
+    console.log('🔵 AuthModal: Starting Google authentication...');
+    console.log('🔵 AuthModal: Active tab:', activeTab);
+    
+    try {
+      console.log('🔵 AuthModal: Calling authenticateWithGoogle...');
+      const result = await authenticateWithGoogle();
+      
+      console.log('🔵 AuthModal: Google auth result:', result);
+      
+      if (result.success && result.userInfo) {
+        console.log('🔵 AuthModal: Google auth successful, user info:', result.userInfo);
+        
+        if (activeTab === 'login') {
+          console.log('🔵 AuthModal: Attempting Google login...');
+          // Try Google login first
+          const loginSuccess = await googleLogin(result.userInfo);
+          console.log('🔵 AuthModal: Google login result:', loginSuccess);
+          
+          if (loginSuccess) {
+            console.log('🔵 AuthModal: Google login successful, closing modal');
+            onSuccess?.();
+            onClose();
+          }
+        } else {
+          console.log('🔵 AuthModal: Attempting Google registration...');
+          // For signup, we might need mobile number
+          // For now, proceed with Google registration
+          const registerSuccess = await googleRegister(result.userInfo);
+          console.log('🔵 AuthModal: Google registration result:', registerSuccess);
+          
+          if (registerSuccess) {
+            Alert.alert(
+              'Success',
+              'Your account has been created successfully with Google!',
+              [{ 
+                text: 'OK', 
+                onPress: () => {
+                  console.log('🔵 AuthModal: Google registration successful, closing modal');
+                  onSuccess?.();
+                  onClose();
+                }
+              }]
+            );
+          }
+        }
+      } else {
+        console.error('🔴 AuthModal: Google auth failed:', result.error);
+        Alert.alert('Error', result.error || 'Google authentication failed');
+      }
+    } catch (error) {
+      console.error('🔴 AuthModal: Google auth error:', error);
+      Alert.alert('Error', 'Google authentication failed. Please try again.');
+    }
+  };
+
   // Handle forgot password
   const handleForgotPassword = async () => {
     if (!forgotPasswordEmail.trim()) {
@@ -235,9 +295,9 @@ export default function AuthModal({
   const renderLoginForm = () => (
     <>
       <Text style={styles.autoSignText}>Auto SIGN-IN using Google Email</Text>
-      <TouchableOpacity style={styles.googleButton}>
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleAuth} disabled={isLoading}>
         <View style={styles.googleIcon}>
-          <FontAwesome name="google" size={20} color={colors.black} />
+          <Image source={googleIcon} style={styles.googleIcon} />
         </View>
         <Text style={styles.googleButtonText}>Sign in with Google</Text>
       </TouchableOpacity>
@@ -348,9 +408,9 @@ export default function AuthModal({
   const renderSignupForm = () => (
     <>
       <Text style={styles.autoSignText}>Auto SIGN-UP using Google Email</Text>
-      <TouchableOpacity style={styles.googleButton}>
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleAuth} disabled={isLoading}>
         <View style={styles.googleIcon}>
-          <FontAwesome name="google" size={20} color={colors.black} />
+          <Image source={googleIcon} style={styles.googleIcon} />
         </View>
         <Text style={styles.googleButtonText}>Sign up with Google</Text>
       </TouchableOpacity>

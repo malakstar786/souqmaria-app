@@ -45,11 +45,18 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.202494615598-td9rqr8jf425leb6busf2r4andi7n7aa"
+        }
+      ],
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
     },
+    "owner": "malakstar786",
     "extra": {
       "router": {},
       "eas": {

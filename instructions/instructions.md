@@ -459,6 +459,80 @@ interface ForgotPasswordRequest {
 }
 ```
 
+#### Social Media Login
+**Endpoint**: `POST /UserLogin_ForSocialMedia/`
+
+**Request Body**:
+```typescript
+interface SocialLoginRequest {
+  SocialId: string;        // Social media ID (200 chars max)
+  Email: string;           // Email from social media (72 chars max)
+  Mobile: string;          // Mobile number (16 chars max)
+  CompanyId: number;       // Fixed: 3044
+}
+```
+
+**Response Codes**:
+- `200/400/500`: StatusCode values
+- `2`: User logged successfully and get user details
+- `4`: User not exists - if you try to login via social media then call "SaveUserRegistration_ForSocialMedia"
+- `6`: Server side validation error - Please try again later
+- `-2`: Something went wrong - Please try again later
+
+**Success Response**:
+```typescript
+interface SocialLoginResponse {
+  StatusCode: number;      // 200/400/500
+  ResponseCode: number;    // Response code as per above
+  Message: string;         // Response message
+  Data?: {
+    // User details when login successful
+  };
+}
+```
+
+#### Social Media Registration
+**Endpoint**: `POST /SaveUserRegistration_ForSocialMedia/`
+
+**Request Body**:
+```typescript
+interface SocialRegistrationRequest {
+  SocialId: string;                    // Social media ID (200 chars max)
+  SocialId_Description: string;        // Social media description - "Google" / "Apple" (50 chars max)
+  FullName: string;                    // Full name (128 chars max)
+  Email: string;                       // Email ID (72 chars max)
+  Mobile: string;                      // Mobile number (16 chars max)
+  Password: string;                    // Password (48 chars max)
+  IpAddress: string;                   // IP Address (128 chars max)
+  Source: string;                      // Source - "Android"/"iOS" (10 chars max)
+  CompanyId: number;                   // Company ID - 3044
+  IsExist_FullName: boolean;           // Pass true when found else pass false
+  IsExist_Mobile: boolean;             // Pass true when found else pass false
+  IsExist_EmailId: boolean;            // Pass true when found else pass false
+}
+```
+
+**Response Codes**:
+- `200/400/500`: StatusCode values
+- `2`: User Registration Save Successfully
+- `-2`: User Registration Not Save Successfully
+- `-4`: User Already Registered
+- `-10`: Something went wrong - Please try again later
+- `-8`: Server side validation error - Please try again later
+- `-2`: Something went wrong - Please try again later
+
+**Success Response**:
+```typescript
+interface SocialRegistrationResponse {
+  StatusCode: number;      // 200/400/500
+  ResponseCode: number;    // Response code as per above
+  Message: string;         // Response message
+  Data?: {
+    // User registration data when successful
+  };
+}
+```
+
 ### 5.3 Product APIs
 
 #### Get Homepage Categories

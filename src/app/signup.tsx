@@ -15,13 +15,14 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth-store';
 import { colors, spacing, radii } from '@theme';
+import { authenticateWithGoogle } from '../utils/google-auth';
 
 interface SignupScreenProps {
   onSwitchToLogin?: () => void;
 }
 
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
-  const { register, isLoading, error, clearError } = useAuthStore();
+  const { register, googleRegister, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
   
   // Form state
@@ -91,6 +92,44 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     return valid;
   };
   
+  // Handle Google authentication
+  const handleGoogleAuth = async () => {
+    try {
+      const result = await authenticateWithGoogle();
+      
+      if (result.success && result.userInfo) {
+        const registerSuccess = await googleRegister(result.userInfo);
+        if (registerSuccess) {
+          Alert.alert(
+            'Success',
+            'Your account has been created successfully with Google!',
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                if (onSwitchToLogin) {
+                  // Used within auth modal, switch to login
+                  onSwitchToLogin();
+                } else {
+                  // Used as standalone page, navigate back to checkout
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/');
+                  }
+                }
+              }
+            }]
+          );
+        }
+      } else {
+        Alert.alert('Error', result.error || 'Google authentication failed');
+      }
+    } catch (error) {
+      console.error('Google auth error:', error);
+      Alert.alert('Error', 'Google authentication failed. Please try again.');
+    }
+  };
+
   // Handle registration
   const handleSignup = async () => {
     // Clear previous errors
@@ -160,7 +199,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
         <ScrollView style={styles.scrollContainer}>
         <View style={styles.googleSignUpContainer}>
           <Text style={styles.googleSignUpText}>Auto SIGN-UP using Google Email</Text>
-          <TouchableOpacity style={styles.googleButton}>
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleAuth} disabled={isLoading}>
             <View style={styles.googleIcon}>
               <FontAwesome name="google" size={20} color={colors.black} />
             </View>

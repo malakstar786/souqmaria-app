@@ -25,6 +25,9 @@ export const ENDPOINTS = {
   LOGIN_USER: '/UserLogin/',
   UPDATE_USER_DETAILS: '/Update_Account_Info/',
   FORGOT_PASSWORD: '/ForgetPassword/',
+  // Social Media Authentication endpoints
+  SOCIAL_LOGIN: '/UserLogin_ForSocialMedia/',
+  SOCIAL_REGISTER: '/SaveUserRegistration_ForSocialMedia/',
   // Guest checkout
   GUEST_SAVE_USER_REGISTRATION: '/Guest_SaveUserRegistration/',
   // Billing Address
@@ -126,6 +129,19 @@ export const RESPONSE_CODES = {
   GUEST_REGISTRATION_SUCCESS: '2',    // Guest user registration successful
   GUEST_ALREADY_REGISTERED: '4',      // User already registered
   GUEST_REGISTRATION_ERROR: '-2',     // General error in guest registration
+  
+  // Social Media Authentication response codes
+  SOCIAL_LOGIN_SUCCESS: '2',           // User logged successfully and get user details
+  SOCIAL_USER_NOT_EXISTS: '4',         // User not exists - call SaveUserRegistration_ForSocialMedia
+  SOCIAL_SERVER_VALIDATION_ERROR: '6', // Server side validation error
+  SOCIAL_GENERAL_ERROR: '-2',          // Something went wrong
+  
+  // Social Media Registration response codes
+  SOCIAL_REGISTER_SUCCESS: '2',        // User Registration Save Successfully
+  SOCIAL_REGISTER_FAILURE: '-2',       // User Registration Not Save Successfully
+  SOCIAL_USER_ALREADY_REGISTERED: '-4', // User Already Registered
+  SOCIAL_REGISTER_GENERAL_ERROR: '-10', // Something went wrong
+  SOCIAL_REGISTER_SERVER_ERROR: '-8',   // Server side validation error
 };
 
 // Platform identifiers for the Source parameter

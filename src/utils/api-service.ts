@@ -546,6 +546,39 @@ export async function forgotPassword(payload: ForgotPasswordPayload): Promise<Ap
   return apiRequest(ENDPOINTS.FORGOT_PASSWORD, 'POST', payload);
 }
 
+// Social Media Authentication Interfaces
+interface SocialLoginParams {
+  SocialId: string;        // Social media ID (200 chars max)
+  Email: string;           // Email from social media (72 chars max)
+  Mobile: string;          // Mobile number (16 chars max)
+  CompanyId: number;       // Fixed: 3044
+}
+
+interface SocialRegistrationParams {
+  SocialId: string;                    // Social media ID (200 chars max)
+  SocialId_Description: string;        // Social media description - "Google" / "Apple" (50 chars max)
+  FullName: string;                    // Full name (128 chars max)
+  Email: string;                       // Email ID (72 chars max)
+  Mobile: string;                      // Mobile number (16 chars max)
+  Password: string;                    // Password (48 chars max)
+  IpAddress: string;                   // IP Address (128 chars max)
+  Source: string;                      // Source - "Android"/"iOS" (10 chars max)
+  CompanyId: number;                   // Company ID - 3044
+  IsExist_FullName: boolean;           // Pass true when found else pass false
+  IsExist_Mobile: boolean;             // Pass true when found else pass false
+  IsExist_EmailId: boolean;            // Pass true when found else pass false
+}
+
+// Social Media Login
+export const socialMediaLogin = async (params: SocialLoginParams): Promise<ApiResponse> => {
+  return apiRequest(ENDPOINTS.SOCIAL_LOGIN, 'POST', params);
+};
+
+// Social Media Registration
+export const socialMediaRegister = async (params: SocialRegistrationParams): Promise<ApiResponse> => {
+  return apiRequest(ENDPOINTS.SOCIAL_REGISTER, 'POST', params);
+};
+
 /**
  * Get countries list for address forms
  */

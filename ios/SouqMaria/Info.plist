@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>souqmaria</string>
-          <string>com.souqmaria.app</string>
+          <string>com.malakstar.souqmaria</string>
         </array>
       </dict>
       <dict>
