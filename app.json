@@ -19,7 +19,8 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.souqmaria.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "bundleIdentifier": "com.malakstar.souqmaria",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses camera to scan barcodes for product search",
@@ -31,7 +32,8 @@
         "foregroundImage": "./src/assets/icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.souqmaria.app",
+      "package": "com.malakstar.souqmaria",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "permissions": [
         "android.permission.INTERNET",
@@ -47,6 +49,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c5c50524-c294-4830-b12a-9d301c133af8"
+      }
     }
   }
 }
