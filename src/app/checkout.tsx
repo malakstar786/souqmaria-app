@@ -202,21 +202,16 @@ export default function CheckoutScreen() {
   const [isPromoApplying, setIsPromoApplying] = useState(false);
   const [isPromoRemoving, setIsPromoRemoving] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
-  const [promoDiscount, setPromoDiscount] = useState(0);
   
   // Get uniqueId and BuyNow from local storage or params
   const uniqueId = params.uniqueId as string || useCartStore(state => state.uniqueId);
   const buyNow = ''; // Always empty since users can only checkout from cart now
   
-  // Calculate correct total based on items in cart
-  const correctTotalAmount = cartItems.reduce((total, item) => 
-    total + (item.Price * (item.Quantity || 1)), 0);
-  
-  // Constants for checkout calculations
-  // Use shipping charge from order review data, fallback to 0 if not available
-  const shippingFee = orderReviewData?.ShippingCharge || 0.00;
-  const discount = promoDiscount || 0.00;
-  const grandTotal = correctTotalAmount + shippingFee - discount;
+  // Use only order review data for all calculations - no fallbacks
+  const shippingFee = orderReviewData?.ShippingCharge ?? 0;
+  const discount = orderReviewData?.Discount ?? 0;
+  const grandTotal = orderReviewData?.GrandTotal ?? 0;
+  const subTotal = orderReviewData?.SubTotal ?? 0;
   
   // State for payment methods
   const [paymentMethods, setPaymentMethods] = useState<PaymentModeItem[]>([]);
@@ -252,117 +247,27 @@ export default function CheckoutScreen() {
     console.log('🏠 - checkoutLoading:', checkoutLoading);
   }, [selectedBillingAddressId, selectedShippingAddressId, checkoutBillingAddresses.length, checkoutShippingAddresses.length, checkoutLoading]);
   
-  // Trigger order review when cart items change
+  // Consolidated order review trigger - handles all changes that should trigger order review
   useEffect(() => {
     if (cartItems.length > 0) {
-      console.log('🛒 Cart items changed - triggering order review update');
+      console.log('🛒 Order review trigger - Cart items, addresses, or promo changed');
       triggerOrderReviewUpdate();
     }
-  }, [cartItems.length, triggerOrderReviewUpdate]);
-  
-  // Trigger order review when billing address selection changes for logged-in users
-  useEffect(() => {
-    if (isLoggedIn && selectedBillingAddressId) {
-      console.log('🛒 Billing address selection changed - triggering order review update');
-      triggerOrderReviewUpdate();
-    }
-  }, [selectedBillingAddressId, isLoggedIn, triggerOrderReviewUpdate]);
-  
-  // Trigger order review when guest billing address is set
-  useEffect(() => {
-    if (!isLoggedIn && guestBillingAddress) {
-      console.log('🛒 Guest billing address changed - triggering order review update');
-      triggerOrderReviewUpdate();
-    }
-  }, [guestBillingAddress, isLoggedIn, triggerOrderReviewUpdate]);
-  
-  // Trigger order review when promo code is applied or removed
-  useEffect(() => {
-    if (appliedPromo !== null) {
-      console.log('🛒 Promo code changed - triggering order review update');
-      triggerOrderReviewUpdate();
-    }
-  }, [appliedPromo, triggerOrderReviewUpdate]);
-  
-  // Determine if we need to show the guest checkout form initially
-  useEffect(() => {
-    if (!isLoggedIn && cartItems.length > 0) {
-      // Don't immediately show the guest checkout form
-      // Let the user see the main checkout page first, as per guest_checkout.png
-      setShowGuestBillingForm(false);
-    }
-  }, [isLoggedIn, cartItems.length]);
-  
-  // Log for debugging
-  useEffect(() => {
-    console.log('Checkout - Cart Items:', cartItems.length);
-    console.log('Checkout - CartStore totalAmount:', totalAmount);
-    console.log('Checkout - Calculated correctTotalAmount:', correctTotalAmount);
-    console.log('Checkout - Applied Promo Code:', appliedPromo);
-    console.log('Checkout - Discount Amount:', promoDiscount);
-    console.log('Checkout - Grand Total:', grandTotal);
-    console.log('Checkout - Is Logged In:', isLoggedIn);
-    console.log('Checkout - Guest Track ID:', guestTrackId);
-    
-    // Refresh cart totals on mount to ensure they're correct
-    refreshCartItems();
-  }, [cartItems, appliedPromo, promoDiscount, isLoggedIn, guestTrackId]);
+  }, [
+    cartItems.length,
+    selectedBillingAddressId,
+    selectedShippingAddressId,
+    shipToDifferentAddress,
+    guestBillingAddress,
+    guestShippingAddress,
+    appliedPromo,
+    triggerOrderReviewUpdate
+  ]);
   
   // Fetch payment methods when the component mounts
   useEffect(() => {
     fetchPaymentMethods();
   }, []);
-  
-  // Fetch order review data when cart or addresses change
-  useEffect(() => {
-    const fetchOrderReviewData = async () => {
-      // Only fetch if we have cart items
-      if (!cartItems.length) return;
-      
-      // Determine location parameters
-      let country = '';
-      let state = '';
-      let city = '';
-      
-      if (isLoggedIn) {
-        // For logged-in users, try to get location from selected billing address
-        const selectedBilling = getSelectedBillingAddress();
-        if (selectedBilling) {
-          country = selectedBilling.CountryId?.toString() || '';
-          state = selectedBilling.StateId?.toString() || '';
-          city = selectedBilling.CityId?.toString() || '';
-        }
-      } else {
-        // For guest users - GUEST CHECKOUT FLOW:
-        // 1. First call without location codes (when user clicks checkout)
-        // 2. Second call with location codes (after guest adds address)
-        if (guestBillingAddress) {
-          country = guestBillingAddress.country?.XCode.toString() || '';
-          state = guestBillingAddress.state?.XCode.toString() || '';
-          city = guestBillingAddress.city?.XCode.toString() || '';
-        }
-        // For guests, we call order review even without location codes
-        // This allows the initial checkout page to load
-      }
-      
-      const params: OrderReviewCheckoutParams = {
-        Country: country,
-        State: state,
-        City: city,
-        UniqueId: uniqueId,
-        IpAddress: '127.0.0.1',
-        CultureId: 1,
-        Company: 3044,
-        UserId: isLoggedIn ? (user?.UserID || '') : '',
-        BuyNow: buyNow
-      };
-      
-      console.log('🛒 Fetching order review with params:', params);
-      await fetchOrderReview(params);
-    };
-    
-    fetchOrderReviewData();
-  }, [cartItems.length, selectedBillingAddressId, guestBillingAddress, isLoggedIn, user?.UserID, uniqueId]);
   
   // Function to fetch payment methods
   const fetchPaymentMethods = async () => {
@@ -405,13 +310,7 @@ export default function CheckoutScreen() {
       if (result) {
         // Success - Promo code was applied
         setAppliedPromo(promoCode);
-        // Update the discount in the UI based on the response
-        setPromoDiscount(promoStore.discountAmount);
         Alert.alert('Success', 'Promo code applied successfully');
-        
-        // Trigger order review update after successful promo application
-        console.log('🛒 Promo code applied successfully - triggering order review update');
-        triggerOrderReviewUpdate();
       } else if (promoStore.promoError) {
         // Show error message
         Alert.alert('Error', promoStore.promoError);
@@ -439,11 +338,6 @@ export default function CheckoutScreen() {
         // Success - Promo code was removed
         setPromoCode(''); // Clear the input field
         setAppliedPromo(null);
-        setPromoDiscount(0);
-        
-        // Trigger order review update after successful promo removal
-        console.log('🛒 Promo code removed successfully - triggering order review update');
-        triggerOrderReviewUpdate();
       } else if (promoStore.promoError) {
         // Show error message
         Alert.alert('Error', promoStore.promoError);
@@ -476,12 +370,7 @@ export default function CheckoutScreen() {
       if (result) {
         // Success - Promo code was applied
         setAppliedPromo(code);
-        // Update the discount in the UI based on the response
-        setPromoDiscount(promoStore.discountAmount);
         Alert.alert('Success', 'Promo code applied successfully');
-        
-        // Trigger order review update to get updated totals
-        await triggerOrderReviewUpdate();
       } else {
         // Failed to apply promo code
         Alert.alert('Error', promoStore.promoError || 'Failed to apply promo code');
@@ -500,28 +389,6 @@ export default function CheckoutScreen() {
   const handleGuestBillingComplete = (shipToDifferentAddress: boolean) => {
     setShowGuestBillingForm(false);
     
-    // Trigger order review with the new address location codes
-    const fetchOrderReviewWithNewAddress = async () => {
-      if (guestBillingAddress) {
-        const params: OrderReviewCheckoutParams = {
-          Country: guestBillingAddress.country?.XCode.toString() || '',
-          State: guestBillingAddress.state?.XCode.toString() || '',
-          City: guestBillingAddress.city?.XCode.toString() || '',
-          UniqueId: uniqueId,
-          IpAddress: '127.0.0.1',
-          CultureId: 1,
-          Company: 3044,
-          UserId: '',
-          BuyNow: buyNow
-        };
-        
-        console.log('🛒 Guest billing complete - fetching order review with location codes:', params);
-        await fetchOrderReview(params);
-      }
-    };
-    
-    fetchOrderReviewWithNewAddress();
-    
     if (shipToDifferentAddress) {
       // Show shipping address form
       setShowGuestShippingForm(true);
@@ -534,28 +401,6 @@ export default function CheckoutScreen() {
   // Handle guest shipping address submission
   const handleGuestShippingComplete = () => {
     setShowGuestShippingForm(false);
-    
-    // Trigger order review with the shipping address location codes
-    const fetchOrderReviewWithShippingAddress = async () => {
-      if (guestShippingAddress) {
-        const params: OrderReviewCheckoutParams = {
-          Country: guestShippingAddress.country?.XCode.toString() || '',
-          State: guestShippingAddress.state?.XCode.toString() || '',
-          City: guestShippingAddress.city?.XCode.toString() || '',
-          UniqueId: uniqueId,
-          IpAddress: '127.0.0.1',
-          CultureId: 1,
-          Company: 3044,
-          UserId: '',
-          BuyNow: buyNow
-        };
-        
-        console.log('🛒 Guest shipping complete - fetching order review with shipping location codes:', params);
-        await fetchOrderReview(params);
-      }
-    };
-    
-    fetchOrderReviewWithShippingAddress();
     
     // Continue to payment
     setCurrentStep('payment');
@@ -609,19 +454,13 @@ export default function CheckoutScreen() {
   
   // Handle billing address selected from modal
   const handleBillingAddressSelected = (address: any) => {
-    console.log('🏠 handleBillingAddressSelected called with address:', address);
-    const addressId = address.BillingAddressId || 0;
-    console.log('🏠 Setting billing address ID to:', addressId);
-    setSelectedBillingAddressId(addressId);
+    setSelectedBillingAddressId(address.BillingAddressId);
     setShowChangeBillingModal(false);
   };
-  
+
   // Handle shipping address selected from modal
   const handleShippingAddressSelected = (address: any) => {
-    console.log('🏠 handleShippingAddressSelected called with address:', address);
-    const addressId = address.ShippingAddressId || 0;
-    console.log('🏠 Setting shipping address ID to:', addressId);
-    setSelectedShippingAddressId(addressId);
+    setSelectedShippingAddressId(address.ShippingAddressId);
     setShowChangeShippingModal(false);
   };
   
@@ -970,23 +809,6 @@ export default function CheckoutScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.horizontalCartList}
         />
-        
-        {/* Order Review Summary if available */}
-        {orderReviewData && (
-          <View style={styles.orderReviewSummary}>
-            <Text style={styles.orderReviewTitle}>Order Review Details</Text>
-            <View style={styles.orderReviewDetails}>
-              <Text style={styles.orderReviewText}>Cart Count: {orderReviewData.CartCount}</Text>
-              <Text style={styles.orderReviewText}>Sub Total: KD {orderReviewData.SubTotal.toFixed(2)}</Text>
-              <Text style={styles.orderReviewText}>Discount: KD {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) ? orderReviewData.Discount?.toFixed(2) || '0.00' : promoDiscount.toFixed(2)}</Text>
-              <Text style={styles.orderReviewText}>Shipping: KD {orderReviewData.ShippingCharge.toFixed(2)}</Text>
-              <Text style={styles.orderReviewTotal}>Grand Total: KD {orderReviewData.GrandTotal.toFixed(2)}</Text>
-              {orderReviewData.PromoCode && (
-                <Text style={styles.orderReviewPromo}>Promo: {orderReviewData.PromoCode} ({orderReviewData.Percentage}%)</Text>
-              )}
-            </View>
-          </View>
-        )}
       </View>
     );
   };
@@ -1257,16 +1079,6 @@ export default function CheckoutScreen() {
                         </TouchableOpacity>
                       )}
                     </View>
-                    {appliedPromo && (
-                      <View style={styles.appliedPromo}>
-                        <Text style={styles.appliedPromoText}>
-                          Promo code applied: {appliedPromo}
-                        </Text>
-                        <Text style={styles.discountText}>
-                          Discount: KD {promoDiscount.toFixed(2) || '0.00'}
-                        </Text>
-                      </View>
-                    )}
                   </View>
                   
                   {/* Payment Method Selection */}
@@ -1324,19 +1136,18 @@ export default function CheckoutScreen() {
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>{t('order_summary')}</Text>
                     <View style={styles.summaryItem}>
-                                              <Text style={styles.summaryLabel}>{t('item_sub_total')}</Text>
+                      <Text style={styles.summaryLabel}>{t('item_sub_total')}</Text>
                       <Text style={styles.summaryValue}>
-                        KD {orderReviewData ? orderReviewData.SubTotal.toFixed(2) : correctTotalAmount.toFixed(2)}
+                        KD {subTotal.toFixed(2)}
                       </Text>
                     </View>
-                    {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) && (
-                      <View style={styles.summaryItem}>
-                        <Text style={styles.summaryLabel}>{t('discount')}</Text>
-                        <Text style={[styles.summaryValue, styles.discountValue]}>
-                          KD {((orderReviewData?.Discount ?? 0) > 0 || promoDiscount > 0) ? orderReviewData?.Discount?.toFixed(2) || '0.00' : promoDiscount.toFixed(2)}
-                        </Text>
-                      </View>
-                    )}
+                    {/* Always show discount field */}
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>{t('discount')}</Text>
+                      <Text style={[styles.summaryValue, styles.discountValue]}>
+                        -KD {discount.toFixed(2)}
+                      </Text>
+                    </View>
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryLabel}>{t('shipping_fee')}</Text>
                       <Text style={styles.summaryValue}>
@@ -1346,7 +1157,7 @@ export default function CheckoutScreen() {
                     <View style={[styles.summaryItem, styles.totalItem]}>
                       <Text style={styles.totalLabel}>{t('grand_total')}</Text>
                       <Text style={styles.totalValue}>
-                        KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
+                        KD {grandTotal.toFixed(2)}
                       </Text>
                     </View>
                     {orderReviewData?.PromoCode && (
@@ -1404,7 +1215,7 @@ export default function CheckoutScreen() {
                       <ActivityIndicator size="small" color={colors.white} />
                     ) : (
                       <Text style={styles.placeOrderButtonText}>
-                        {t('place_order')} • KD {orderReviewData ? orderReviewData.GrandTotal.toFixed(2) : grandTotal.toFixed(2)}
+                        {t('place_order')} • KD {grandTotal.toFixed(2)}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -1594,6 +1405,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.black,
+    marginBottom: spacing.sm,
   },
   addressContainer: {
     marginBottom: spacing.md,
@@ -1717,7 +1529,7 @@ const styles = StyleSheet.create({
   promoButtonText: {
     color: colors.white,
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 13,
   },
   appliedPromo: {
     flexDirection: 'row',
@@ -1740,7 +1552,7 @@ const styles = StyleSheet.create({
   },
   seePromosButtonSmall: {
     alignSelf: 'flex-end',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
   },
   seePromosTextSmall: {
     color: colors.blue,
@@ -1751,7 +1563,7 @@ const styles = StyleSheet.create({
   summaryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   summaryLabel: {
     fontSize: 14,
@@ -1768,6 +1580,7 @@ const styles = StyleSheet.create({
   totalItem: {
     borderTopWidth: 1,
     borderTopColor: colors.lightGray,
+    paddingTop: spacing.md,
   },
   totalLabel: {
     fontWeight: 'bold',
@@ -1956,33 +1769,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.blue,
     marginTop: 10,
-  },
-  orderReviewSummary: {
-    marginTop: 10,
-    padding: spacing.md,
-    backgroundColor: colors.veryLightGray,
-    borderRadius: radii.md,
-  },
-  orderReviewTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: spacing.sm,
-    color: colors.black,
-  },
-  orderReviewDetails: {
-    marginBottom: spacing.sm,
-  },
-  orderReviewText: {
-    fontSize: 14,
-    color: colors.black,
-  },
-  orderReviewTotal: {
-    fontSize: 16,
-    color: colors.blue,
-    fontWeight: 'bold',
-  },
-  orderReviewPromo: {
-    fontSize: 14,
-    color: colors.textGray,
   },
 }); 

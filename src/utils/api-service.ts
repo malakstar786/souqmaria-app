@@ -419,6 +419,17 @@ const apiRequest = async <T>(
       };
     }
 
+    // If endpoint is ORDER_REVIEW_CHECKOUT, the responseData is the actual T (i.e., {li, ResponseCode, Message})
+    // We need to wrap it into an ApiResponse structure.
+    if (endpoint === ENDPOINTS.ORDER_REVIEW_CHECKOUT) {
+      return {
+        StatusCode: httpResponse.status,
+        ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.SUCCESS),
+        Message: responseData.Message || 'Order review completed',
+        Data: responseData as T, // responseData is the {li, ResponseCode, Message} object
+      };
+    }
+
     // For other endpoints that are expected to return the full ApiResponse structure
     const apiResponse = {
       StatusCode: httpResponse.status,
@@ -2261,71 +2272,27 @@ export async function getOrderReviewCheckout(params: OrderReviewCheckoutParams):
       params
     );
     
-    // Enhanced response logging
-    console.log('🛒 ORDER REVIEW CHECKOUT - API Response Status:', response.StatusCode);
-    console.log('🛒 ORDER REVIEW CHECKOUT - API Response Code:', response.ResponseCode);
-    console.log('🛒 ORDER REVIEW CHECKOUT - API Message:', response.Message);
+    console.log('🛒 ORDER REVIEW CHECKOUT - API Response:', JSON.stringify(response, null, 2));
     
-    if (response.Data) {
-      console.log('🛒 ORDER REVIEW CHECKOUT - Response Data Structure:', {
-        hasLiArray: !!response.Data.li,
-        liArrayLength: response.Data.li?.length || 0,
-        responseCode: response.Data.ResponseCode,
-        message: response.Data.Message
+    // Log order data details if available
+    if (response.Data && response.Data.li && response.Data.li.length > 0) {
+      const orderData = response.Data.li[0];
+      console.log('🛒 ORDER REVIEW CHECKOUT - Order Data Details:', {
+        cartCount: orderData.CartCount,
+        cartItemsListLength: orderData.CartItemsList?.length || 0,
+        subTotal: orderData.SubTotal,
+        discount: orderData.Discount,
+        shippingCharge: orderData.ShippingCharge,
+        grandTotal: orderData.GrandTotal,
+        promoCode: orderData.PromoCode || 'None'
       });
-      
-      if (response.Data.li && response.Data.li.length > 0) {
-        const orderData = response.Data.li[0];
-        console.log('🛒 ORDER REVIEW CHECKOUT - Order Data Details:', {
-          cartCount: orderData.CartCount,
-          cartItemsListLength: orderData.CartItemsList?.length || 0,
-          subTotal: orderData.SubTotal,
-          discount: orderData.Discount,
-          shippingCharge: orderData.ShippingCharge,
-          grandTotal: orderData.GrandTotal,
-          promoCode: orderData.PromoCode || 'None',
-          hasCartItems: !!orderData.CartItemsList?.length
-        });
-        
-        // Log individual cart items for debugging
-        if (orderData.CartItemsList && orderData.CartItemsList.length > 0) {
-          console.log('🛒 ORDER REVIEW CHECKOUT - Cart Items:', orderData.CartItemsList.map((item, index) => ({
-            index,
-            itemCode: item.ItemCode,
-            itemName: item.ItemName,
-            quantity: item.Quantity,
-            newPrice: item.NewPrice,
-            subTotal: item.SubTotal
-          })));
-        } else {
-          console.log('🛒 ORDER REVIEW CHECKOUT - No cart items found in CartItemsList');
-        }
-        
-        // Check for potential itemcount mismatch
-        if (orderData.CartCount === 0 && orderData.CartItemsList && orderData.CartItemsList.length > 0) {
-          console.warn('🛒 ORDER REVIEW CHECKOUT - POTENTIAL ISSUE: CartCount is 0 but CartItemsList has items');
-        }
-      } else {
-        console.log('🛒 ORDER REVIEW CHECKOUT - No order data in li array');
-        
-        // Check if this is due to empty cart or missing location codes
-        if (!hasLocationData) {
-          console.log('🛒 ORDER REVIEW CHECKOUT - This might be expected for initial guest calls without location data');
-        } else {
-          console.log('🛒 ORDER REVIEW CHECKOUT - No data despite having location codes - possible empty cart or API issue');
-        }
-      }
     } else {
-      console.log('🛒 ORDER REVIEW CHECKOUT - No Data field in response');
+      console.log('🛒 ORDER REVIEW CHECKOUT - No order data in response');
     }
     
     return response;
   } catch (error) {
     console.error('❌ ORDER REVIEW CHECKOUT - Error occurred:', error);
-    console.error('❌ ORDER REVIEW CHECKOUT - Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
     throw error;
   }
 } 

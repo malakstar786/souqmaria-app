@@ -118,7 +118,7 @@ export default function ProductListScreen() {
     if (params.searchName && params.searchName !== localSearchText) {
       setLocalSearchText(params.searchName);
     }
-  }, [params.searchName, localSearchText]);
+  }, [params.searchName]);
 
   // Check if params have changed
   const haveParamsChanged = useCallback(() => {

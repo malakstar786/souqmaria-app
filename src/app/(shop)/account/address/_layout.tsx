@@ -31,6 +31,24 @@ export default function AddressLayout() {
           headerShown: false
         }}
       />
+      <Stack.Screen
+        name="edit-billing"
+        options={{
+          title: "Edit Billing Address",
+          headerStyle: { backgroundColor: '#D9F4FF' },
+          headerTintColor: '#00AEEF',
+          headerShown: false
+        }}
+      />
+      <Stack.Screen
+        name="edit-shipping"
+        options={{
+          title: "Edit Shipping Address",
+          headerStyle: { backgroundColor: '#D9F4FF' },
+          headerTintColor: '#00AEEF',
+          headerShown: false
+        }}
+      />
     </Stack>
   );
 } 

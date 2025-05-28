@@ -7,6 +7,7 @@ import { SaveShippingAddressPayload } from '../../../../utils/api-service';
 import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';
+import useCheckoutStore from '../../../../store/checkout-store';
 
 export default function AddShippingAddressScreen() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function AddShippingAddressScreen() {
     cities,
     isLoading: isLoadingLocations 
   } = useLocationStore();
+  const { triggerOrderReviewUpdate } = useCheckoutStore();
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -134,6 +136,7 @@ export default function AddShippingAddressScreen() {
         Alert.alert('Success', 'Shipping address saved successfully!', [
           { text: 'OK', onPress: () => router.replace('/account') },
         ]);
+        triggerOrderReviewUpdate();
       } else {
         // Show error message and debug info
         setDebugResponse(error || 'Unknown error occurred');

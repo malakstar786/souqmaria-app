@@ -7,12 +7,14 @@ import { SaveBillingAddressPayload } from '../../../../utils/api-service';
 import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';
+import useCheckoutStore from '../../../../store/checkout-store';
 
 export default function AddBillingAddressScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { saveBillingAddress, isLoading, error, clearError } = useAddressStore();
   const { fetchCountries, fetchStates, fetchCities, countries, states, cities, isLoading: isLoadingLocations } = useLocationStore();
+  const { triggerOrderReviewUpdate } = useCheckoutStore();
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -126,6 +128,7 @@ export default function AddBillingAddressScreen() {
         Alert.alert('Success', 'Billing address saved successfully!', [
           { text: 'OK', onPress: () => router.replace('/account') },
         ]);
+        triggerOrderReviewUpdate();
       } else {
         // Show error message and debug info
         setDebugResponse(error || 'Unknown error occurred');

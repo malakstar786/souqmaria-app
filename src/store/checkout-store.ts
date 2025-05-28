@@ -327,21 +327,39 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
     set({ isLoadingOrderReview: true, orderReviewError: null });
     
     try {
+      console.log('🛒 FETCH ORDER REVIEW - Starting with params:', JSON.stringify(params, null, 2));
       const response = await getOrderReviewCheckout(params);
+      
+      console.log('🛒 FETCH ORDER REVIEW - Full API response:', JSON.stringify(response, null, 2));
+      console.log('🛒 FETCH ORDER REVIEW - Response.Data:', response.Data);
+      console.log('🛒 FETCH ORDER REVIEW - Response.Data.ResponseCode:', response.Data?.ResponseCode);
+      console.log('🛒 FETCH ORDER REVIEW - Response.Data.li:', response.Data?.li);
+      console.log('🛒 FETCH ORDER REVIEW - Response.Data.li length:', response.Data?.li?.length);
       
       if (response.Data && response.Data.ResponseCode === '2') {
         // API call was successful
         if (response.Data.li && response.Data.li.length > 0) {
           // We have order review data
+          const orderData = response.Data.li[0];
+          console.log('🛒 FETCH ORDER REVIEW - Order data to store:', JSON.stringify(orderData, null, 2));
+          console.log('🛒 FETCH ORDER REVIEW - Order data fields:');
+          console.log('🛒   - SubTotal:', orderData.SubTotal, 'type:', typeof orderData.SubTotal);
+          console.log('🛒   - Discount:', orderData.Discount, 'type:', typeof orderData.Discount);
+          console.log('🛒   - ShippingCharge:', orderData.ShippingCharge, 'type:', typeof orderData.ShippingCharge);
+          console.log('🛒   - GrandTotal:', orderData.GrandTotal, 'type:', typeof orderData.GrandTotal);
+          
           set({ 
-            orderReviewData: response.Data.li[0],
+            orderReviewData: orderData,
             isLoadingOrderReview: false,
             orderReviewError: null
           });
+          
+          console.log('🛒 FETCH ORDER REVIEW - Data stored successfully');
           return true;
         } else {
           // No data but API was successful (e.g., empty cart, no location codes)
           // Don't show error, just clear the data
+          console.log('🛒 FETCH ORDER REVIEW - No data in li array, clearing orderReviewData');
           set({ 
             orderReviewData: null,
             isLoadingOrderReview: false,
@@ -351,6 +369,7 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
         }
       } else {
         // API returned an actual error
+        console.log('🛒 FETCH ORDER REVIEW - API returned error, ResponseCode:', response.Data?.ResponseCode);
         set({ 
           isLoadingOrderReview: false, 
           orderReviewError: response.Data?.Message || response.Message || 'Failed to fetch order review'
@@ -358,6 +377,7 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
         return false;
       }
     } catch (error) {
+      console.error('🛒 FETCH ORDER REVIEW - Exception occurred:', error);
       set({ 
         isLoadingOrderReview: false, 
         orderReviewError: error instanceof Error ? error.message : 'Failed to fetch order review'
@@ -384,6 +404,9 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
     
     console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Starting automatic order review update');
     console.log('🛒 TRIGGER ORDER REVIEW UPDATE - User status:', isLoggedIn ? 'Logged in' : 'Guest');
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - UniqueId:', uniqueId);
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Current state billing addresses:', currentState.billingAddresses.length);
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Selected billing address ID:', currentState.selectedBillingAddressId);
     
     // Determine location parameters
     let country = '';
@@ -395,17 +418,36 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
       const selectedBilling = currentState.billingAddresses.find(addr => 
         addr.BillingAddressId === currentState.selectedBillingAddressId
       );
+      console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Selected billing address found:', !!selectedBilling);
       if (selectedBilling) {
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Selected billing address details:', JSON.stringify(selectedBilling, null, 2));
         country = selectedBilling.CountryId?.toString() || '';
         stateCode = selectedBilling.StateId?.toString() || '';
         city = selectedBilling.CityId?.toString() || '';
         console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Using logged-in user address location codes:', { country, stateCode, city });
+        
+        // If CountryId/StateId/CityId are not available, try using Country/State/City strings
+        if (!country && selectedBilling.Country) {
+          console.log('🛒 TRIGGER ORDER REVIEW UPDATE - CountryId not found, trying Country string:', selectedBilling.Country);
+          country = selectedBilling.Country;
+        }
+        if (!stateCode && selectedBilling.State) {
+          console.log('🛒 TRIGGER ORDER REVIEW UPDATE - StateId not found, trying State string:', selectedBilling.State);
+          stateCode = selectedBilling.State;
+        }
+        if (!city && selectedBilling.City) {
+          console.log('🛒 TRIGGER ORDER REVIEW UPDATE - CityId not found, trying City string:', selectedBilling.City);
+          city = selectedBilling.City;
+        }
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Final location codes after fallback:', { country, stateCode, city });
       } else {
         console.log('🛒 TRIGGER ORDER REVIEW UPDATE - No selected billing address found for logged-in user');
       }
     } else {
       // For guest users
+      console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Guest billing address:', !!currentState.billingAddress);
       if (currentState.billingAddress) {
+        console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Guest billing address details:', JSON.stringify(currentState.billingAddress, null, 2));
         country = currentState.billingAddress.country?.XCode.toString() || '';
         stateCode = currentState.billingAddress.state?.XCode.toString() || '';
         city = currentState.billingAddress.city?.XCode.toString() || '';
@@ -427,7 +469,7 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
       BuyNow: ''
     };
     
-    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Calling order review with params:', params);
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Final params for order review call:', JSON.stringify(params, null, 2));
     await get().fetchOrderReview(params);
   },
 

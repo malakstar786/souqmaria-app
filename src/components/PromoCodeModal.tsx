@@ -44,7 +44,7 @@ export default function PromoCodeModal({
       
       console.log('🎟️ PROMO CODES MODAL - Response:', JSON.stringify(response, null, 2));
       
-      if (response.ResponseCode === '2' && response.Data?.row) {
+      if (response.StatusCode === 200 && response.Data?.success === 1 && response.Data?.row) {
         setPromoCodes(response.Data.row);
         console.log('🎟️ PROMO CODES MODAL - Found', response.Data.row.length, 'promo codes');
       } else {

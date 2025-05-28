@@ -6,6 +6,7 @@ import { colors, spacing, radii } from '@theme';
 import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore, { Address } from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';
+import useCheckoutStore from '../../../../store/checkout-store';
 
 export default function EditBillingAddressScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function EditBillingAddressScreen() {
     cities,
     isLoading: isLoadingLocations 
   } = useLocationStore();
+  const { triggerOrderReviewUpdate } = useCheckoutStore();
 
   // Current address being edited
   const [currentAddress, setCurrentAddress] = useState<Address | null>(null);
@@ -173,6 +175,7 @@ export default function EditBillingAddressScreen() {
         Alert.alert('Success', 'Billing address updated successfully!', [
           { text: 'OK', onPress: () => router.replace('/account/address') },
         ]);
+        triggerOrderReviewUpdate();
       } else {
         // Show error message and debug info
         setDebugResponse(error || 'Unknown error occurred');
