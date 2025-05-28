@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Modal
+  Modal,
+  Platform
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '@theme';
@@ -137,6 +138,18 @@ export default function CartScreen() {
   const renderCartItem = (item: any) => (
     <View key={item.CartID} style={styles.cartItemContainer}>
       <View style={[styles.cartItemContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.productImage, isRTL && { marginLeft: 16, marginRight: 0 }]}>
+          {item.Image1 && (
+            <Image 
+              source={{ 
+                uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1}` 
+              }} 
+              style={styles.image}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+        
         <View style={styles.productInfo}>
           <Text style={[styles.productName, { textAlign }]} numberOfLines={1}>
             {item.ProductName}
@@ -148,18 +161,6 @@ export default function CartScreen() {
             <Text style={[styles.price, { textAlign }]}>{item.Price.toFixed(2)} KD</Text>
           </View>
         </View>
-        
-        <View style={styles.productImage}>
-          {item.Image1 && (
-            <Image 
-              source={{ 
-                uri: `https://erp.merpec.com/Upload/CompanyLogo/3044/${item.Image1}` 
-              }} 
-              style={styles.image}
-              resizeMode="contain"
-            />
-          )}
-        </View>
       </View>
       
       <View style={[styles.actionsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
@@ -167,10 +168,10 @@ export default function CartScreen() {
           style={styles.wishlistButton}
           onPress={() => handleAddToWishlist(item.ProductCode)}
         >
-          <Text style={styles.wishlistButtonText}>{t('add_to_wishlist_caps')}</Text>
+          <Text style={[styles.wishlistButtonText, { textAlign }]}>{t('add_to_wishlist_caps')}</Text>
         </TouchableOpacity>
         
-        <View style={styles.quantityControls}>
+        <View style={[styles.quantityControls, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TouchableOpacity 
             style={styles.quantityButton}
             onPress={() => handleUpdateQuantity(item.CartID, item.Quantity + 1)}
@@ -193,7 +194,7 @@ export default function CartScreen() {
           style={styles.removeButton}
           onPress={() => handleRemoveItem(item.CartID, item.ProductName)}
         >
-          <Text style={styles.removeButtonText}>{t('remove_caps')}</Text>
+          <Text style={[styles.removeButtonText, { textAlign }]}>{t('remove_caps')}</Text>
         </TouchableOpacity>
       </View>
       
@@ -205,16 +206,34 @@ export default function CartScreen() {
   const renderCartSummary = () => (
     <View style={[styles.summaryBar, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
       <View style={[styles.totalContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-        <Text style={styles.totalText}>{t('total_caps')} :</Text>
-        <Text style={[styles.totalAmount, isRTL && { marginRight: 8, marginLeft: 0 }]}>{totalAmount.toFixed(2)} KD</Text>
+        <Text style={[styles.totalText, { textAlign }]}>{t('total_caps')} :</Text>
+        <Text style={[
+          styles.totalAmount, 
+          { 
+            marginLeft: isRTL ? 0 : 8, 
+            marginRight: isRTL ? 8 : 0,
+            textAlign 
+          }
+        ]}>
+          {totalAmount.toFixed(2)} KD
+        </Text>
       </View>
       
       <TouchableOpacity 
-        style={styles.checkoutButton} 
+        style={[styles.checkoutButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]} 
         onPress={() => router.push('/checkout')}
         disabled={!cartItems.length}
       >
-        <Text style={[styles.checkoutButtonText, isRTL && { marginLeft: 8, marginRight: 0 }]}>{t('checkout_caps')}</Text>
+        <Text style={[
+          styles.checkoutButtonText, 
+          { 
+            marginLeft: isRTL ? 8 : 0, 
+            marginRight: isRTL ? 0 : 8,
+            textAlign 
+          }
+        ]}>
+          {t('checkout_caps')}
+        </Text>
         <FontAwesome 
           name={isRTL ? "arrow-circle-left" : "arrow-circle-right"} 
           size={20} 
@@ -228,15 +247,22 @@ export default function CartScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
-        <ActivityIndicator size="large" color={colors.blue} />
+        <View style={[styles.header, { flexDirection }]}>
+          <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
+        </View>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color={colors.blue} />
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
+      {/* Header */}
+      <View style={[styles.header, { flexDirection }]}>
+        <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
+      </View>
       
       {cartItems.length === 0 ? (
         renderEmptyCart()
@@ -308,24 +334,33 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: colors.white,
+  },
+  header: {
+    backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'ios' ? 20 : 30,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.blue,
-    marginTop: 36,
-    marginLeft: 20,
-    marginBottom: 12,
-    textAlign: 'left',
+    flex: 1,
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyCartContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.white,
+    marginTop: Platform.OS === 'ios' ? 100 : 80,
   },
   emptyCartContent: {
     alignItems: 'center',
@@ -380,9 +415,10 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+    marginTop: Platform.OS === 'ios' ? 10 : 10,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 20, // Space for checkout bar
   },
   cartItemContainer: {
     backgroundColor: colors.white,
@@ -438,7 +474,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 18,
+    borderRadius: 8,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -515,6 +551,7 @@ const styles = StyleSheet.create({
   totalContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   totalText: {
     fontSize: 15,
@@ -530,7 +567,7 @@ const styles = StyleSheet.create({
   checkoutButton: {
     backgroundColor: colors.blue,
     borderRadius: 8,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',

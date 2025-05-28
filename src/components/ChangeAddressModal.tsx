@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Address } from '../utils/api-service';
+import { useTranslation } from '../utils/translations';
+import { useRTL } from '../utils/rtl';
 
 const colors = {
   white: '#FFFFFF',
@@ -19,6 +21,14 @@ const colors = {
   black: '#000000',
   lightGray: '#E0E0E0',
   gray: '#888888',
+};
+
+const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
 };
 
 interface ChangeAddressModalProps {
@@ -40,6 +50,9 @@ const ChangeAddressModal = ({
   addressType,
   isLoading = false,
 }: ChangeAddressModalProps) => {
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
+
   const handleSelectAddress = (address: Address) => {
     onSelectAddress(address);
     onClose();
@@ -48,13 +61,13 @@ const ChangeAddressModal = ({
   const formatAddress = (address: Address) => {
     return (
       <View>
-        <Text style={styles.addressName}>{address.FullName}</Text>
-        <Text style={styles.addressDetails}>{address.Mobile}</Text>
-        <Text style={styles.addressDetails}>
+        <Text style={[styles.addressName, { textAlign }]}>{address.FullName}</Text>
+        <Text style={[styles.addressDetails, { textAlign }]}>{address.Mobile}</Text>
+        <Text style={[styles.addressDetails, { textAlign }]}>
           {address.Block}, {address.Street}, {address.House}
           {address.Apartment ? `, ${address.Apartment}` : ''}
         </Text>
-        <Text style={styles.addressDetails}>
+        <Text style={[styles.addressDetails, { textAlign }]}>
           {address.City}, {address.State}, {address.Country}
         </Text>
       </View>
@@ -77,10 +90,29 @@ const ChangeAddressModal = ({
       >
         {formatAddress(item)}
         {isSelected && (
-          <FontAwesome name="check" size={18} color={colors.blue} style={styles.checkIcon} />
+          <FontAwesome 
+            name="check" 
+            size={18} 
+            color={colors.blue} 
+            style={[
+              styles.checkIcon, 
+              { 
+                right: isRTL ? undefined : 16, 
+                left: isRTL ? 16 : undefined 
+              }
+            ]} 
+          />
         )}
       </TouchableOpacity>
     );
+  };
+
+  const getModalTitle = () => {
+    if (addressType === 'billing') {
+      return t('change_address'); // Generic change address
+    } else {
+      return t('change_address'); // Generic change address
+    }
   };
 
   return (
@@ -92,18 +124,18 @@ const ChangeAddressModal = ({
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <View style={styles.header}>
+          <View style={[styles.header, { flexDirection }]}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <FontAwesome name="close" size={20} color={colors.black} />
+              <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
             </TouchableOpacity>
-            <Text style={styles.title}>Change Address</Text>
+            <Text style={[styles.title, { textAlign: 'center', flex: 1 }]}>{getModalTitle()}</Text>
             <View style={{ width: 20 }} />
           </View>
 
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.blue} />
-              <Text style={styles.loadingText}>Loading addresses...</Text>
+              <Text style={[styles.loadingText, { textAlign }]}>{t('loading_addresses')}</Text>
             </View>
           ) : addresses.length > 0 ? (
             <FlatList
@@ -118,9 +150,9 @@ const ChangeAddressModal = ({
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No addresses found</Text>
+              <Text style={[styles.emptyText, { textAlign }]}>{t('no_addresses_found')}</Text>
               <TouchableOpacity style={styles.addButton} onPress={onClose}>
-                <Text style={styles.addButtonText}>+ Add New Address</Text>
+                <Text style={[styles.addButtonText, { textAlign }]}>+ {t('add_address')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -129,7 +161,7 @@ const ChangeAddressModal = ({
             style={styles.saveButton}
             onPress={onClose}
           >
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={[styles.saveButtonText, { textAlign }]}>{t('save')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

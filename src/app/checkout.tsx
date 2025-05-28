@@ -77,6 +77,7 @@ import ChangeAddressModal from '../components/ChangeAddressModal';
 import AddAddressModal from '../components/AddAddressModal';
 import AuthModal from '../components/AuthModal';
 import { useTranslation } from '../utils/translations';
+import { useRTL } from '../utils/rtl';
 
 const { width, height } = Dimensions.get('window');
 
@@ -145,6 +146,7 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { refreshCartItems, cartItems, totalAmount } = useCartStore();
   const { user, isLoggedIn } = useAuthStore();
   const promoStore = usePromoStore();
@@ -819,32 +821,32 @@ export default function CheckoutScreen() {
       // Render address section for logged-in users
       return (
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Image 
               source={require('../assets/checkout/address_icon_checkout.png')} 
-              style={styles.sectionIcon}
+              style={[styles.sectionIcon, isRTL && { marginLeft: spacing.sm, marginRight: 0 }]}
             />
-            <Text style={styles.sectionTitle}>Address</Text>
+            <Text style={[styles.sectionTitle, { textAlign }]}>{t('address')}</Text>
           </View>
           
           {/* Billing Address */}
           <View style={styles.addressContainer}>
-            <Text style={styles.addressTitle}>Billing Address</Text>
+            <Text style={[styles.addressTitle, { textAlign }]}>{t('billing_address')}</Text>
             {(() => {
               const selectedBilling = getSelectedBillingAddress();
               console.log('🏠 renderAddressSection: selectedBilling =', !!selectedBilling);
               if (selectedBilling) {
                 console.log('🏠 renderAddressSection: showing selected billing address');
                 return (
-                  <View style={styles.selectedAddress}>
-                    <Text style={styles.addressText}>
+                  <View style={[styles.selectedAddress, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                    <Text style={[styles.addressText, { textAlign, flex: 1 }]}>
                       {formatApiAddressForDisplay(selectedBilling)}
                     </Text>
                     <TouchableOpacity 
                       style={styles.changeButton}
                       onPress={() => setShowChangeBillingModal(true)}
                     >
-                      <Text style={styles.changeButtonText}>Change</Text>
+                      <Text style={[styles.changeButtonText, { textAlign }]}>{t('change_address')}</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -852,11 +854,16 @@ export default function CheckoutScreen() {
                 console.log('🏠 renderAddressSection: showing add billing address button');
                 return (
                   <TouchableOpacity 
-                    style={styles.addButton}
+                    style={[styles.addButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
                     onPress={handleAddNewBillingAddress}
                   >
-                    <FontAwesome name="plus" size={16} color={colors.blue} />
-                    <Text style={styles.addButtonText}>Add Billing Address</Text>
+                    <FontAwesome 
+                      name="plus" 
+                      size={16} 
+                      color={colors.blue} 
+                      style={[{ marginRight: isRTL ? 0 : spacing.sm, marginLeft: isRTL ? spacing.sm : 0 }]}
+                    />
+                    <Text style={[styles.addButtonText, { textAlign }]}>{t('add_billing_address')}</Text>
                   </TouchableOpacity>
                 );
               }
@@ -866,39 +873,53 @@ export default function CheckoutScreen() {
           {/* Ship to Different Address Checkbox */}
           <View style={styles.shippingCheckboxContainer}>
             <TouchableOpacity
-              style={styles.checkboxContainer}
+              style={[styles.checkboxContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               onPress={() => setShipToDifferentAddress(!shipToDifferentAddress)}
             >
               <View style={[styles.checkboxSquare, shipToDifferentAddress && styles.checkboxSquareSelected]}>
                 {shipToDifferentAddress && <FontAwesome name="check" size={12} color={colors.white} />}
               </View>
-              <Text style={styles.checkboxLabel}>Ship to different address</Text>
+              <Text style={[
+                styles.checkboxLabel, 
+                { 
+                  marginLeft: isRTL ? 0 : spacing.sm, 
+                  marginRight: isRTL ? spacing.sm : 0,
+                  textAlign 
+                }
+              ]}>
+                {t('ship_to_different_address')}
+              </Text>
             </TouchableOpacity>
           </View>
           
           {/* Shipping Address - only show if different address is selected */}
           {shipToDifferentAddress && (
             <View style={styles.addressContainer}>
-              <Text style={styles.addressTitle}>Shipping Address</Text>
+              <Text style={[styles.addressTitle, { textAlign }]}>{t('shipping_address')}</Text>
               {getSelectedShippingAddress() ? (
-                <View style={styles.selectedAddress}>
-                  <Text style={styles.addressText}>
+                <View style={[styles.selectedAddress, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                  <Text style={[styles.addressText, { textAlign, flex: 1 }]}>
                     {formatApiAddressForDisplay(getSelectedShippingAddress()!)}
                   </Text>
                   <TouchableOpacity 
                     style={styles.changeButton}
                     onPress={() => setShowChangeShippingModal(true)}
                   >
-                    <Text style={styles.changeButtonText}>Change</Text>
+                    <Text style={[styles.changeButtonText, { textAlign }]}>{t('change_address')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity 
-                  style={styles.addButton}
+                  style={[styles.addButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
                   onPress={handleAddNewShippingAddress}
                 >
-                  <FontAwesome name="plus" size={16} color={colors.blue} />
-                  <Text style={styles.addButtonText}>Add Shipping Address</Text>
+                  <FontAwesome 
+                    name="plus" 
+                    size={16} 
+                    color={colors.blue} 
+                    style={[{ marginRight: isRTL ? 0 : spacing.sm, marginLeft: isRTL ? spacing.sm : 0 }]}
+                  />
+                  <Text style={[styles.addButtonText, { textAlign }]}>{t('add_shipping_address')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -909,32 +930,42 @@ export default function CheckoutScreen() {
       // Render address section for guest users
       return (
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Image 
               source={require('../assets/checkout/address_icon_checkout.png')} 
-              style={styles.sectionIcon}
+              style={[styles.sectionIcon, isRTL && { marginLeft: spacing.sm, marginRight: 0 }]}
             />
-            <Text style={styles.sectionTitle}>{t('address')}</Text>
+            <Text style={[styles.sectionTitle, { textAlign }]}>{t('address')}</Text>
           </View>
           
           {/* Guest Address Add Button - as per guest_checkout.png */}
           {!guestBillingAddress && !showGuestBillingForm && (
             <TouchableOpacity
-              style={styles.addGuestAddressButton}
+              style={[styles.addGuestAddressButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               onPress={() => setShowGuestBillingForm(true)}
             >
-              <FontAwesome name="plus" size={16} color={colors.blue} style={styles.addIcon} />
-              <Text style={styles.addGuestAddressText}>{t('add_address')}</Text>
-              <FontAwesome name="chevron-right" size={14} color={colors.blue} style={styles.arrowIcon} />
+              <FontAwesome 
+                name="plus" 
+                size={16} 
+                color={colors.blue} 
+                style={[styles.addIcon, isRTL && { marginLeft: spacing.sm, marginRight: 0 }]} 
+              />
+              <Text style={[styles.addGuestAddressText, { textAlign, flex: 1 }]}>{t('add_address')}</Text>
+              <FontAwesome 
+                name={isRTL ? "chevron-left" : "chevron-right"} 
+                size={14} 
+                color={colors.blue} 
+                style={[styles.arrowIcon, isRTL && { marginRight: spacing.sm, marginLeft: 0 }]} 
+              />
             </TouchableOpacity>
           )}
           
           {/* Billing Address - only show if already entered */}
           {guestBillingAddress && (
             <View style={styles.addressContainer}>
-              <Text style={styles.addressTitle}>{t('billing_address')}</Text>
-              <View style={styles.selectedAddress}>
-                <Text style={styles.addressText}>
+              <Text style={[styles.addressTitle, { textAlign }]}>{t('billing_address')}</Text>
+              <View style={[styles.selectedAddress, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <Text style={[styles.addressText, { textAlign, flex: 1 }]}>
                   {guestBillingAddress.fullName}, {guestBillingAddress.mobile}{'\n'}
                   {guestBillingAddress.block}, {guestBillingAddress.street}, {guestBillingAddress.house}
                   {guestBillingAddress.apartment ? ', ' + guestBillingAddress.apartment : ''}{'\n'}
@@ -944,7 +975,7 @@ export default function CheckoutScreen() {
                   style={styles.changeButton}
                   onPress={() => setShowGuestBillingForm(true)}
                 >
-                  <Text style={styles.changeButtonText}>{t('change_address')}</Text>
+                  <Text style={[styles.changeButtonText, { textAlign }]}>{t('change_address')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -953,9 +984,9 @@ export default function CheckoutScreen() {
           {/* Shipping Address - Show if shipping address exists */}
           {guestShippingAddress && (
             <View style={styles.addressContainer}>
-              <Text style={styles.addressTitle}>{t('shipping_address')}</Text>
-              <View style={styles.selectedAddress}>
-                <Text style={styles.addressText}>
+              <Text style={[styles.addressTitle, { textAlign }]}>{t('shipping_address')}</Text>
+              <View style={[styles.selectedAddress, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <Text style={[styles.addressText, { textAlign, flex: 1 }]}>
                   {guestShippingAddress.fullName}, {guestShippingAddress.mobile}{'\n'}
                   {guestShippingAddress.block}, {guestShippingAddress.street}, {guestShippingAddress.house}
                   {guestShippingAddress.apartment ? ', ' + guestShippingAddress.apartment : ''}{'\n'}
@@ -965,7 +996,7 @@ export default function CheckoutScreen() {
                   style={styles.changeButton}
                   onPress={() => setShowGuestShippingForm(true)}
                 >
-                  <Text style={styles.changeButtonText}>{t('change_address')}</Text>
+                  <Text style={[styles.changeButtonText, { textAlign }]}>{t('change_address')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1001,12 +1032,12 @@ export default function CheckoutScreen() {
         <SafeAreaView style={styles.container}>
           <View style={styles.modalContainer}>
             {/* Modal Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { flexDirection }]}>
               <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
-                <FontAwesome name="close" size={24} color={colors.black} />
+                <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Checkout</Text>
-              <View style={{ width: 24 }} />
+              <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('checkout')}</Text>
+              <View style={{ width: 40 }} />
             </View>
             
             {/* Guest Checkout Billing Form */}
