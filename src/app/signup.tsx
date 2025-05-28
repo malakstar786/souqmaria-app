@@ -22,7 +22,7 @@ interface SignupScreenProps {
 }
 
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
-  const { register, googleRegister, isLoading, error, clearError } = useAuthStore();
+  const { register, googleLogin, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
   
   // Form state
@@ -98,8 +98,9 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
       const result = await authenticateWithGoogle();
       
       if (result.success && result.userInfo) {
-        const registerSuccess = await googleRegister(result.userInfo);
-        if (registerSuccess) {
+        // Use googleLogin - it handles both login and registration automatically
+        const success = await googleLogin(result.userInfo);
+        if (success) {
           Alert.alert(
             'Success',
             'Your account has been created successfully with Google!',

@@ -106,9 +106,19 @@ const authenticateWithNativeGoogleSignIn = async (): Promise<GoogleAuthResponse>
     const result = await GoogleSignin.signIn();
     console.log('📋 Google Sign-In Result:', JSON.stringify(result, null, 2));
 
-    if (result && (result as any).user) {
-      const user = (result as any).user;
-      
+    // Check for user data in the response structure
+    let user = null;
+    if (result && (result as any).data && (result as any).data.user) {
+      // User data is in result.data.user
+      user = (result as any).data.user;
+      console.log('✅ Found user data in result.data.user');
+    } else if (result && (result as any).user) {
+      // User data is directly in result.user
+      user = (result as any).user;
+      console.log('✅ Found user data in result.user');
+    }
+
+    if (user) {
       // Get access token
       const tokens = await GoogleSignin.getTokens();
       console.log('🔑 Access Token received:', tokens.accessToken?.substring(0, 20) + '...');
@@ -137,6 +147,7 @@ const authenticateWithNativeGoogleSignIn = async (): Promise<GoogleAuthResponse>
       };
     } else {
       console.error('❌ No user info received from Google Sign-In');
+      console.error('❌ Result structure:', JSON.stringify(result, null, 2));
       return {
         success: false,
         error: 'No user information received from Google',

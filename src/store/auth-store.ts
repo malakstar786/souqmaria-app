@@ -76,7 +76,6 @@ interface AuthState {
   register: (fullName: string, email: string, mobile: string, password: string) => Promise<boolean>;
   login: (params: LoginParams) => Promise<boolean>;
   googleLogin: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
-  googleRegister: (googleUserInfo: GoogleUserInfo, mobile?: string) => Promise<boolean>;
   logout: () => void;
   updateUserAccount: (payload: UpdateUserPayload) => Promise<boolean>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
@@ -216,30 +215,32 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
-      // Google Login
+      // Google Login - Always try login first, auto-register if user doesn't exist
       googleLogin: async (googleUserInfo: GoogleUserInfo) => {
         set({ isLoading: true, error: null });
         try {
-          console.log('Attempting Google login with user info:', { 
+          console.log('🔵 Starting Google authentication flow...');
+          console.log('User info:', { 
             id: googleUserInfo.id, 
             email: googleUserInfo.email, 
             name: googleUserInfo.name 
           });
           
-          // Use social media login API
-          const response: ApiResponse<any> = await socialMediaLogin({
+          // Step 1: Always try to login first using UserLogin_ForSocialMedia
+          console.log('📱 Step 1: Attempting social media login...');
+          const loginResponse: ApiResponse<any> = await socialMediaLogin({
             SocialId: googleUserInfo.id,
             Email: googleUserInfo.email,
             Mobile: '', // Mobile is not provided by Google, leave empty
             CompanyId: 3044,
           });
 
-          console.log('Full Google Login Response:', JSON.stringify(response, null, 2));
+          console.log('🔍 Social Login Response:', JSON.stringify(loginResponse, null, 2));
 
-          // Check response codes according to API documentation
-          if (String(response.ResponseCode) === String(RESPONSE_CODES.SOCIAL_LOGIN_SUCCESS)) {
-            // Login successful - user exists and logged in
-            const userDetails = response.Data || response.UserDetails;
+          // Check if login was successful (StatusCode 200 and ResponseCode 2)
+          if (loginResponse.StatusCode === 200 && String(loginResponse.ResponseCode) === '2') {
+            console.log('✅ User exists and logged in successfully');
+            const userDetails = loginResponse.Data || loginResponse.UserDetails;
             if (userDetails) {
               const userId = userDetails.UserID || userDetails.UserId || '';
               
@@ -257,115 +258,117 @@ export const useAuthStore = create<AuthState>()(
               });
               return true;
             } else {
+              console.error('❌ Login successful but no user details returned');
               set({ 
                 isLoading: false, 
                 error: 'Login successful but user details not found.' 
               });
               return false;
             }
-          } else if (String(response.ResponseCode) === String(RESPONSE_CODES.SOCIAL_USER_NOT_EXISTS)) {
-            // User doesn't exist, need to register
-            set({ 
-              isLoading: false, 
-              error: 'Account not found. Please sign up first with Google.' 
+          } 
+          // Check if user doesn't exist (StatusCode 200 and ResponseCode -4)
+          else if (loginResponse.StatusCode === 200 && String(loginResponse.ResponseCode) === '-4') {
+            console.log('👤 User does not exist, proceeding with auto-registration...');
+            
+            // Step 2: Auto-register the user using SaveUserRegistration_ForSocialMedia
+            const ipAddress = await getDeviceIP();
+            const source = Platform.OS === 'ios' ? 'iOS' : 'Android';
+            
+            console.log('📝 Step 2: Attempting social media registration...');
+            const registerResponse = await socialMediaRegister({
+              SocialId: googleUserInfo.id,
+              SocialId_Description: 'Google',
+              FullName: googleUserInfo.name,
+              Email: googleUserInfo.email,
+              Mobile: '', // Mobile is optional for Google signup
+              Password: '', // Empty password for social registration
+              IpAddress: ipAddress,
+              Source: source,
+              CompanyId: 3044,
+              IsExist_FullName: !!googleUserInfo.name,
+              IsExist_Mobile: false, // No mobile provided
+              IsExist_EmailId: !!googleUserInfo.email,
             });
-            return false;
-          } else if (String(response.ResponseCode) === String(RESPONSE_CODES.SOCIAL_SERVER_VALIDATION_ERROR)) {
+
+            console.log('🔍 Social Register Response:', JSON.stringify(registerResponse, null, 2));
+            
+            // Check if registration was successful (StatusCode 200 and ResponseCode 2)
+            if (registerResponse.StatusCode === 200 && String(registerResponse.ResponseCode) === '2') {
+              console.log('✅ User registered and logged in successfully');
+              
+              // Extract the user ID from the response
+              let userId = '';
+              if (registerResponse.Data?.UserId) {
+                userId = registerResponse.Data.UserId;
+              } else if (registerResponse.Data?.UserID) {
+                userId = registerResponse.Data.UserID;
+              } else if (registerResponse.UserDetails?.UserID) {
+                userId = registerResponse.UserDetails.UserID;
+              }
+              
+              console.log(`📋 Registration successful, user ID: ${userId || 'Not provided by API'}`);
+              
+              set({
+                isLoading: false,
+                isLoggedIn: true,
+                user: {
+                  fullName: googleUserInfo.name,
+                  email: googleUserInfo.email,
+                  mobile: '',
+                  UserID: userId,
+                  id: userId,
+                },
+                error: null,
+              });
+              return true;
+            } else {
+              console.error('❌ Registration failed:', registerResponse.Message);
+              let errorMessage = registerResponse.Message || 'Registration failed. Please try again.';
+              
+              // Handle specific registration error codes
+              if (String(registerResponse.ResponseCode) === '-2') {
+                errorMessage = 'Registration was not successful. Please try again.';
+              } else if (String(registerResponse.ResponseCode) === '-4') {
+                errorMessage = 'User already registered. Please try logging in.';
+              } else if (String(registerResponse.ResponseCode) === '-8') {
+                errorMessage = 'Server validation error. Please try again later.';
+              } else if (String(registerResponse.ResponseCode) === '-10') {
+                errorMessage = 'Something went wrong during registration. Please try again.';
+              }
+              
+              set({ 
+                isLoading: false, 
+                error: errorMessage 
+              });
+              return false;
+            }
+          } 
+          // Handle other login response codes
+          else if (loginResponse.StatusCode === 200 && String(loginResponse.ResponseCode) === '-6') {
+            console.error('❌ Server validation error during login');
             set({ 
               isLoading: false, 
               error: 'Server validation error. Please try again later.' 
             });
             return false;
-          } else {
+          } else if (loginResponse.StatusCode === 200 && String(loginResponse.ResponseCode) === '-2') {
+            console.error('❌ General error during login');
             set({ 
               isLoading: false, 
-              error: response.Message || 'Google login failed.' 
+              error: 'Something went wrong during login. Please try again.' 
             });
             return false;
-          }
-        } catch (error) {
-          console.error('Google login error:', error);
-          set({ isLoading: false, error: 'Google login failed due to a network error.' });
-          return false;
-        }
-      },
-      
-      // Google Register
-      googleRegister: async (googleUserInfo: GoogleUserInfo, mobile?: string) => {
-        set({ isLoading: true, error: null });
-        
-        try {
-          const ipAddress = await getDeviceIP();
-          const source = Platform.OS === 'ios' ? 'iOS' : 'Android';
-          
-          // Use social media registration API
-          const response = await socialMediaRegister({
-            SocialId: googleUserInfo.id,
-            SocialId_Description: 'Google',
-            FullName: googleUserInfo.name,
-            Email: googleUserInfo.email,
-            Mobile: mobile || '', // Mobile is optional for Google signup
-            Password: '', // Empty password for social registration
-            IpAddress: ipAddress,
-            Source: source,
-            CompanyId: 3044,
-            IsExist_FullName: !!googleUserInfo.name,
-            IsExist_Mobile: !!(mobile && mobile.trim()),
-            IsExist_EmailId: !!googleUserInfo.email,
-          });
-
-          console.log('Full Google Register Response:', JSON.stringify(response, null, 2));
-          
-          const responseCodeStr = String(response.ResponseCode);
-
-          if (responseCodeStr === String(RESPONSE_CODES.SOCIAL_REGISTER_SUCCESS)) {
-            // Extract the user ID from the response
-            let userId = '';
-            if (response.Data?.UserId) {
-              userId = response.Data.UserId;
-            } else if (response.Data?.UserID) {
-              userId = response.Data.UserID;
-            } else if (response.UserDetails?.UserID) {
-              userId = response.UserDetails.UserID;
-            }
-            
-            console.log(`Google registration successful, user ID: ${userId || 'Not provided by API'}`);
-            
-            set({
-              isLoading: false,
-              isLoggedIn: true,
-              user: {
-                fullName: googleUserInfo.name,
-                email: googleUserInfo.email,
-                mobile: mobile || '',
-                UserID: userId,
-                id: userId,
-              },
-              error: null,
-            });
-            return true;
           } else {
-            let errorMessage = response.Message || 'Google registration failed. Please try again.';
-            
-            if (responseCodeStr === String(RESPONSE_CODES.SOCIAL_USER_ALREADY_REGISTERED)) {
-              errorMessage = response.Message || 'This account is already registered. Please try logging in instead.';
-            } else if (responseCodeStr === String(RESPONSE_CODES.SOCIAL_REGISTER_SERVER_ERROR)) {
-              errorMessage = response.Message || 'Server validation error. Please try again later.';
-            } else if (responseCodeStr === String(RESPONSE_CODES.SOCIAL_REGISTER_GENERAL_ERROR)) {
-              errorMessage = response.Message || 'Something went wrong. Please try again later.';
-            } else if (!response.Message && response.ResponseCode) {
-                errorMessage = `Google registration failed (Code: ${response.ResponseCode}). Please try again.`;
-            }
-            
-            set({ isLoading: false, error: errorMessage });
+            console.error('❌ Unexpected login response:', loginResponse);
+            set({ 
+              isLoading: false, 
+              error: loginResponse.Message || 'Google authentication failed.' 
+            });
             return false;
           }
         } catch (error) {
-          console.error('Error during Google registration:', error);
-          set({ 
-            isLoading: false, 
-            error: 'Google registration failed due to a network error. Please check your connection and try again.' 
-          });
+          console.error('❌ Google authentication error:', error);
+          set({ isLoading: false, error: 'Google authentication failed due to a network error.' });
           return false;
         }
       },

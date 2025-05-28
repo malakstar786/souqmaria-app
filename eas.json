@@ -7,11 +7,17 @@
       "development": {
         "developmentClient": true,
         "distribution": "internal",
-        "ios": {
-          "resourceClass": "m-medium"
-        },
         "android": {
           "resourceClass": "medium"
+        },
+        "ios": {
+          "resourceClass": "m-medium"
+        }
+      },
+      "ios-simulator": {
+        "extends": "development",
+        "ios": {
+          "simulator": true
         }
       },
       "preview": {

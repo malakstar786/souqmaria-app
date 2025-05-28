@@ -37,7 +37,7 @@ export default function AuthModal({
   onSuccess 
 }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const { login, register, googleLogin, googleRegister, isLoading, error, clearError } = useAuthStore();
+  const { login, register, googleLogin, isLoading, error, clearError } = useAuthStore();
   
   // Add forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -200,48 +200,36 @@ export default function AuthModal({
   const handleGoogleAuth = async () => {
     console.log('🔵 AuthModal: Starting Google authentication...');
     console.log('🔵 AuthModal: Active tab:', activeTab);
+    console.log('🔵 AuthModal: Calling authenticateWithGoogle...');
     
     try {
-      console.log('🔵 AuthModal: Calling authenticateWithGoogle...');
       const result = await authenticateWithGoogle();
-      
       console.log('🔵 AuthModal: Google auth result:', result);
       
       if (result.success && result.userInfo) {
-        console.log('🔵 AuthModal: Google auth successful, user info:', result.userInfo);
+        console.log('🔵 AuthModal: Google authentication successful, proceeding with login/registration...');
         
-        if (activeTab === 'login') {
-          console.log('🔵 AuthModal: Attempting Google login...');
-          // Try Google login first
-          const loginSuccess = await googleLogin(result.userInfo);
-          console.log('🔵 AuthModal: Google login result:', loginSuccess);
-          
-          if (loginSuccess) {
-            console.log('🔵 AuthModal: Google login successful, closing modal');
-            onSuccess?.();
-            onClose();
-          }
-        } else {
-          console.log('🔵 AuthModal: Attempting Google registration...');
-          // For signup, we might need mobile number
-          // For now, proceed with Google registration
-          const registerSuccess = await googleRegister(result.userInfo);
-          console.log('🔵 AuthModal: Google registration result:', registerSuccess);
-          
-          if (registerSuccess) {
-            Alert.alert(
-              'Success',
-              'Your account has been created successfully with Google!',
-              [{ 
-                text: 'OK', 
-                onPress: () => {
-                  console.log('🔵 AuthModal: Google registration successful, closing modal');
-                  onSuccess?.();
-                  onClose();
-                }
-              }]
-            );
-          }
+        // Always use googleLogin - it handles both login and registration automatically
+        const success = await googleLogin(result.userInfo);
+        console.log('🔵 AuthModal: Google authentication result:', success);
+        
+        if (success) {
+          const message = activeTab === 'login' 
+            ? 'You have been logged in successfully with Google!' 
+            : 'Your account has been created successfully with Google!';
+            
+          Alert.alert(
+            'Success',
+            message,
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                console.log('🔵 AuthModal: Google authentication successful, closing modal');
+                onSuccess?.();
+                onClose();
+              }
+            }]
+          );
         }
       } else {
         console.error('🔴 AuthModal: Google auth failed:', result.error);
