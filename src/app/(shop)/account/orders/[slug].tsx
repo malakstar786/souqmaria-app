@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, I18nManager } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, I18nManager, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
@@ -167,8 +167,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
     backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   headerRTL: {
     flexDirection: 'row-reverse',
@@ -177,12 +179,14 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.blue,
+    textAlign: 'center',
+    flex: 1,
   },
   placeholder: {
-    width: 20, // Same as the back button for alignment
+    width: 40, // Same as the back button for alignment
   },
   errorContainer: {
     padding: spacing.md,

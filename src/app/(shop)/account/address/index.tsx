@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../../../store/auth-store';
 import useAddressStore, { Address } from '../../../../store/address-store';
 import { useTranslation } from '../../../../utils/translations';
 import { useRTL } from '../../../../utils/rtl';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function AddressScreen() {
   const router = useRouter();
@@ -156,10 +157,10 @@ export default function AddressScreen() {
       {/* Custom Back Button */}
       <View style={[styles.headerRow, { flexDirection }]}>
         <TouchableOpacity onPress={() => router.replace('/account')} style={styles.backButton}>
-          <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={28} color="#00AEEF" />
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color="#000000" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('my_addresses')}</Text>
-        <View style={{ width: 28 }} />
+        <View style={{ width: 40 }} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Error message if loading addresses failed */}
@@ -256,12 +257,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#D9F4FF',
-    paddingTop: 48,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
   backButton: {
-    padding: 4,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 20,

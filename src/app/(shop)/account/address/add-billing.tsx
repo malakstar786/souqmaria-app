@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, ActivityIndicator, Alert, Switch, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
@@ -8,6 +8,8 @@ import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';
 import useCheckoutStore from '../../../../store/checkout-store';
+import { useTranslation } from '../../../../utils/translations';
+import { useRTL } from '../../../../utils/rtl';
 
 export default function AddBillingAddressScreen() {
   const router = useRouter();
@@ -15,6 +17,8 @@ export default function AddBillingAddressScreen() {
   const { saveBillingAddress, isLoading, error, clearError } = useAddressStore();
   const { fetchCountries, fetchStates, fetchCities, countries, states, cities, isLoading: isLoadingLocations } = useLocationStore();
   const { triggerOrderReviewUpdate } = useCheckoutStore();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -75,15 +79,15 @@ export default function AddBillingAddressScreen() {
 
   function validate() {
     const errors: {[k: string]: string} = {};
-    if (!fullName.trim()) errors.fullName = 'Full name required';
-    if (!email.trim()) errors.email = 'Email required';
-    if (!mobile.trim()) errors.mobile = 'Mobile required';
-    if (!country) errors.country = 'Country required';
-    if (!state) errors.state = 'State required';
-    if (!city) errors.city = 'City required';
-    if (!block.trim()) errors.block = 'Block required';
-    if (!street.trim()) errors.street = 'Street required';
-    if (!house.trim()) errors.house = 'House required';
+    if (!fullName.trim()) errors.fullName = t('full_name_required');
+    if (!email.trim()) errors.email = t('email_required_field');
+    if (!mobile.trim()) errors.mobile = t('mobile_required_field');
+    if (!country) errors.country = t('country_required');
+    if (!state) errors.state = t('state_required');
+    if (!city) errors.city = t('city_required');
+    if (!block.trim()) errors.block = t('block_required');
+    if (!street.trim()) errors.street = t('street_required');
+    if (!house.trim()) errors.house = t('house_required');
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -91,7 +95,7 @@ export default function AddBillingAddressScreen() {
   async function handleSave() {
     if (!validate()) return;
     if (!user?.UserID && !user?.id) {
-      Alert.alert('Error', 'User not found. Please log in again.');
+      Alert.alert(t('error'), t('user_not_found_login_again'));
       return;
     }
 
@@ -125,18 +129,18 @@ export default function AddBillingAddressScreen() {
         setDebugResponse(null); // clear debug error
         clearError();
         // Show success and go to account main screen
-        Alert.alert('Success', 'Billing address saved successfully!', [
-          { text: 'OK', onPress: () => router.replace('/account') },
+        Alert.alert(t('success'), t('billing_address_saved_successfully'), [
+          { text: t('ok'), onPress: () => router.replace('/account') },
         ]);
         triggerOrderReviewUpdate();
       } else {
         // Show error message and debug info
-        setDebugResponse(error || 'Unknown error occurred');
-        Alert.alert('Error', error || 'Failed to save address. Please check console for details.');
+        setDebugResponse(error || t('unknown_error_occurred'));
+        Alert.alert(t('error'), error || t('failed_to_save_address'));
       }
     } catch (e) {
       console.error('Error saving billing address:', e);
-      Alert.alert('Error', 'Network error. Please try again.');
+      Alert.alert(t('error'), t('network_error_try_again'));
     }
   }
 
@@ -168,7 +172,7 @@ export default function AddBillingAddressScreen() {
               {isLoadingLocations ? (
                 <ActivityIndicator color={colors.blue} style={styles.loader} />
               ) : items.length === 0 ? (
-                <Text style={styles.emptyText}>No items available</Text>
+                <Text style={[styles.emptyText, { textAlign }]}>{t('no_items_available')}</Text>
               ) : (
                 items.map((item) => (
                   <TouchableOpacity
@@ -204,12 +208,12 @@ export default function AddBillingAddressScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={24} color={colors.black} />
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Billing address</Text>
-        <View style={{ width: 24 }} />
+        <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('add_billing_address')}</Text>
+        <View style={{ width: 40 }} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Debug response info, visible only during development */}
@@ -220,100 +224,100 @@ export default function AddBillingAddressScreen() {
         )}
       
         <TextInput
-          style={[styles.input, formErrors.fullName && styles.inputError]}
-          placeholder="Full Name"
+          style={[styles.input, formErrors.fullName && styles.inputError, { textAlign }]}
+          placeholder={t('full_name')}
           value={fullName}
           onChangeText={setFullName}
           autoCapitalize="words"
           textContentType="name"
         />
-        {formErrors.fullName && <Text style={styles.errorText}>{formErrors.fullName}</Text>}
+        {formErrors.fullName && <Text style={[styles.errorText, { textAlign }]}>{formErrors.fullName}</Text>}
         <TextInput
-          style={[styles.input, formErrors.email && styles.inputError]}
-          placeholder="Email"
+          style={[styles.input, formErrors.email && styles.inputError, { textAlign }]}
+          placeholder={t('email')}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
           textContentType="emailAddress"
         />
-        {formErrors.email && <Text style={styles.errorText}>{formErrors.email}</Text>}
+        {formErrors.email && <Text style={[styles.errorText, { textAlign }]}>{formErrors.email}</Text>}
         <TextInput
-          style={[styles.input, formErrors.mobile && styles.inputError]}
-          placeholder="Mobile"
+          style={[styles.input, formErrors.mobile && styles.inputError, { textAlign }]}
+          placeholder={t('mobile')}
           value={mobile}
           onChangeText={setMobile}
           keyboardType="phone-pad"
           textContentType="telephoneNumber"
         />
-        {formErrors.mobile && <Text style={styles.errorText}>{formErrors.mobile}</Text>}
+        {formErrors.mobile && <Text style={[styles.errorText, { textAlign }]}>{formErrors.mobile}</Text>}
         
         {/* Country dropdown */}
         <TouchableOpacity 
-          style={[styles.input, formErrors.country && styles.inputError]} 
+          style={[styles.input, formErrors.country && styles.inputError, { flexDirection: isRTL ? 'row-reverse' : 'row' }]} 
           onPress={() => setShowCountryModal(true)}
         >
-          <Text style={country ? styles.inputText : styles.placeholderText}>
-            {country ? country.XName : 'Country'}
+          <Text style={[country ? styles.inputText : styles.placeholderText, { textAlign }]}>
+            {country ? country.XName : t('country')}
           </Text>
-          <FontAwesome name="chevron-down" size={14} color={colors.lightGray} style={styles.dropdownIcon} />
+          <FontAwesome name="chevron-down" size={14} color={colors.lightGray} />
         </TouchableOpacity>
-        {formErrors.country && <Text style={styles.errorText}>{formErrors.country}</Text>}
+        {formErrors.country && <Text style={[styles.errorText, { textAlign }]}>{formErrors.country}</Text>}
         
         {/* State dropdown */}
         <TouchableOpacity 
-          style={[styles.input, formErrors.state && styles.inputError]} 
-          onPress={() => country ? setShowStateModal(true) : Alert.alert('Select Country', 'Please select a country first')}
+          style={[styles.input, formErrors.state && styles.inputError, { flexDirection: isRTL ? 'row-reverse' : 'row' }]} 
+          onPress={() => country ? setShowStateModal(true) : Alert.alert(t('select_country'), t('select_country_first'))}
         >
-          <Text style={state ? styles.inputText : styles.placeholderText}>
-            {state ? state.XName : 'State'}
+          <Text style={[state ? styles.inputText : styles.placeholderText, { textAlign }]}>
+            {state ? state.XName : t('state')}
           </Text>
-          <FontAwesome name="chevron-down" size={14} color={colors.lightGray} style={styles.dropdownIcon} />
+          <FontAwesome name="chevron-down" size={14} color={colors.lightGray} />
         </TouchableOpacity>
-        {formErrors.state && <Text style={styles.errorText}>{formErrors.state}</Text>}
+        {formErrors.state && <Text style={[styles.errorText, { textAlign }]}>{formErrors.state}</Text>}
         
         {/* City dropdown */}
         <TouchableOpacity 
-          style={[styles.input, formErrors.city && styles.inputError]} 
-          onPress={() => state ? setShowCityModal(true) : Alert.alert('Select State', 'Please select a state first')}
+          style={[styles.input, formErrors.city && styles.inputError, { flexDirection: isRTL ? 'row-reverse' : 'row' }]} 
+          onPress={() => state ? setShowCityModal(true) : Alert.alert(t('select_state'), t('select_state_first'))}
         >
-          <Text style={city ? styles.inputText : styles.placeholderText}>
-            {city ? city.XName : 'City'}
+          <Text style={[city ? styles.inputText : styles.placeholderText, { textAlign }]}>
+            {city ? city.XName : t('city')}
           </Text>
-          <FontAwesome name="chevron-down" size={14} color={colors.lightGray} style={styles.dropdownIcon} />
+          <FontAwesome name="chevron-down" size={14} color={colors.lightGray} />
         </TouchableOpacity>
-        {formErrors.city && <Text style={styles.errorText}>{formErrors.city}</Text>}
+        {formErrors.city && <Text style={[styles.errorText, { textAlign }]}>{formErrors.city}</Text>}
         
-        <View style={styles.row}>
+        <View style={[styles.row, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TextInput
-            style={[styles.input, styles.inputHalf, formErrors.block && styles.inputError]}
-            placeholder="Block"
+            style={[styles.input, styles.inputHalf, formErrors.block && styles.inputError, { textAlign }]}
+            placeholder={t('block')}
             value={block}
             onChangeText={setBlock}
             textContentType="none"
             autoComplete="off"
           />
           <TextInput
-            style={[styles.input, styles.inputHalf, formErrors.street && styles.inputError]}
-            placeholder="Street"
+            style={[styles.input, styles.inputHalf, formErrors.street && styles.inputError, { textAlign }]}
+            placeholder={t('street')}
             value={street}
             onChangeText={setStreet}
             textContentType="none"
             autoComplete="off"
           />
         </View>
-        <View style={styles.row}>
+        <View style={[styles.row, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TextInput
-            style={[styles.input, styles.inputHalf, formErrors.house && styles.inputError]}
-            placeholder="House"
+            style={[styles.input, styles.inputHalf, formErrors.house && styles.inputError, { textAlign }]}
+            placeholder={t('house_building')}
             value={house}
             onChangeText={setHouse}
             textContentType="none"
             autoComplete="off"
           />
           <TextInput
-            style={[styles.input, styles.inputHalf]}
-            placeholder="Apartment No."
+            style={[styles.input, styles.inputHalf, { textAlign }]}
+            placeholder={t('apartment_no_optional')}
             value={apartment}
             onChangeText={setApartment}
             textContentType="none"
@@ -321,21 +325,21 @@ export default function AddBillingAddressScreen() {
           />
         </View>
         <TextInput
-          style={styles.input}
-          placeholder="Address 2 (optional)"
+          style={[styles.input, { textAlign }]}
+          placeholder={t('address_2_optional')}
           value={address2}
           onChangeText={setAddress2}
           textContentType="none"
           autoComplete="off"
         />
-        <View style={styles.checkboxRow}>
+        <View style={[styles.checkboxRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <Switch 
             value={isDefault} 
             onValueChange={setIsDefault}
             trackColor={{ false: colors.lightGray, true: colors.green }}
             thumbColor={colors.white}
           />
-          <Text style={styles.checkboxLabel}>Set as default</Text>
+          <Text style={[styles.checkboxLabel, { marginLeft: isRTL ? 0 : spacing.md, marginRight: isRTL ? spacing.md : 0, textAlign }]}>{t('set_as_default')}</Text>
         </View>
         <TouchableOpacity 
           style={[styles.saveButton, isLoading && styles.saveButtonDisabled]} 
@@ -345,7 +349,7 @@ export default function AddBillingAddressScreen() {
           {isLoading ? (
             <ActivityIndicator color={colors.white} size="small" />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>{t('save')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -357,7 +361,7 @@ export default function AddBillingAddressScreen() {
         countries,
         country,
         setCountry,
-        'Select Country'
+        t('select_country')
       )}
       
       {renderSelectionModal(
@@ -366,7 +370,7 @@ export default function AddBillingAddressScreen() {
         states,
         state,
         setState,
-        'Select State'
+        t('select_state')
       )}
       
       {renderSelectionModal(
@@ -375,7 +379,7 @@ export default function AddBillingAddressScreen() {
         cities,
         city,
         setCity,
-        'Select City'
+        t('select_city')
       )}
     </View>
   );
@@ -391,8 +395,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 56 : 24,
-    paddingBottom: spacing.md,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
   backButton: {

@@ -911,6 +911,220 @@ const translations = {
   'loading_order_details': {
     en: 'Loading order details...',
     ar: 'جاري تحميل تفاصيل الطلب...'
+  },
+  
+  // My Details screen translations
+  'please_login_to_view_details': {
+    en: 'Please login to view your details',
+    ar: 'يرجى تسجيل الدخول لعرض بياناتك'
+  },
+  'enter_current_password_to_update': {
+    en: 'Enter your current password to update your details:',
+    ar: 'أدخل كلمة المرور الحالية لتحديث بياناتك:'
+  },
+  'current_password': {
+    en: 'Current Password',
+    ar: 'كلمة المرور الحالية'
+  },
+  'submit': {
+    en: 'Submit',
+    ar: 'إرسال'
+  },
+  'full_name_required_error': {
+    en: 'Full name is required.',
+    ar: 'الاسم الكامل مطلوب.'
+  },
+  'password_min_8_chars_error': {
+    en: 'Password must be at least 8 characters.',
+    ar: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.'
+  },
+  'user_data_not_available': {
+    en: 'User data is not available. Please log in again.',
+    ar: 'بيانات المستخدم غير متوفرة. يرجى تسجيل الدخول مرة أخرى.'
+  },
+  'password_required_for_update': {
+    en: 'Password Required',
+    ar: 'كلمة المرور مطلوبة'
+  },
+  'enter_current_password_message': {
+    en: 'Please enter your current password.',
+    ar: 'يرجى إدخال كلمة المرور الحالية.'
+  },
+  'details_updated_successfully': {
+    en: 'Your details have been updated successfully!',
+    ar: 'تم تحديث بياناتك بنجاح!'
+  },
+  'update_failed': {
+    en: 'Update Failed',
+    ar: 'فشل التحديث'
+  },
+  'na': {
+    en: 'N/A',
+    ar: 'غير متوفر'
+  },
+  
+  // Edit Address Modal translations
+  'edit_shipping_address': {
+    en: 'Edit shipping address',
+    ar: 'تعديل عنوان الشحن'
+  },
+  'edit_billing_address': {
+    en: 'Edit billing address',
+    ar: 'تعديل عنوان الفاتورة'
+  },
+  'loading_address': {
+    en: 'Loading address...',
+    ar: 'جاري تحميل العنوان...'
+  },
+  'email_required_field': {
+    en: 'Email required',
+    ar: 'البريد الإلكتروني مطلوب'
+  },
+  'mobile_required_field': {
+    en: 'Mobile required',
+    ar: 'رقم الجوال مطلوب'
+  },
+  'country_required': {
+    en: 'Country required',
+    ar: 'البلد مطلوب'
+  },
+  'state_required': {
+    en: 'State required',
+    ar: 'الولاية مطلوبة'
+  },
+  'city_required': {
+    en: 'City required',
+    ar: 'المدينة مطلوبة'
+  },
+  'block_required': {
+    en: 'Block required',
+    ar: 'القطعة مطلوبة'
+  },
+  'street_required': {
+    en: 'Street required',
+    ar: 'الشارع مطلوب'
+  },
+  'house_required': {
+    en: 'House required',
+    ar: 'المنزل مطلوب'
+  },
+  'apartment_no_optional': {
+    en: 'Apartment No.',
+    ar: 'رقم الشقة'
+  },
+  'address_2_optional': {
+    en: 'Address 2 (optional)',
+    ar: 'العنوان 2 (اختياري)'
+  },
+  'select_country_first': {
+    en: 'Please select a country first',
+    ar: 'يرجى اختيار البلد أولاً'
+  },
+  'select_state_first': {
+    en: 'Please select a state first',
+    ar: 'يرجى اختيار الولاية أولاً'
+  },
+  'no_items_available': {
+    en: 'No items available',
+    ar: 'لا توجد عناصر متاحة'
+  },
+  'shipping_address_updated_successfully': {
+    en: 'Shipping address updated successfully!',
+    ar: 'تم تحديث عنوان الشحن بنجاح!'
+  },
+  'billing_address_updated_successfully': {
+    en: 'Billing address updated successfully!',
+    ar: 'تم تحديث عنوان الفاتورة بنجاح!'
+  },
+  'failed_to_update_address': {
+    en: 'Failed to update address. Please check console for details.',
+    ar: 'فشل في تحديث العنوان. يرجى التحقق من وحدة التحكم للحصول على التفاصيل.'
+  },
+  'network_error_try_again': {
+    en: 'Network error. Please try again.',
+    ar: 'خطأ في الشبكة. يرجى المحاولة مرة أخرى.'
+  },
+  
+  // Wishlist screen translations
+  'wishlist_title': {
+    en: 'Wishlist',
+    ar: 'المفضلة'
+  },
+  'please_login_to_view_wishlist': {
+    en: 'Please login to view your wishlist',
+    ar: 'يرجى تسجيل الدخول لعرض قائمة المفضلة'
+  },
+  'your_wishlist_is_empty': {
+    en: 'Your wishlist is empty',
+    ar: 'قائمة المفضلة فارغة'
+  },
+  'continue_shopping_caps': {
+    en: 'CONTINUE SHOPPING',
+    ar: 'متابعة التسوق'
+  },
+  'remove_item': {
+    en: 'Remove Item',
+    ar: 'إزالة العنصر'
+  },
+  'remove_item_confirmation': {
+    en: 'Are you sure you want to remove',
+    ar: 'هل أنت متأكد من إزالة'
+  },
+  'from_your_wishlist': {
+    en: 'from your wishlist?',
+    ar: 'من قائمة المفضلة؟'
+  },
+  'login_caps': {
+    en: 'LOGIN',
+    ar: 'تسجيل الدخول'
+  },
+  'failed_to_remove_from_wishlist': {
+    en: 'Failed to remove item from wishlist. Please try again.',
+    ar: 'فشل في إزالة العنصر من قائمة المفضلة. يرجى المحاولة مرة أخرى.'
+  },
+  
+  // Policies screen translations
+  'policies_title': {
+    en: 'Policies',
+    ar: 'السياسات'
+  },
+  'about_us': {
+    en: 'About Us',
+    ar: 'من نحن'
+  },
+  'contact_us': {
+    en: 'Contact Us',
+    ar: 'اتصل بنا'
+  },
+  'terms_and_conditions': {
+    en: 'Terms & Conditions',
+    ar: 'الشروط والأحكام'
+  },
+  'privacy_return_policy': {
+    en: 'Privacy & Return Policy',
+    ar: 'سياسة الخصوصية والإرجاع'
+  },
+  
+  // Add Address Screen translations
+  'billing_address_saved_successfully': {
+    en: 'Billing address saved successfully!',
+    ar: 'تم حفظ عنوان الفاتورة بنجاح!'
+  },
+  'shipping_address_saved_successfully': {
+    en: 'Shipping address saved successfully!',
+    ar: 'تم حفظ عنوان الشحن بنجاح!'
+  },
+  'failed_to_save_address': {
+    en: 'Failed to save address. Please check console for details.',
+    ar: 'فشل في حفظ العنوان. يرجى التحقق من وحدة التحكم للحصول على التفاصيل.'
+  },
+  'user_not_found_login_again': {
+    en: 'User not found. Please log in again.',
+    ar: 'لم يتم العثور على المستخدم. يرجى تسجيل الدخول مرة أخرى.'
+  },
+  'unknown_error_occurred': {
+    en: 'Unknown error occurred',
+    ar: 'حدث خطأ غير معروف'
   }
 } as const;
 

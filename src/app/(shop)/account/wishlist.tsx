@@ -19,11 +19,15 @@ import useAuthStore from '../../../store/auth-store';
 import useWishlistStore from '../../../store/wishlist-store';
 import AuthModal from '../../../components/AuthModal';
 import { PRODUCT_IMAGE_BASE_URL } from '../../../utils/api-config';
+import { useTranslation } from '../../../utils/translations';
+import { useRTL } from '../../../utils/rtl';
 
 const { width } = Dimensions.get('window');
 
 export default function WishlistScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { user, isLoggedIn } = useAuthStore();
   const { 
     items, 
@@ -64,7 +68,7 @@ export default function WishlistScreen() {
         setItemToDelete(null);
       } else {
         // Don't close modal if there was an error
-        Alert.alert('Error', 'Failed to remove item from wishlist. Please try again.');
+        Alert.alert(t('error'), t('failed_to_remove_from_wishlist'));
       }
     }
   };
@@ -114,7 +118,7 @@ export default function WishlistScreen() {
         onPress={() => handleRemoveItem(item.ItemCode, item.ItemName)}
         disabled={isRemoving}
       >
-        <Text style={styles.removeButtonText}>REMOVE</Text>
+        <Text style={styles.removeButtonText}>{t('remove_caps')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -129,22 +133,22 @@ export default function WishlistScreen() {
   if (!isLoggedIn) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { flexDirection }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <FontAwesome name="arrow-left" size={20} color={colors.black} />
+            <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Wishlist</Text>
+          <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('wishlist_title')}</Text>
           <View style={styles.headerRight} />
         </View>
         
         <View style={styles.emptyContainer}>
           <FontAwesome name="heart-o" size={60} color={colors.lightGray} />
-          <Text style={styles.emptyText}>Please login to view your wishlist</Text>
+          <Text style={[styles.emptyText, { textAlign }]}>{t('please_login_to_view_wishlist')}</Text>
           <TouchableOpacity 
             style={styles.loginButton}
             onPress={() => setShowAuthModal(true)}
           >
-            <Text style={styles.loginButtonText}>LOGIN</Text>
+            <Text style={styles.loginButtonText}>{t('login_caps')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -164,11 +168,11 @@ export default function WishlistScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={20} color={colors.black} />
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wishlist</Text>
+        <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('wishlist_title')}</Text>
         <View style={styles.headerRight} />
       </View>
       
@@ -182,12 +186,12 @@ export default function WishlistScreen() {
       {/* Error Message */}
       {!isLoading && error && error !== 'Data not found.' && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { textAlign }]}>{error}</Text>
           <TouchableOpacity 
             style={styles.retryButton} 
             onPress={() => user?.UserID && fetchWishlistItems(user.UserID)}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -196,12 +200,12 @@ export default function WishlistScreen() {
       {!isLoading && (items.length === 0 || error === 'Data not found.') && (
         <View style={styles.emptyContainer}>
           <FontAwesome name="heart-o" size={60} color={colors.lightGray} />
-          <Text style={styles.emptyText}>Your wishlist is empty</Text>
+          <Text style={[styles.emptyText, { textAlign }]}>{t('your_wishlist_is_empty')}</Text>
           <TouchableOpacity 
             style={styles.continueShoppingButton}
             onPress={() => router.push('/')}
           >
-            <Text style={styles.continueShoppingButtonText}>CONTINUE SHOPPING</Text>
+            <Text style={styles.continueShoppingButtonText}>{t('continue_shopping_caps')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -226,26 +230,26 @@ export default function WishlistScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Remove Item</Text>
-            <Text style={styles.modalMessage}>
-              Are you sure you want to remove{'\n'}
+            <Text style={[styles.modalTitle, { textAlign }]}>{t('remove_item')}</Text>
+            <Text style={[styles.modalMessage, { textAlign }]}>
+              {t('remove_item_confirmation')}{'\n'}
               <Text style={styles.modalItemName}>{itemToDelete?.name}</Text>{'\n'}
-              from your wishlist?
+              {t('from_your_wishlist')}
             </Text>
             
-            <View style={styles.modalButtons}>
+            <View style={[styles.modalButtons, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowDeleteModal(false)}
               >
-                <Text style={styles.cancelButtonText}>CANCEL</Text>
+                <Text style={styles.cancelButtonText}>{t('cancel').toUpperCase()}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={confirmDelete}
               >
-                <Text style={styles.confirmButtonText}>REMOVE</Text>
+                <Text style={styles.confirmButtonText}>{t('remove_caps')}</Text>
               </TouchableOpacity>
             </View>
           </View>

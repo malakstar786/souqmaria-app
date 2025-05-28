@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Platform,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
@@ -18,10 +19,12 @@ import useAdvertisementStore from '../../../store/advertisement-store';
 import useMenuStore from '../../../store/menu-store';
 import { apiCache } from '../../../utils/api-cache';
 import { useTranslation } from '../../../utils/translations';
+import { useRTL } from '../../../utils/rtl';
 
 export default function LanguageScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   const { currentLanguage, setLanguage, getCultureId } = useLanguageStore();
   
   // Get store actions to refresh data when language changes
@@ -87,17 +90,17 @@ export default function LanguageScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <FontAwesome name="arrow-left" size={20} color={colors.text} />
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('language')}</Text>
+        <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('language')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Language Options */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>{t('select_language')}</Text>
+        <Text style={[styles.sectionTitle, { textAlign }]}>{t('select_language')}</Text>
         
         {languages.map((lang) => (
           <TouchableOpacity
@@ -105,6 +108,7 @@ export default function LanguageScreen() {
             style={[
               styles.languageOption,
               currentLanguage.code === lang.code && styles.selectedLanguageOption,
+              { flexDirection: isRTL ? 'row-reverse' : 'row' }
             ]}
             onPress={() => handleLanguageChange(lang.code as 'en' | 'ar')}
           >
@@ -112,12 +116,14 @@ export default function LanguageScreen() {
               <Text style={[
                 styles.languageName,
                 currentLanguage.code === lang.code && styles.selectedLanguageName,
+                { textAlign }
               ]}>
                 {lang.name}
               </Text>
               <Text style={[
                 styles.languageNativeName,
                 currentLanguage.code === lang.code && styles.selectedLanguageNativeName,
+                { textAlign }
               ]}>
                 {lang.nativeName}
               </Text>
@@ -133,7 +139,7 @@ export default function LanguageScreen() {
           </TouchableOpacity>
         ))}
         
-        <Text style={styles.note}>
+        <Text style={[styles.note, { textAlign }]}>
           {t('language_change_note')}
         </Text>
       </View>
@@ -150,18 +156,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   backButton: {
-    padding: spacing.xs,
+    padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.blue,
+    textAlign: 'center',
+    flex: 1,
   },
   placeholder: {
     width: 40, // Same width as back button for centering

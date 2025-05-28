@@ -11,33 +11,37 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, radii, typography } from '@theme';
+import { useTranslation } from '../../../utils/translations';
+import { useRTL } from '../../../utils/rtl';
 
 // Policy links
 const POLICIES = [
   {
     id: 'about-us',
-    title: 'About Us',
+    titleKey: 'about_us',
     url: 'https://souqmaria.com/AboutUs'
   },
   {
     id: 'contact-us',
-    title: 'Contact Us',
+    titleKey: 'contact_us',
     url: 'https://souqmaria.com/ContactUs'
   },
   {
     id: 'terms-conditions',
-    title: 'Terms & Conditions',
+    titleKey: 'terms_and_conditions',
     url: 'https://souqmaria.com/Terms-and-Conditions'
   },
   {
     id: 'privacy-return',
-    title: 'Privacy & Return Policy',
+    titleKey: 'privacy_return_policy',
     url: 'https://souqmaria.com/Privacy-Return-Policy'
   }
 ];
 
 export default function PoliciesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
 
   // Navigate back to the account screen
   const handleBack = () => {
@@ -62,11 +66,11 @@ export default function PoliciesScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <FontAwesome name="chevron-left" size={18} color={colors.black} />
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Policies</Text>
+        <Text style={[styles.headerTitle, { textAlign }]}>{t('policies_title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -79,10 +83,10 @@ export default function PoliciesScreen() {
         {POLICIES.map((policy) => (
           <TouchableOpacity
             key={policy.id}
-            style={styles.policyItem}
+            style={[styles.policyItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             onPress={() => handleOpenLink(policy.url)}
           >
-            <Text style={styles.policyTitle}>{policy.title}</Text>
+            <Text style={[styles.policyTitle, { textAlign }]}>{t(policy.titleKey as any)}</Text>
             <FontAwesome name="external-link" size={18} color={colors.black} />
           </TouchableOpacity>
         ))}
@@ -100,19 +104,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
     backgroundColor: colors.lightBlue,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   backButton: {
     padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.blue,
+    textAlign: 'center',
+    flex: 1,
   },
   placeholder: {
     width: 40, // Same width as backButton for balance

@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  TextInput,
+  Alert,
+  Platform,
+} from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '../../../../theme';
-import useAuthStore from '../../../../store/auth-store';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
-import { useTranslation } from '../../../../utils/translations';
 import useLanguageStore from '../../../../store/language-store';
+import { useTranslation } from '../../../../utils/translations';
+import { useRTL } from '../../../../utils/rtl';
 
 // Define the Order interface based on the actual API response
 interface Order {
@@ -17,10 +28,20 @@ interface Order {
 
 export default function OrdersScreen() {
   const router = useRouter();
-  const { user, isLoggedIn } = useAuthStore();
-  const { orders, isLoading, error, fetchOrders, searchOrders, clearSearch, searchQuery, setSearchQuery, isSearching } = useOrderStore();
   const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
+  const { user, isLoggedIn } = useAuthStore();
+  const { 
+    orders, 
+    isLoading, 
+    error, 
+    fetchOrders, 
+    searchOrders, 
+    clearSearch 
+  } = useOrderStore();
   const { currentLanguage } = useLanguageStore();
+  
+  // Local state for search functionality
   const [localSearchQuery, setLocalSearchQuery] = useState('');
 
   // Check if user is logged in - if not, show login prompt
@@ -28,19 +49,19 @@ export default function OrdersScreen() {
     return (
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { flexDirection }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <FontAwesome name="arrow-left" size={20} color={colors.black} />
+            <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('my_orders_title')}</Text>
+          <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('my_orders_title')}</Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Login prompt */}
         <View style={styles.loginPromptContainer}>
           <FontAwesome name="user-circle" size={64} color={colors.lightGray} />
-          <Text style={styles.loginPromptTitle}>{t('please_log_in')}</Text>
-          <Text style={styles.loginPromptText}>
+          <Text style={[styles.loginPromptTitle, { textAlign }]}>{t('please_log_in')}</Text>
+          <Text style={[styles.loginPromptText, { textAlign }]}>
             {t('login_to_view_orders')}
           </Text>
           <TouchableOpacity 
@@ -184,11 +205,11 @@ export default function OrdersScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={20} color={colors.black} />
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('my_orders_title')}</Text>
+        <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('my_orders_title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -202,7 +223,7 @@ export default function OrdersScreen() {
             style={styles.searchIcon} 
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { textAlign }]}
             placeholder={t('search_orders')}
             value={localSearchQuery}
             onChangeText={handleSearch}
@@ -219,26 +240,27 @@ export default function OrdersScreen() {
       {/* Error message */}
       {error && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { textAlign }]}>{error}</Text>
         </View>
       )}
 
-      {/* Orders list or loading indicator */}
-      {(isLoading || isSearching) ? (
+      {/* Loading indicator */}
+      {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={styles.loadingText}>
-            {isSearching ? 'Searching...' : t('loading_orders')}
-          </Text>
+          <Text style={[styles.loadingText, { textAlign }]}>{t('loading_orders')}</Text>
         </View>
-      ) : (
+      )}
+
+      {/* Orders list or empty state */}
+      {!isLoading && (
         <FlatList
-          data={orders as Order[]}
+          data={orders}
           renderItem={renderOrderItem}
-          keyExtractor={(item, index) => `${item.OrderId || 'order'}-${index}-${Date.now()}`}
+          keyExtractor={(item) => `${item.OrderId}-${Date.now()}`}
           contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyOrders}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -254,20 +276,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
     backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   backButton: {
     padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: typography.title.fontSize,
-    fontWeight: typography.title.fontWeight as 'bold',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: colors.blue,
+    textAlign: 'center',
+    flex: 1,
   },
   placeholder: {
-    width: 20 + spacing.sm * 2,
+    width: 40,
   },
   errorContainer: {
     padding: spacing.md,

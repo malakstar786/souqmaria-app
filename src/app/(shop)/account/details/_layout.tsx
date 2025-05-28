@@ -30,6 +30,7 @@ export default function AccountDetailsLayout() {
         name="index"
         options={{
           title: 'My Details',
+          headerShown: false
         }}
       />
     </Stack>

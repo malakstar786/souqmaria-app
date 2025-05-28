@@ -15,10 +15,14 @@ import {
 import { useRouter, Stack } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../../../store/auth-store'; // Path relative to src/app/(shop)/account/details/
-import { colors, spacing, radii } from '@theme'; 
+import { colors, spacing, radii } from '../../../../theme';
+import { useTranslation } from '../../../../utils/translations';
+import { useRTL } from '../../../../utils/rtl';
 
 export default function AccountDetailsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection, marginStart, marginEnd } = useRTL();
   const { 
     user, 
     isLoadingUpdate, 
@@ -51,20 +55,20 @@ export default function AccountDetailsScreen() {
 
   useEffect(() => {
     if (errorUpdate) {
-      Alert.alert('Update Failed', errorUpdate, [{ text: 'OK', onPress: clearUpdateError }]);
+      Alert.alert(t('update_failed'), errorUpdate, [{ text: t('ok'), onPress: clearUpdateError }]);
     }
-  }, [errorUpdate, clearUpdateError]);
+  }, [errorUpdate, clearUpdateError, t]);
 
   const validateForm = () => {
     let isValid = true;
     const errors = { fullName: '', newPassword: '' };
 
     if (!editableFullName.trim()) {
-      errors.fullName = 'Full name is required.';
+      errors.fullName = t('full_name_required_error');
       isValid = false;
     }
     if (newPassword && newPassword.length < 8) {
-      errors.newPassword = 'Password must be at least 8 characters.';
+      errors.newPassword = t('password_min_8_chars_error');
       isValid = false;
     }
     setFormErrors(errors);
@@ -80,7 +84,7 @@ export default function AccountDetailsScreen() {
 
     if (!user || !user.UserID) { 
       console.log('Missing user data:', user); // Debug log
-      Alert.alert('Error', 'User data is not available. Please log in again.');
+      Alert.alert(t('error'), t('user_data_not_available'));
       router.replace('/(shop)/account');
       return;
     }
@@ -114,7 +118,7 @@ export default function AccountDetailsScreen() {
     console.log('Sending update payload:', payload); // Debug log
     const success = await updateUserAccount(payload);
     if (success) {
-      Alert.alert('Success', 'Your details have been updated successfully!');
+      Alert.alert(t('success'), t('details_updated_successfully'));
       setIsEditing(false);
       setNewPassword('');
     }
@@ -124,7 +128,7 @@ export default function AccountDetailsScreen() {
   const handlePromptPasswordSubmit = async () => {
     if (!pendingPayload) return;
     if (!promptedPassword) {
-      Alert.alert('Password Required', 'Please enter your current password.');
+      Alert.alert(t('password_required_for_update'), t('enter_current_password_message'));
       return;
     }
     const payload = {
@@ -136,7 +140,7 @@ export default function AccountDetailsScreen() {
     setPendingPayload(null);
     const success = await updateUserAccount(payload);
     if (success) {
-      Alert.alert('Success', 'Your details have been updated successfully!');
+      Alert.alert(t('success'), t('details_updated_successfully'));
       setIsEditing(false);
       setNewPassword('');
     }
@@ -154,14 +158,16 @@ export default function AccountDetailsScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ 
-          title: "My Details",
-          headerStyle: { backgroundColor: '#D9F4FF' },
-          headerTintColor: '#00AEEF',
-          headerTitleStyle: { fontWeight: 'bold' }
-        }} />
+        {/* Header */}
+        <View style={[styles.header, { flexDirection }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('my_details')}</Text>
+          <View style={styles.placeholder} />
+        </View>
         <View style={styles.messageContainer}>
-          <Text style={styles.messageText}>Please login to view your details</Text>
+          <Text style={[styles.messageText, { textAlign }]}>{t('please_login_to_view_details')}</Text>
         </View>
       </View>
     );
@@ -169,8 +175,8 @@ export default function AccountDetailsScreen() {
   
   const renderDisplayField = (label: string, value: string | undefined | null) => (
     <View style={styles.fieldContainer}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value || 'N/A'}</Text>
+      <Text style={[styles.fieldLabel, { textAlign }]}>{label}</Text>
+      <Text style={[styles.fieldValue, { textAlign }]}>{value || t('na')}</Text>
     </View>
   );
 
@@ -186,9 +192,9 @@ export default function AccountDetailsScreen() {
     autoCompleteType?: 'name' | 'new-password'
   ) => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>{label}</Text>
+      <Text style={[styles.inputLabel, { textAlign }]}>{label}</Text>
       <TextInput
-        style={[styles.input, error ? styles.inputError : null]}
+        style={[styles.input, error ? styles.inputError : null, { textAlign }]}
         value={value}
         onChangeText={setter}
         placeholder={placeholder}
@@ -198,7 +204,7 @@ export default function AccountDetailsScreen() {
         textContentType={textContentType}
         autoComplete={autoCompleteType}
       />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={[styles.errorText, { textAlign }]}>{error}</Text> : null}
     </View>
   );
 
@@ -207,12 +213,14 @@ export default function AccountDetailsScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <Stack.Screen options={{ 
-        title: "My Details",
-        headerStyle: { backgroundColor: '#D9F4FF' },
-        headerTintColor: '#00AEEF',
-        headerTitleStyle: { fontWeight: 'bold' }
-      }} />
+      {/* Header */}
+      <View style={[styles.header, { flexDirection }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <FontAwesome name={isRTL ? "arrow-right" : "arrow-left"} size={20} color={colors.black} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { textAlign: 'center' }]}>{t('my_details')}</Text>
+        <View style={styles.placeholder} />
+      </View>
       
       {isLoadingUpdate && (
         <View style={styles.loadingOverlay}>
@@ -230,32 +238,32 @@ export default function AccountDetailsScreen() {
         <View style={styles.contentContainer}>
           {!isEditing ? (
             <>
-              {renderDisplayField('Full Name', user.fullName)}
-              {renderDisplayField('Email', user.email)}
-              {renderDisplayField('Mobile Number', user.mobile)}
+              {renderDisplayField(t('full_name'), user.fullName)}
+              {renderDisplayField(t('email'), user.email)}
+              {renderDisplayField(t('mobile_number'), user.mobile)}
               <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => setIsEditing(true)}
                 disabled={isLoadingUpdate} 
               >
-                <FontAwesome name="pencil" size={16} color={colors.white} style={{marginRight: spacing.sm}} />
-                <Text style={styles.editButtonText}>Edit Details</Text>
+                <FontAwesome name="pencil" size={16} color={colors.white} style={[marginEnd(spacing.sm)]} />
+                <Text style={styles.editButtonText}>{t('edit_details')}</Text>
               </TouchableOpacity>
             </>
           ) : (
             <>
-              {renderEditableField('Full Name', editableFullName, setEditableFullName, 'Enter your full name', formErrors.fullName, false, 'default', 'name', 'name')}
+              {renderEditableField(t('full_name'), editableFullName, setEditableFullName, t('enter_full_name'), formErrors.fullName, false, 'default', 'name', 'name')}
               
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <Text style={styles.readOnlyText}>{user.email}</Text>
+                <Text style={[styles.inputLabel, { textAlign }]}>{t('email')}</Text>
+                <Text style={[styles.readOnlyText, { textAlign }]}>{user.email}</Text>
               </View>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Mobile Number</Text>
-                <Text style={styles.readOnlyText}>{user.mobile || 'N/A'}</Text>
+                <Text style={[styles.inputLabel, { textAlign }]}>{t('mobile_number')}</Text>
+                <Text style={[styles.readOnlyText, { textAlign }]}>{user.mobile || t('na')}</Text>
               </View>
 
-              {renderEditableField('New Password (optional)', newPassword, setNewPassword, 'Enter new password (min. 8 chars)', formErrors.newPassword, true, 'default', 'newPassword', 'new-password')}
+              {renderEditableField(t('new_password_optional'), newPassword, setNewPassword, t('enter_new_password'), formErrors.newPassword, true, 'default', 'newPassword', 'new-password')}
               
               <View style={styles.buttonRow}>
                 <TouchableOpacity
@@ -267,8 +275,8 @@ export default function AccountDetailsScreen() {
                     <ActivityIndicator color={colors.white} size="small"/>
                   ) : (
                     <>
-                      <FontAwesome name="save" size={16} color={colors.white} style={{marginRight: spacing.sm}}/>
-                      <Text style={styles.actionButtonText}>Save Changes</Text>
+                      <FontAwesome name="save" size={16} color={colors.white} style={[marginEnd(spacing.sm)]}/>
+                      <Text style={styles.actionButtonText}>{t('save_changes')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -277,8 +285,8 @@ export default function AccountDetailsScreen() {
                   onPress={handleCancelEdit}
                   disabled={isLoadingUpdate}
                 >
-                   <FontAwesome name="times" size={16} color={colors.blue} style={{marginRight: spacing.sm}}/>
-                  <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Cancel</Text>
+                   <FontAwesome name="times" size={16} color={colors.blue} style={[marginEnd(spacing.sm)]}/>
+                  <Text style={[styles.actionButtonText, styles.cancelButtonText]}>{t('cancel')}</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -295,21 +303,21 @@ export default function AccountDetailsScreen() {
         >
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
             <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, width: '80%' }}>
-              <Text style={{ fontSize: 16, marginBottom: 12 }}>Enter your current password to update your details:</Text>
+              <Text style={{ fontSize: 16, marginBottom: 12, textAlign }}>{t('enter_current_password_to_update')}</Text>
               <TextInput
-                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 16 }}
+                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 16, textAlign }}
                 value={promptedPassword}
                 onChangeText={setPromptedPassword}
-                placeholder="Current Password"
+                placeholder={t('current_password')}
                 secureTextEntry
                 autoFocus
               />
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <TouchableOpacity onPress={() => setPromptPasswordModal(false)} style={{ marginRight: 16 }}>
-                  <Text style={{ color: '#00AEEF', fontWeight: 'bold' }}>Cancel</Text>
+              <View style={{ flexDirection: flexDirection, justifyContent: 'flex-end' }}>
+                <TouchableOpacity onPress={() => setPromptPasswordModal(false)} style={[marginEnd(16)]}>
+                  <Text style={{ color: '#00AEEF', fontWeight: 'bold' }}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handlePromptPasswordSubmit}>
-                  <Text style={{ color: '#00AEEF', fontWeight: 'bold' }}>Submit</Text>
+                  <Text style={{ color: '#00AEEF', fontWeight: 'bold' }}>{t('submit')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -455,5 +463,27 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     color: '#666666',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.blue,
+    textAlign: 'center',
+    flex: 1,
+  },
+  placeholder: {
+    width: 40,
   },
 }); 
