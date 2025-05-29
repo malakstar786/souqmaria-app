@@ -5,12 +5,14 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   Dimensions,
-  Modal
+  Modal,
+  Platform,
+  I18nManager,
+  Image
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '@theme';

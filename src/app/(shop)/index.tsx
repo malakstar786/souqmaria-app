@@ -7,12 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  Image,
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
   Dimensions,
   Keyboard,
+  Image,
   // Linking, // Uncomment if using Linking for banner press
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
@@ -30,6 +30,7 @@ import { debounce } from 'lodash';
 import useCartStore from '../../store/cart-store';
 import { useTranslation } from '../../utils/translations';
 import { parseBannerUrl, isValidCategoryCode } from '../../utils/url-parser';
+import { useBackgroundCachePreload } from '../../utils/rtl';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const BANNER_HEIGHT = 350; // Match screenshot
@@ -41,6 +42,10 @@ const SEARCH_BAR_HEIGHT = 80;
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  
+  // Preload cache for the opposite language in the background
+  useBackgroundCachePreload();
+  
   const { categories, isLoading: isLoadingCategories, error: errorCategories, fetchCategories } = useCategoryStore();
   const { banners, isLoading: isLoadingBanners, error: errorBanners, fetchBanners } = useBannerStore();
   const { advertisements, isLoading: isLoadingAdvertisements, error: errorAdvertisements, fetchAdvertisements } = useAdvertisementStore();
@@ -270,6 +275,7 @@ export default function HomeScreen() {
       <Image
         source={{ uri: item.imageUrl }}
         style={styles.categoryImage}
+        resizeMode="contain"
       />
       <Text style={styles.categoryName}>{item.CategoryName}</Text>
     </TouchableOpacity>

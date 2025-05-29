@@ -1,6 +1,7 @@
 // RTL (Right-to-Left) language support utilities
 import { I18nManager } from 'react-native';
 import useLanguageStore from '../store/language-store';
+import { useEffect } from 'react';
 
 // RTL languages list
 const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];
@@ -8,7 +9,7 @@ const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];
 // Check if current language is RTL
 export function isRTL(): boolean {
   const { currentLanguage } = useLanguageStore.getState();
-  return RTL_LANGUAGES.includes(currentLanguage.code);
+  return currentLanguage.isRTL;
 }
 
 // Get text alignment based on language direction
@@ -89,14 +90,20 @@ export function applyRTL(styles: any) {
   return rtlStyles;
 }
 
-// Hook for RTL-aware styling
+// Hook for RTL-aware styling - now includes layoutVersion for immediate updates
 export function useRTL() {
-  const isRTLLanguage = isRTL();
+  const { currentLanguage, layoutVersion } = useLanguageStore();
+  
+  // Include layoutVersion to force re-render when language changes
+  const isRTL = currentLanguage.isRTL;
+  const textAlign = isRTL ? 'right' : 'left';
+  const flexDirection = isRTL ? 'row-reverse' : 'row';
   
   return {
-    isRTL: isRTLLanguage,
-    textAlign: getTextAlign(),
-    flexDirection: getFlexDirection(),
+    isRTL,
+    textAlign: textAlign as 'left' | 'right',
+    flexDirection: flexDirection as 'row' | 'row-reverse',
+    layoutVersion, // Include for components that need to force re-render
     marginStart: (value: number) => getMarginStart(value),
     marginEnd: (value: number) => getMarginEnd(value),
     paddingStart: (value: number) => getPaddingStart(value),
@@ -110,10 +117,26 @@ export function useRTL() {
 // Force RTL layout update (call when language changes)
 export function forceRTL(enable: boolean) {
   I18nManager.forceRTL(enable);
-  // Note: This requires app restart to take effect
+  // Note: This requires app restart to take effect in React Native
+  // For immediate changes, use the useRTL hook and layoutVersion
 }
 
 // Check if device supports RTL
 export function isRTLSupported(): boolean {
   return I18nManager.isRTL;
-} 
+}
+
+// Hook to preload cache for the opposite language in the background
+export const useBackgroundCachePreload = () => {
+  const { currentLanguage, preloadLanguageCache } = useLanguageStore();
+  
+  useEffect(() => {
+    // Preload cache for the opposite language after a short delay
+    const timer = setTimeout(() => {
+      const oppositeLanguage = currentLanguage.code === 'en' ? 'ar' : 'en';
+      preloadLanguageCache(oppositeLanguage);
+    }, 3000); // Wait 3 seconds after component mount
+    
+    return () => clearTimeout(timer);
+  }, [currentLanguage.code, preloadLanguageCache]);
+}; 

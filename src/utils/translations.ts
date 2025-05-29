@@ -1125,6 +1125,26 @@ const translations = {
   'unknown_error_occurred': {
     en: 'Unknown error occurred',
     ar: 'حدث خطأ غير معروف'
+  },
+  'layout_will_change_immediately': {
+    en: 'The app layout will change immediately to match the selected language direction.',
+    ar: 'سيتغير تخطيط التطبيق فوراً ليتناسب مع اتجاه اللغة المحددة.'
+  },
+  'language_changed': {
+    en: 'Language Changed',
+    ar: 'تم تغيير اللغة'
+  },
+  'language_changed_to': {
+    en: 'Language changed to',
+    ar: 'تم تغيير اللغة إلى'
+  },
+  'layout_updated_immediately': {
+    en: 'The app layout has been updated immediately.',
+    ar: 'تم تحديث تخطيط التطبيق فوراً.'
+  },
+  'language_change_note_immediate': {
+    en: 'The app layout and content will change immediately when you select a different language.',
+    ar: 'سيتغير تخطيط ومحتوى التطبيق فوراً عند اختيار لغة مختلفة.'
   }
 } as const;
 

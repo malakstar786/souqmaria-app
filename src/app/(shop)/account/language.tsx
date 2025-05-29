@@ -24,8 +24,8 @@ import { useRTL } from '../../../utils/rtl';
 export default function LanguageScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { isRTL, textAlign, flexDirection } = useRTL();
-  const { currentLanguage, setLanguage, getCultureId } = useLanguageStore();
+  const { isRTL, textAlign, flexDirection, layoutVersion } = useRTL();
+  const { currentLanguage, setLanguage, getCultureId, forceLayoutUpdate } = useLanguageStore();
   
   // Get store actions to refresh data when language changes
   const { fetchCategories } = useCategoryStore();
@@ -48,15 +48,18 @@ export default function LanguageScreen() {
 
     Alert.alert(
       t('change_language'),
-      `${t('change_language_confirmation')} ${languageCode === 'en' ? t('english') : t('arabic')}?`,
+      `${t('change_language_confirmation')} ${languageCode === 'en' ? t('english') : t('arabic')}?\n\n${t('layout_will_change_immediately')}`,
       [
         { text: t('cancel'), style: 'cancel' },
         {
           text: t('change'),
           onPress: async () => {
             try {
-              // Update language in store
-              setLanguage(languageCode);
+              // Update language in store (this will trigger immediate layout changes)
+              await setLanguage(languageCode);
+              
+              // Force additional layout update to ensure all components re-render
+              forceLayoutUpdate();
               
               // Clear API cache to force fresh data in new language
               apiCache.clearAll();
@@ -75,8 +78,13 @@ export default function LanguageScreen() {
               
               console.log('🌐 All data refreshed with new language');
               
-              // Go back to account screen
-              router.back();
+              // Show success message
+              Alert.alert(
+                t('language_changed'),
+                `${t('language_changed_to')} ${languageCode === 'en' ? t('english') : t('arabic')}. ${t('layout_updated_immediately')}`,
+                [{ text: t('ok'), onPress: () => router.back() }]
+              );
+              
             } catch (error) {
               console.error('🌐 Error changing language:', error);
               Alert.alert(t('error'), t('failed_to_change_language'));
@@ -88,7 +96,7 @@ export default function LanguageScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} key={`language-screen-${layoutVersion}`}>
       {/* Header */}
       <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -140,7 +148,7 @@ export default function LanguageScreen() {
         ))}
         
         <Text style={[styles.note, { textAlign }]}>
-          {t('language_change_note')}
+          {t('language_change_note_immediate')}
         </Text>
       </View>
     </SafeAreaView>

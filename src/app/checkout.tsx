@@ -7,7 +7,6 @@ import {
   ScrollView,
   FlatList,
   TextInput,
-  Image,
   Modal,
   SafeAreaView,
   StatusBar,
@@ -15,7 +14,8 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Image
 } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -825,6 +825,7 @@ export default function CheckoutScreen() {
             <Image 
               source={require('../assets/checkout/address_icon_checkout.png')} 
               style={[styles.sectionIcon, isRTL && { marginLeft: spacing.sm, marginRight: 0 }]}
+              resizeMode="contain"
             />
             <Text style={[styles.sectionTitle, { textAlign }]}>{t('address')}</Text>
           </View>
@@ -934,6 +935,7 @@ export default function CheckoutScreen() {
             <Image 
               source={require('../assets/checkout/address_icon_checkout.png')} 
               style={[styles.sectionIcon, isRTL && { marginLeft: spacing.sm, marginRight: 0 }]}
+              resizeMode="contain"
             />
             <Text style={[styles.sectionTitle, { textAlign }]}>{t('address')}</Text>
           </View>
@@ -1073,6 +1075,7 @@ export default function CheckoutScreen() {
                       <Image 
                         source={require('../assets/checkout/promo_icon_checkout.png')} 
                         style={styles.sectionIcon}
+                        resizeMode="contain"
                       />
                       <Text style={styles.sectionTitle}>{t('have_promo_code')}</Text>
                     </View>
@@ -1118,6 +1121,7 @@ export default function CheckoutScreen() {
                       <Image 
                         source={require('../assets/checkout/payment_icon_checkout.png')} 
                         style={styles.sectionIcon}
+                        resizeMode="contain"
                       />
                       <Text style={styles.sectionTitle}>{t('select_payment_type')}</Text>
                     </View>

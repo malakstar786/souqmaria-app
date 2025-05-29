@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons'; // Or any other icon library you prefer
+import { FontAwesome } from '@expo/vector-icons';
+import { I18nManager } from 'react-native';
 import { colors } from '@theme';
 import CartIcon from '../../components/CartIcon';
 import useCartStore from '../../store/cart-store';
 import useAuthStore from '../../store/auth-store';
+import useLanguageStore from '../../store/language-store';
 import { useTranslation } from '../../utils/translations';
 import { startDataPreloading } from '../../utils/preloader';
 
@@ -12,6 +14,7 @@ export default function ShopLayout() {
   const { t } = useTranslation();
   const { getUniqueId } = useCartStore();
   const { user } = useAuthStore();
+  const { currentLanguage, layoutVersion } = useLanguageStore();
   
   // Initialize unique ID and start preloading when app starts
   useEffect(() => {
@@ -22,67 +25,80 @@ export default function ShopLayout() {
     const userId = user?.UserID || user?.id || '';
     startDataPreloading(userId);
   }, [getUniqueId, user]);
+
+  // Force re-render when language changes by including layoutVersion in dependency
+  useEffect(() => {
+    console.log('🌐 Layout updated for language:', currentLanguage.code, 'RTL:', currentLanguage.isRTL);
+  }, [currentLanguage.code, currentLanguage.isRTL, layoutVersion]);
+  
+  // Determine tab order based on RTL
+  const isRTL = currentLanguage.isRTL;
+  
+  // Create tab screens in the correct order for RTL
+  const tabScreens = [
+    {
+      name: "index",
+      title: t('home'),
+      icon: "home"
+    },
+    {
+      name: "categories",
+      title: t('categories'),
+      icon: "th-large"
+    },
+    {
+      name: "cart",
+      title: t('cart'),
+      icon: "cart"
+    },
+    {
+      name: "account",
+      title: t('account_tab'),
+      icon: "user"
+    }
+  ];
+
+  // Reverse tab order for RTL
+  const orderedTabs = isRTL ? [...tabScreens].reverse() : tabScreens;
   
   return (
     <Tabs
+      key={`tabs-${currentLanguage.code}-${layoutVersion}`} // Force re-render on language change
       screenOptions={{
         tabBarActiveTintColor: colors.blue,
         tabBarInactiveTintColor: colors.black,
-        tabBarStyle: { backgroundColor: colors.white },
+        tabBarStyle: { 
+          backgroundColor: colors.white,
+          // Apply RTL direction to tab bar
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+        },
         tabBarLabelStyle: { 
           textTransform: 'uppercase', 
-          fontSize: 10, // Small font as per PRD
-          // fontWeight: '500', // Adjust if needed for visual consistency
+          fontSize: 10,
+          textAlign: isRTL ? 'right' : 'left',
+        },
+        // Ensure tab bar respects RTL
+        tabBarItemStyle: {
+          flexDirection: isRTL ? 'row-reverse' : 'row',
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t('home'),
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="home" size={size} color={color} />
-          ),
-          headerShown: false, // Hide default header for custom implementation
-        }}
-      />
-      <Tabs.Screen
-        name="categories" 
-        options={{
-          title: t('categories'),
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="th-large" size={size} color={color} />
-          ),
-          headerShown: false, // Custom header is in categories.tsx (CategoriesScreen)
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: t('cart'),
-          tabBarIcon: ({ color, size }) => (
-            <CartIcon size={size} color={color} />
-          ),
-          headerTitle: t('my_cart_title'), // As per PRD for Cart Page Top Bar
-          headerTitleAlign: 'left',
-          headerStyle: { backgroundColor: colors.veryLightGray }, // Cart page has veryLightGray bg
-          headerTintColor: colors.blue, // Title text in blue
-          headerTitleStyle: { fontWeight: 'bold', color: colors.blue },
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="account"
-        options={{
-          title: t('account_tab'),
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="user" size={size} color={color} />
-          ),
-          headerTitle: t('account_tab'), // As per PRD for Account Page Top Bar
-          headerTitleAlign: 'left',
-          headerShown: false,
-        }}
-      />
+      {orderedTabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            tabBarIcon: ({ color, size }) => {
+              if (tab.name === 'cart') {
+                return <CartIcon size={size} color={color} />;
+              }
+              return <FontAwesome name={tab.icon as any} size={size} color={color} />;
+            },
+            headerShown: false,
+          }}
+        />
+      ))}
     </Tabs>
   );
 } 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { colors, spacing, radii, typography } from '@theme';
 import { ProductDetail } from '../utils/api-service';
 
@@ -12,7 +12,6 @@ interface ProductCardProps {
 }
 
 const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
-  const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   
   const imageUrl = product.ImageUrl || 'https://via.placeholder.com/150';
@@ -24,25 +23,13 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
     <TouchableOpacity style={styles.container} onPress={() => onPress(product)} activeOpacity={0.85} accessibilityRole="button">
       <View style={styles.imageContainer}>
         {imageUrl && !imageError ? (
-          <>
-            <Image 
-              source={{ uri: imageUrl }} 
-              style={styles.image} 
-              resizeMode="contain" 
-              accessibilityLabel={name}
-              onLoadStart={() => setImageLoading(true)}
-              onLoadEnd={() => setImageLoading(false)}
-              onError={() => {
-                setImageLoading(false);
-                setImageError(true);
-              }}
-            />
-            {imageLoading && (
-              <View style={styles.imageLoader}>
-                <ActivityIndicator size="small" color={colors.blue} />
-              </View>
-            )}
-          </>
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.image} 
+            resizeMode="contain"
+            accessibilityLabel={name}
+            onError={() => setImageError(true)}
+          />
         ) : (
           <View style={styles.imagePlaceholder} />
         )}
@@ -114,16 +101,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.blue,
-  },
-  imageLoader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
   },
 });
 

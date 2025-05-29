@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -14,7 +13,8 @@ import {
   Modal,
   FlatList,
   Linking,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
