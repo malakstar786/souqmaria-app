@@ -21,10 +21,11 @@
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "bundleIdentifier": "com.malakstar.souqmaria",
-      "buildNumber": "1",
+      "buildNumber": "3",
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses camera to scan barcodes for product search",
-        "NSLocationWhenInUseUsageDescription": "This app uses location to provide better delivery estimates"
+        "NSLocationWhenInUseUsageDescription": "This app uses location to provide better delivery estimates",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
