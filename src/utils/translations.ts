@@ -332,6 +332,14 @@ const translations = {
     en: 'Logout',
     ar: 'تسجيل الخروج'
   },
+  'delete_profile': {
+    en: 'Delete Profile',
+    ar: 'حذف الحساب'
+  },
+  'delete_profile_description': {
+    en: 'Request to delete your account and all associated data',
+    ar: 'طلب حذف حسابك وجميع البيانات المرتبطة به'
+  },
   'login_register': {
     en: 'Login / Register',
     ar: 'تسجيل الدخول / التسجيل'

@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Linking,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
@@ -157,6 +158,21 @@ export default function AccountDetailsScreen() {
     setIsEditing(false);
   };
 
+  const handleDeleteProfile = async () => {
+    try {
+      const url = 'https://example.com/delete-profile';
+      const supported = await Linking.canOpenURL(url);
+      
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(t('error'), 'Unable to open link');
+      }
+    } catch (error) {
+      Alert.alert(t('error'), 'Unable to open link');
+    }
+  };
+
   if (!user) {
     return (
       <View style={styles.container}>
@@ -250,6 +266,15 @@ export default function AccountDetailsScreen() {
               >
                 <FontAwesome name="pencil" size={16} color={colors.white} style={[marginEnd(spacing.sm)]} />
                 <Text style={styles.editButtonText}>{t('edit_details')}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDeleteProfile}
+                disabled={isLoadingUpdate}
+              >
+                <FontAwesome name="trash" size={16} color={colors.red} style={[marginEnd(spacing.sm)]} />
+                <Text style={styles.deleteButtonText}>{t('delete_profile')}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -487,5 +512,21 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
+  },
+  deleteButton: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.red,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: spacing.lg,
+  },
+  deleteButtonText: {
+    color: colors.red,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 }); 

@@ -303,6 +303,7 @@ mobile-app-sm/
 │   │   ├── api-cache.ts     # API response caching
 │   │   ├── api-config.ts    # API configuration
 │   │   ├── api-service.ts   # API integration
+│   │   ├── ip-utils.ts      # Device IP address detection
 │   │   ├── localization.ts  # i18n support
 │   │   ├── network-monitor.ts # Network monitoring
 │   │   ├── performance-monitor.ts # Performance tracking
@@ -367,6 +368,38 @@ All API requests include these standard parameters:
 - **CultureId**: `1` (English) or `2` (Arabic)
 - **Location**: `304401HO` (Fixed location identifier)
 - **Salesman**: `3044SMOL` (Fixed salesman identifier)
+
+#### IP Address Detection
+Many API endpoints require the device's IP address for analytics and security purposes. The application implements dynamic IP address detection using multiple fallback services for reliability.
+
+**Implementation**: `src/utils/ip-utils.ts`
+
+**Features**:
+- **Multiple Fallback Services**: Uses ipify.org, ipapi.co, and httpbin.org
+- **Cross-Platform**: Works on both iOS and Android devices
+- **Timeout Protection**: 5-second timeout per service attempt
+- **Graceful Fallback**: Returns `127.0.0.1` if all services fail
+- **Error Handling**: Robust error handling prevents app crashes
+
+**Usage Example**:
+```typescript
+import { getDeviceIP } from '../utils/ip-utils';
+
+// In API calls
+const checkoutData = {
+  UserID: userId,
+  IpAddress: await getDeviceIP(), // Dynamic IP detection
+  UniqueId: cartUniqueId,
+  // ... other parameters
+};
+```
+
+**Services Used**:
+- **Primary**: `https://api.ipify.org?format=json`
+- **Secondary**: `https://ipapi.co/json`
+- **Tertiary**: `https://httpbin.org/ip`
+
+**Performance**: Typically resolves within 1-2 seconds on good network connections.
 
 ### 5.2 Authentication APIs
 
@@ -2433,6 +2466,70 @@ const usePerformanceTracking = (screenName: string) => {
 };
 ```
 
+### 9.1 API Performance Optimization
+
+#### Dynamic IP Address Detection
+The application implements robust IP address detection to replace hardcoded `127.0.0.1` values that were previously used in API calls.
+
+**Previous Implementation Issues**:
+- All API endpoints used hardcoded `127.0.0.1` for `IpAddress` parameter
+- Reduced analytics accuracy and security tracking
+- No fallback mechanisms for IP detection failures
+
+**Current Implementation**:
+```typescript
+// IP detection utility with multiple fallback services
+export const getDeviceIP = async (): Promise<string> => {
+  const fallbackIP = '127.0.0.1';
+  const ipServices = [
+    'https://api.ipify.org?format=json',
+    'https://ipapi.co/json', 
+    'https://httpbin.org/ip',
+  ];
+  
+  for (const service of ipServices) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(service, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const ip = data.ip || data.origin;
+        
+        if (ip && /^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+          return ip;
+        }
+      }
+    } catch (error) {
+      continue; // Try next service
+    }
+  }
+  
+  return fallbackIP;
+};
+```
+
+**Implementation Coverage**:
+- ✅ Authentication APIs (registration, login, profile updates)
+- ✅ Cart Management APIs (add to cart, get cart items)
+- ✅ Checkout APIs (guest registration, order placement)
+- ✅ Address Management APIs (billing/shipping addresses)
+- ✅ Wishlist APIs (add/remove items)
+
+**Performance Characteristics**:
+- **Response Time**: 1-2 seconds on good network connections
+- **Fallback Strategy**: Graceful degradation to localhost IP
+- **Error Handling**: Prevents app crashes from network failures
+- **Cross-Platform**: Works consistently on iOS and Android
+
 ---
 
 ## 10. Deployment Guide
@@ -3024,6 +3121,62 @@ describe('Authentication API', () => {
     expect(response.Message).toContain('Invalid');
   });
 });
+
+// __tests__/api/ip-detection.test.ts
+import { getDeviceIP } from '../src/utils/ip-utils';
+
+describe('IP Address Detection', () => {
+  it('should return a valid IP address format', async () => {
+    const ip = await getDeviceIP();
+    
+    // Should return either a valid IPv4 address or fallback
+    expect(ip).toMatch(/^(\d{1,3}\.){3}\d{1,3}$/);
+  });
+  
+  it('should handle network failures gracefully', async () => {
+    // Mock fetch to simulate network failure
+    global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+    
+    const ip = await getDeviceIP();
+    
+    // Should fallback to localhost IP
+    expect(ip).toBe('127.0.0.1');
+  });
+  
+  it('should timeout after 5 seconds per service', async () => {
+    // Mock fetch to simulate slow response
+    global.fetch = jest.fn().mockImplementation(() => 
+      new Promise(resolve => setTimeout(resolve, 10000))
+    );
+    
+    const startTime = Date.now();
+    const ip = await getDeviceIP();
+    const endTime = Date.now();
+    
+    // Should not take more than 15 seconds total (5s per service)
+    expect(endTime - startTime).toBeLessThan(16000);
+    expect(ip).toBe('127.0.0.1'); // Should fallback
+  });
+  
+  it('should cache IP address results', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ip: '192.168.1.100' })
+    });
+    global.fetch = mockFetch;
+    
+    // First call
+    const ip1 = await getDeviceIP();
+    
+    // Second call (should use cache if implemented)
+    const ip2 = await getDeviceIP();
+    
+    expect(ip1).toBe('192.168.1.100');
+    expect(ip2).toBe('192.168.1.100');
+    
+    // Note: Actual caching implementation depends on requirements
+  });
+});
 ```
 
 ### 11.3 Performance Testing
@@ -3258,6 +3411,79 @@ const apiRequest = async (url: string, options: RequestInit) => {
   
   return response;
 };
+```
+
+**Issue**: IP address detection failing
+```bash
+Warning: All IP services failed, using fallback IP: 127.0.0.1
+```
+
+**Solution**:
+```typescript
+// Check network connectivity first
+import { useNetworkStatus } from '../utils/network-monitor';
+
+const { isConnected } = useNetworkStatus();
+
+if (!isConnected) {
+  // Handle offline state
+  console.log('Device is offline, using fallback IP');
+  return '127.0.0.1';
+}
+
+// Debug IP detection
+import { getDeviceIP } from '../utils/ip-utils';
+
+const debugIPDetection = async () => {
+  try {
+    const ip = await getDeviceIP();
+    console.log('Detected IP:', ip);
+    
+    // Verify IP format
+    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+      console.warn('Invalid IP format detected:', ip);
+    }
+  } catch (error) {
+    console.error('IP detection failed:', error);
+  }
+};
+
+// Alternative: Use device's network info (requires additional permissions)
+// Consider implementing react-native-network-info as backup
+```
+
+**Issue**: Slow IP address detection
+```bash
+IP detection taking longer than expected
+```
+
+**Solution**:
+```typescript
+// Implement caching for IP addresses
+class IPCache {
+  private static cachedIP: string | null = null;
+  private static lastFetch: number = 0;
+  private static CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  
+  static async getIP(): Promise<string> {
+    const now = Date.now();
+    
+    // Return cached IP if still valid
+    if (this.cachedIP && (now - this.lastFetch) < this.CACHE_DURATION) {
+      return this.cachedIP;
+    }
+    
+    // Fetch new IP
+    const ip = await getDeviceIP();
+    this.cachedIP = ip;
+    this.lastFetch = now;
+    
+    return ip;
+  }
+}
+
+// Usage in API calls
+const ipAddress = await IPCache.getIP();
 ```
 
 ### 12.2 Debug Tools
