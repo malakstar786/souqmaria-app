@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii } from '../../../../theme';
+import { colors, spacing, radii } from '@theme';
 import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore, { Address } from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';

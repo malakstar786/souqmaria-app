@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii } from '../../../../theme';
+import { colors, spacing, radii } from '@theme';
 import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore, { Address } from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';
@@ -15,7 +15,7 @@ export default function EditBillingAddressScreen() {
   const params = useLocalSearchParams();
   const addressId = Number(params.id);
   const { t } = useTranslation();
-  const { isRTL, textAlign, flexDirection, marginStart, marginEnd } = useRTL();
+  const { isRTL, textAlign, flexDirection } = useRTL();
   
   const { user } = useAuthStore();
   const { billingAddresses, updateBillingAddress, isLoading, error, clearError } = useAddressStore();

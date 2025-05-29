@@ -14,9 +14,7 @@ module.exports = function (api) {
               '@utils': './src/utils',
               '@components': './src/components',
               '@app': './src/app',
-              // You can add more aliases here as your project grows
-              // e.g., '@components': './src/components',
-              // '@store': './src/store',
+              '@store': './src/store',
             },
           },
         ],

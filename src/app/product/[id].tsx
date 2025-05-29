@@ -19,7 +19,7 @@ import {
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import HeaderCartIcon from '../../components/HeaderCartIcon';
-import { colors, spacing, radii, typography } from '../../theme';
+import { colors, spacing, radii, typography } from '@theme';
 import {
   getProductDetailsByItemCode,
   getSpecialDescriptionListByItemCode,
@@ -27,7 +27,7 @@ import {
   addToCart,
   AddToCartParams,
 } from '../../utils/api-service';
-import { COMMON_PARAMS, CULTURE_IDS, RESPONSE_CODES } from '../../utils/api-config';
+import { COMMON_PARAMS, RESPONSE_CODES } from '../../utils/api-config';
 import { getDeviceIP } from '../../utils/ip-utils';
 import useAuthStore from '../../store/auth-store';
 import useCartStore from '../../store/cart-store';
@@ -56,20 +56,12 @@ interface ProductDetail {
   [key: string]: any;
 }
 
-// Interface for special description items
-interface SpecialDescription {
-  Title: string;
-  Description: string;
-  [key: string]: any;
-}
-
-const PRODUCT_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/CompanyLogo/3044/';
 const { width } = Dimensions.get('window');
 
 export default function ProductDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { isRTL, textAlign, flexDirection } = useRTL();
+  const { isRTL, textAlign } = useRTL();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const { getCultureId } = useLanguageStore();

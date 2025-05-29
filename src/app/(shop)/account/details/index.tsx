@@ -13,13 +13,12 @@ import {
   Modal,
   Linking,
 } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import { useAuthStore } from '../../../../store/auth-store'; // Path relative to src/app/(shop)/account/details/
-import { colors, spacing, radii } from '../../../../theme';
+import { colors, spacing, radii } from '@theme';
 import { useTranslation } from '../../../../utils/translations';
 import { useRTL } from '../../../../utils/rtl';
-import { updateUserDetailsAPI } from '../../../../utils/api-service';
 import { getDeviceIP } from '../../../../utils/ip-utils';
 
 export default function AccountDetailsScreen() {

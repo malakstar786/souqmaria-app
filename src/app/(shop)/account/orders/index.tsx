@@ -7,11 +7,10 @@ import {
   FlatList,
   ActivityIndicator,
   TextInput,
-  Alert,
   Platform,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii, typography } from '../../../../theme';
+import { colors, spacing, radii, typography } from '@theme';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';

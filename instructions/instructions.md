@@ -201,116 +201,352 @@ npm run android
 
 ```
 mobile-app-sm/
-├── app.json                 # Expo configuration
-├── babel.config.js          # Babel configuration
-├── eas.json                 # EAS Build configuration
-├── package.json             # Dependencies and scripts
-├── tsconfig.json            # TypeScript configuration
-├── expo-env.d.ts            # Expo TypeScript environment definitions
-├── app-store-metadata.json  # App Store metadata configuration
-├── DEPLOYMENT_CHECKLIST.md  # Deployment checklist
-├── DEPLOYMENT_README.md     # Deployment documentation
-├── scripts/                 # Build and deployment scripts
-│   ├── build-production.sh  # Production build script
-│   └── pre-deployment-test.sh # Pre-deployment testing script
-├── legal/                   # Legal documents
-│   └── privacy-policy.md    # Privacy policy
-├── instructions/            # Project documentation
-│   ├── instructions.md      # Complete developer documentation
-│   └── UI/                  # UI design references
-│       ├── account/         # Account section UI
-│       ├── cart/            # Cart UI designs
-│       ├── categories/      # Categories UI designs
-│       ├── checkout/        # Checkout flow UI
-│       ├── product_pages/   # Product pages UI
-│       ├── homepage.png     # Homepage design
-│       └── splash.png       # Splash screen design
-├── src/
-│   ├── app/                 # Expo Router pages
-│   │   ├── (shop)/          # Main app screens
-│   │   │   ├── _layout.tsx  # Shop layout with bottom tabs
-│   │   │   ├── index.tsx    # Home screen
-│   │   │   ├── categories.tsx # Categories listing
-│   │   │   ├── cart.tsx     # Shopping cart
-│   │   │   └── account/     # Account section
-│   │   │       ├── _layout.tsx # Account layout
-│   │   │       ├── index.tsx   # Account dashboard
-│   │   │       ├── address/    # Address management
-│   │   │       ├── details/    # User details
-│   │   │       ├── orders/     # Order history
-│   │   │       ├── language.tsx # Language settings
-│   │   │       ├── policies.tsx # Terms & policies
-│   │   │       └── wishlist.tsx # User wishlist
-│   │   ├── +not-found.tsx   # 404 page
-│   │   ├── product/         # Product pages
-│   │   │   └── [id].tsx     # Product details
-│   │   ├── products/        # Product listings
-│   │   │   ├── _layout.tsx  # Products layout
-│   │   │   └── list.tsx     # Filtered products
-│   │   ├── checkout.tsx     # Checkout flow
-│   │   ├── thank-you.tsx    # Order confirmation
-│   │   ├── signup.tsx       # User registration
-│   │   └── forgot-password.tsx # Password reset
-│   ├── assets/              # Static assets
-│   │   ├── account_tab/     # Account section icons
-│   │   ├── checkout/        # Checkout flow assets
-│   │   ├── icon.png         # App icon
-│   │   ├── logo.png         # App logo
-│   │   ├── splash.png       # Splash screen
-│   │   └── empty_wishlist.png # Empty wishlist image
-│   ├── components/          # Reusable components
-│   │   ├── common/          # Shared UI components
-│   │   │   └── TopBar.tsx   # Top navigation bar
-│   │   ├── add-edit-address.tsx # Address form component
-│   │   ├── AddAddressModal.tsx  # Add address modal
-│   │   ├── AddressDropdown.tsx  # Address selection dropdown
-│   │   ├── AuthModal.tsx        # Authentication modal
-│   │   ├── browse-drawer.tsx    # Browse categories drawer
-│   │   ├── CartIcon.tsx         # Cart icon with badge
-│   │   ├── CategoryCard.tsx     # Category display card
-│   │   ├── ChangeAddressModal.tsx # Address change modal
-│   │   ├── CreateAddressModal.tsx # Create address modal
+├── app-store-metadata.json
+├── app.json
+├── babel.config.js
+├── eas.json
+├── expo-env.d.ts
+├── google-services.json
+├── GoogleService-Info.plist
+├── instructions
+│   ├── instructions.md
+│   └── UI
+│       ├── account
+│       │   ├── account_pre_login.png
+│       │   ├── account_with_login.png
+│       │   ├── forgot_pass.png
+│       │   ├── my_addresses
+│       │   │   ├── add_address.png
+│       │   │   ├── address_adding_screen.png
+│       │   │   └── edit_address.png
+│       │   ├── my_details
+│       │   │   ├── edit_details.png
+│       │   │   └── my_details.png
+│       │   ├── my_orders.png
+│       │   ├── policies
+│       │   │   └── company_details.png
+│       │   └── wishlist.png
+│       ├── cart
+│       │   ├── cart_delete_item.png
+│       │   ├── cart_with_products.png
+│       │   └── empty_cart.png
+│       ├── categories
+│       │   ├── all_categories_page.png
+│       │   ├── browse_drawer.png
+│       │   └── search_products.png
+│       ├── checkout
+│       │   ├── add_billing_address_checkout.png
+│       │   ├── add_shipping_address.png
+│       │   ├── change_select_address.png
+│       │   ├── guest
+│       │   │   └── guest_checkout.png
+│       │   ├── login
+│       │   │   └── login.png
+│       │   ├── order_failure.png
+│       │   ├── order_success.png
+│       │   ├── post_login_checkout.png
+│       │   ├── promo_code_remove.png
+│       │   └── signup
+│       │       └── signup.png
+│       ├── homepage.png
+│       ├── product_pages
+│       │   ├── addtocart_success.png
+│       │   ├── all_products_page.png
+│       │   ├── brand_filter.png
+│       │   ├── category_filter.png
+│       │   ├── individual_product_page.png
+│       │   ├── price_filter.png
+│       │   └── sort_by.png
+│       └── splash.png
+├── legal
+│   └── privacy-policy.md
+├── package-lock.json
+├── package.json
+├── scripts
+│   ├── build-production.sh
+│   └── pre-deployment-test.sh
+├── src
+│   ├── app
+│   │   ├── (shop)
+│   │   │   ├── _layout.tsx
+│   │   │   ├── account
+│   │   │   │   ├── _layout.tsx
+│   │   │   │   ├── address
+│   │   │   │   ├── details
+│   │   │   │   ├── index.tsx
+│   │   │   │   ├── language.tsx
+│   │   │   │   ├── orders
+│   │   │   │   ├── policies.tsx
+│   │   │   │   └── wishlist.tsx
+│   │   │   ├── cart.tsx
+│   │   │   ├── categories.tsx
+│   │   │   └── index.tsx
+│   │   ├── +not-found.tsx
+│   │   ├── checkout.tsx
+│   │   ├── forgot-password.tsx
+│   │   ├── product
+│   │   │   └── [id].tsx
+│   │   ├── products
+│   │   │   ├── _layout.tsx
+│   │   │   └── list.tsx
+│   │   ├── signup.tsx
+│   │   └── thank-you.tsx
+│   ├── assets
+│   │   ├── account_tab
+│   │   │   ├── details_icon.png
+│   │   │   ├── facebook_icon.png
+│   │   │   ├── instagram_icon.png
+│   │   │   ├── language_icon.png
+│   │   │   ├── location_icon.png
+│   │   │   ├── orders_icon.png
+│   │   │   ├── policies_icon.png
+│   │   │   ├── pre_login.png
+│   │   │   ├── tiktok_icon.png
+│   │   │   ├── whatsapp_icon.png
+│   │   │   └── wishlist_icon.png
+│   │   ├── checkout
+│   │   │   ├── address_icon_checkout.png
+│   │   │   ├── order_failed_image.png
+│   │   │   ├── order_succesful_image.png
+│   │   │   ├── payment_icon_checkout.png
+│   │   │   ├── payment_methods.png
+│   │   │   └── promo_icon_checkout.png
+│   │   ├── empty_wishlist.png
+│   │   ├── google_icon.png
+│   │   ├── icon.png
+│   │   ├── logo.png
+│   │   └── splash.png
+│   ├── components
+│   │   ├── add-edit-address.tsx
+│   │   ├── AddAddressModal.tsx
+│   │   ├── AddressDropdown.tsx
+│   │   ├── AuthModal.tsx
+│   │   ├── browse-drawer.tsx
+│   │   ├── CartIcon.tsx
+│   │   ├── CategoryCard.tsx
+│   │   ├── ChangeAddressModal.tsx
+│   │   ├── common
+│   │   │   └── TopBar.tsx
+│   │   ├── CreateAddressModal.tsx
+│   │   ├── GuestCheckoutAddressForm.tsx
+│   │   ├── GuestCheckoutShippingForm.tsx
+│   │   ├── HeaderCartIcon.tsx
+│   │   ├── LanguageSelector.tsx
+│   │   ├── ProductCard.tsx
+│   │   ├── ProductFilters.tsx
+│   │   ├── PromoCodeModal.tsx
+│   │   └── SearchBarWithSuggestions.tsx
+│   ├── config
+│   │   └── app-config.ts
+│   ├── constants
+│   │   └── colors.ts
+│   ├── store
+│   │   ├── address-store.ts
+│   │   ├── advertisement-store.ts
+│   │   ├── all-category-store.ts
+│   │   ├── auth-store.ts
+│   │   ├── banner-store.ts
+│   │   ├── cart-store.ts
+│   │   ├── category-store.ts
+│   │   ├── checkout-store.ts
+│   │   ├── language-store.ts
+│   │   ├── location-store.ts
+│   │   ├── menu-store.ts
+│   │   ├── order-store.ts
+│   │   ├── promo-store.ts
+│   │   ├── search-store.ts
+│   │   └── wishlist-store.ts
+│   ├── theme.ts
+│   └── utils
+│       ├── api-cache.ts
+│       ├── api-config.ts
+│       ├── api-service.ts
+│       ├── google-auth.ts
+│       ├── ip-utils.ts
+│       ├── localization.ts
+│       ├── network-monitor.ts
+│       ├── performance-monitor.ts
+│       ├── preloader.ts
+│       ├── rtl.ts
+│       ├── translations.ts
+│       └── url-parser.ts
+└── tsconfig.json
 
-│   │   ├── GuestCheckoutAddressForm.tsx # Guest checkout address
-│   │   ├── GuestCheckoutShippingForm.tsx # Guest shipping form
-│   │   ├── HeaderCartIcon.tsx   # Header cart icon
-│   │   ├── LanguageSelector.tsx # Language switcher
-│   │   ├── ProductCard.tsx      # Product display card
-│   │   ├── ProductFilters.tsx   # Product filtering
-│   │   ├── PromoCodeModal.tsx   # Promo code modal
-│   │   └── SearchBarWithSuggestions.tsx # Search with autocomplete
-│   ├── config/              # App configuration
-│   │   └── app-config.ts    # Application configuration
-│   ├── constants/           # App constants
-│   │   └── colors.ts        # Color palette
-│   ├── store/               # Zustand stores
-│   │   ├── address-store.ts     # Address management
-│   │   ├── advertisement-store.ts # Advertisements
-│   │   ├── all-category-store.ts # All categories
-│   │   ├── auth-store.ts        # Authentication
-│   │   ├── banner-store.ts      # Banners
-│   │   ├── cart-store.ts        # Shopping cart
-│   │   ├── category-store.ts    # Homepage categories
-│   │   ├── checkout-store.ts    # Checkout process
-│   │   ├── language-store.ts    # Language settings
-│   │   ├── location-store.ts    # Location data
-│   │   ├── menu-store.ts        # Menu categories
-│   │   ├── order-store.ts       # Order management
-│   │   ├── promo-store.ts       # Promo codes
-│   │   ├── search-store.ts      # Search functionality
-│   │   └── wishlist-store.ts    # Wishlist management
-│   ├── utils/               # Utility functions
-│   │   ├── api-cache.ts     # API response caching
-│   │   ├── api-config.ts    # API configuration
-│   │   ├── api-service.ts   # API integration
-│   │   ├── ip-utils.ts      # Device IP address detection
-│   │   ├── localization.ts  # i18n support
-│   │   ├── network-monitor.ts # Network monitoring
-│   │   ├── performance-monitor.ts # Performance tracking
-│   │   ├── preloader.ts     # App preloader
-│   │   ├── rtl.ts           # RTL support
-│   │   └── translations.ts  # Translation strings
-│   └── theme.ts             # App theme configuration
+34 directories, 137 files
+(base) hus3ain@Hussains-MacBook-Pro mobile-app-sm % git add .
+(base) hus3ain@Hussains-MacBook-Pro mobile-app-sm % git commit -m "Added delete profile button"
+[main 0973ff5] Added delete profile button
+ 3 files changed, 275 insertions(+)
+(base) hus3ain@Hussains-MacBook-Pro mobile-app-sm % git push origin main
+Enumerating objects: 23, done.
+Counting objects: 100% (23/23), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (12/12), done.
+Writing objects: 100% (12/12), 4.04 KiB | 4.04 MiB/s, done.
+Total 12 (delta 9), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (9/9), completed with 9 local objects.
+To https://github.com/malakstar786/souqmaria-app.git
+   3e8bdae..0973ff5  main -> main
+(base) hus3ain@Hussains-MacBook-Pro mobile-app-sm % tree -L 5 -I 'node_modules|.git'           
+.
+├── app-store-metadata.json
+├── app.json
+├── babel.config.js
+├── eas.json
+├── expo-env.d.ts
+├── google-services.json
+├── GoogleService-Info.plist
+├── instructions
+│   ├── instructions.md
+│   └── UI
+│       ├── account
+│       │   ├── account_pre_login.png
+│       │   ├── account_with_login.png
+│       │   ├── forgot_pass.png
+│       │   ├── my_addresses
+│       │   │   ├── add_address.png
+│       │   │   ├── address_adding_screen.png
+│       │   │   └── edit_address.png
+│       │   ├── my_details
+│       │   │   ├── edit_details.png
+│       │   │   └── my_details.png
+│       │   ├── my_orders.png
+│       │   ├── policies
+│       │   │   └── company_details.png
+│       │   └── wishlist.png
+│       ├── cart
+│       │   ├── cart_delete_item.png
+│       │   ├── cart_with_products.png
+│       │   └── empty_cart.png
+│       ├── categories
+│       │   ├── all_categories_page.png
+│       │   ├── browse_drawer.png
+│       │   └── search_products.png
+│       ├── checkout
+│       │   ├── add_billing_address_checkout.png
+│       │   ├── add_shipping_address.png
+│       │   ├── change_select_address.png
+│       │   ├── guest
+│       │   │   └── guest_checkout.png
+│       │   ├── login
+│       │   │   └── login.png
+│       │   ├── order_failure.png
+│       │   ├── order_success.png
+│       │   ├── post_login_checkout.png
+│       │   ├── promo_code_remove.png
+│       │   └── signup
+│       │       └── signup.png
+│       ├── homepage.png
+│       ├── product_pages
+│       │   ├── addtocart_success.png
+│       │   ├── all_products_page.png
+│       │   ├── brand_filter.png
+│       │   ├── category_filter.png
+│       │   ├── individual_product_page.png
+│       │   ├── price_filter.png
+│       │   └── sort_by.png
+│       └── splash.png
+├── package-lock.json
+├── package.json
+├── scripts
+│   ├── build-production.sh
+│   └── pre-deployment-test.sh
+├── src
+│   ├── app
+│   │   ├── (shop)
+│   │   │   ├── _layout.tsx
+│   │   │   ├── account
+│   │   │   │   ├── _layout.tsx
+│   │   │   │   ├── address
+│   │   │   │   ├── details
+│   │   │   │   ├── index.tsx
+│   │   │   │   ├── language.tsx
+│   │   │   │   ├── orders
+│   │   │   │   ├── policies.tsx
+│   │   │   │   └── wishlist.tsx
+│   │   │   ├── cart.tsx
+│   │   │   ├── categories.tsx
+│   │   │   └── index.tsx
+│   │   ├── +not-found.tsx
+│   │   ├── checkout.tsx
+│   │   ├── forgot-password.tsx
+│   │   ├── product
+│   │   │   └── [id].tsx
+│   │   ├── products
+│   │   │   ├── _layout.tsx
+│   │   │   └── list.tsx
+│   │   ├── signup.tsx
+│   │   └── thank-you.tsx
+│   ├── assets
+│   │   ├── account_tab
+│   │   │   ├── details_icon.png
+│   │   │   ├── facebook_icon.png
+│   │   │   ├── instagram_icon.png
+│   │   │   ├── language_icon.png
+│   │   │   ├── location_icon.png
+│   │   │   ├── orders_icon.png
+│   │   │   ├── policies_icon.png
+│   │   │   ├── pre_login.png
+│   │   │   ├── tiktok_icon.png
+│   │   │   ├── whatsapp_icon.png
+│   │   │   └── wishlist_icon.png
+│   │   ├── checkout
+│   │   │   ├── address_icon_checkout.png
+│   │   │   ├── order_failed_image.png
+│   │   │   ├── order_succesful_image.png
+│   │   │   ├── payment_icon_checkout.png
+│   │   │   ├── payment_methods.png
+│   │   │   └── promo_icon_checkout.png
+│   │   ├── empty_wishlist.png
+│   │   ├── google_icon.png
+│   │   ├── icon.png
+│   │   ├── logo.png
+│   │   └── splash.png
+│   ├── components
+│   │   ├── AddAddressModal.tsx
+│   │   ├── AddressDropdown.tsx
+│   │   ├── AuthModal.tsx
+│   │   ├── browse-drawer.tsx
+│   │   ├── CartIcon.tsx
+│   │   ├── CategoryCard.tsx
+│   │   ├── ChangeAddressModal.tsx
+│   │   ├── CreateAddressModal.tsx
+│   │   ├── GuestCheckoutAddressForm.tsx
+│   │   ├── GuestCheckoutShippingForm.tsx
+│   │   ├── HeaderCartIcon.tsx
+│   │   ├── LanguageSelector.tsx
+│   │   ├── ProductCard.tsx
+│   │   ├── ProductFilters.tsx
+│   │   ├── PromoCodeModal.tsx
+│   │   └── SearchBarWithSuggestions.tsx
+│   ├── store
+│   │   ├── address-store.ts
+│   │   ├── advertisement-store.ts
+│   │   ├── all-category-store.ts
+│   │   ├── auth-store.ts
+│   │   ├── banner-store.ts
+│   │   ├── cart-store.ts
+│   │   ├── category-store.ts
+│   │   ├── checkout-store.ts
+│   │   ├── language-store.ts
+│   │   ├── location-store.ts
+│   │   ├── menu-store.ts
+│   │   ├── order-store.ts
+│   │   ├── promo-store.ts
+│   │   ├── search-store.ts
+│   │   └── wishlist-store.ts
+│   ├── theme.ts
+│   └── utils
+│       ├── api-cache.ts
+│       ├── api-config.ts
+│       ├── api-service.ts
+│       ├── google-auth.ts
+│       ├── ip-utils.ts
+│       ├── preloader.ts
+│       ├── rtl.ts
+│       ├── translations.ts
+│       └── url-parser.ts
+└── tsconfig.json
 ```
 
 ### 4.2 Navigation Structure

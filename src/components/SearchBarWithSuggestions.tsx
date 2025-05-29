@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, ActivityIndicator, Keyboard, Platform, ScrollView as RNScrollView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing } from '../theme';
+import { colors, spacing } from '@theme';
 import useSearchStore from '../store/search-store';
 import { SearchItem } from '../utils/api-service';
 import { debounce } from 'lodash';

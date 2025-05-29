@@ -6,19 +6,14 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Switch,
   Dimensions,
-  ActivityIndicator,
-  Platform,
-  Pressable,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii, typography } from '../theme';
+import { colors, spacing } from '@theme';
 import { FilterOption } from '../utils/api-service';
 import Slider from '@react-native-community/slider';
 import { useTranslation } from '../utils/translations';
 
-const { width } = Dimensions.get('window');
 
 type FilterType = 'brand' | 'category' | 'price' | 'sort';
 

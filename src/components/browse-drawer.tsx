@@ -14,13 +14,13 @@ import {
   Platform,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii, typography } from '../../src/theme';
-import useMenuStore, { MenuCategory } from '../store/menu-store';
+import { colors, spacing, typography } from '@theme';
+import useMenuStore from '../store/menu-store';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../utils/translations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 const DRAWER_WIDTH = screenWidth * 0.85;
 
 interface BrowseDrawerProps {

@@ -8,21 +8,17 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
-  Dimensions,
   StatusBar,
   Platform,
   Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, Link } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii, typography } from '../../theme';
+import { colors, spacing, radii, typography } from '@theme';
 import {
-  getAllProductsDirectly,
   getFilteredProducts,
   ProductFilterParams,
   ProductFilterResponse,
-  AllProductsDirectResponse,
-  SearchItem,
   FilterOption,
 } from '../../utils/api-service';
 import ProductCard from '../../components/ProductCard';
@@ -33,9 +29,7 @@ import useLanguageStore from '../../store/language-store';
 import { RESPONSE_CODES, COMMON_PARAMS as API_COMMON_PARAMS, CULTURE_IDS } from '../../utils/api-config';
 import { useTranslation } from '../../utils/translations';
 
-const { width } = Dimensions.get('window');
 const PRODUCT_IMAGE_BASE_URL = 'https://erp.merpec.com/Upload/CompanyLogo/3044/';
-const HEADER_AND_FILTER_HEIGHT = 180;
 
 export default function ProductListScreen() {
   const router = useRouter();

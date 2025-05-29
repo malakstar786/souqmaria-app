@@ -21,23 +21,7 @@ import {
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { colors, spacing, typography } from '../theme';
-// Directly define theme constants since @theme import is not working correctly
-// const colors = {
-//   white: '#FFFFFF',
-//   lightBlue: '#E6F0FA',
-//   blue: '#0063B1',
-//   black: '#000000',
-//   lightGray: '#E0E0E0',
-//   veryLightGray: '#F5F5F5',
-//   gray: '#888888',
-//   red: '#FF0000',
-//   textGray: '#808080', // For placeholder text or secondary info
-//   text: '#333333', // Primary text color
-//   border: '#CCCCCC', // Standard border color
-//   borderLight: '#EEEEEE', // Lighter border color for dividers
-//   backgroundLight: '#F9F9F9', // Light background color for content containers
-// };
+import { colors, spacing, typography } from '@theme';
 
 const radii = {
   sm: 4,
@@ -57,49 +41,21 @@ import {
   saveCheckout,
   PaymentModeItem,
   SaveCheckoutParams,
-  getDefaultBillingAddressByUserId, 
-  getDefaultShippingAddressByUserId,
-  getAllBillingAddressesByUserId,
-  getAllShippingAddressesByUserId,
   ApiAddress,
-  OrderReviewCheckoutParams
 } from '../utils/api-service';
-import { Address as StoreAddress } from '../store/address-store';
 import PromoCodeModal from '../components/PromoCodeModal';
 import ChangeAddressModal from '../components/ChangeAddressModal';
 import AddAddressModal from '../components/AddAddressModal';
 import AuthModal from '../components/AuthModal';
 import { useTranslation } from '../utils/translations';
 import { useRTL } from '../utils/rtl';
-import { COMMON_PARAMS, RESPONSE_CODES } from '../utils/api-config';
 import { getDeviceIP } from '../utils/ip-utils';
-import useLanguageStore from '../store/language-store';
 
-const { width, height } = Dimensions.get('window');
+
 
 // Interfaces and types
 // Note: Using PaymentModeItem from api-service.ts
 
-// Add conversion helpers at the top
-function addressToApiAddress(address: any): ApiAddress {
-  return {
-    BillingAddressId: address.id,
-    ShippingAddressId: address.id,
-    FullName: address.fullName,
-    Email: address.email,
-    Mobile: address.mobile,
-    Address: address.address || '',
-    Address2: address.address2 || '',
-    Country: address.country || '',
-    State: address.state || '',
-    City: address.city || '',
-    Block: address.block || '',
-    Street: address.street || '',
-    House: address.house || '',
-    Apartment: address.apartment || '',
-    IsDefault: address.isDefault ?? false,
-  };
-}
 
 function apiAddressToAddress(api: ApiAddress): any {
   return {
