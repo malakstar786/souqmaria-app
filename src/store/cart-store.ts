@@ -12,6 +12,7 @@ import {
   UpdateCartQtyParams
 } from '../utils/api-service';
 import { COMMON_PARAMS, RESPONSE_CODES, CULTURE_IDS } from '../utils/api-config';
+import { getDeviceIP } from '../utils/ip-utils';
 import useLanguageStore from './language-store';
 
 // Cart item interface
@@ -138,9 +139,11 @@ const useCartStore = create<CartState>()(
       
       console.log(`🛒 Fetching cart items for user: ${actualUserId || 'Guest'}, uniqueId: ${uniqueId}`);
       
+      const ipAddress = await getDeviceIP();
       const response: ApiResponse<any> = await getCartItems(
         actualUserId || '',
         uniqueId,
+        ipAddress,
         useLanguageStore.getState().getCultureId()
       );
       
@@ -258,7 +261,7 @@ const useCartStore = create<CartState>()(
     set({ isLoading: true, error: null });
     try {
       const uniqueId = get().getUniqueId();
-      const ipAddress = '127.0.0.1'; 
+      const ipAddress = await getDeviceIP();
       const authStore = (await import('./auth-store')).default;
       const currentUserId = authStore.getState().user?.UserID || authStore.getState().user?.id || '';
 

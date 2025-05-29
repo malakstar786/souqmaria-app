@@ -28,6 +28,7 @@ import {
   AddToCartParams,
 } from '../../utils/api-service';
 import { COMMON_PARAMS, CULTURE_IDS, RESPONSE_CODES } from '../../utils/api-config';
+import { getDeviceIP } from '../../utils/ip-utils';
 import useAuthStore from '../../store/auth-store';
 import useCartStore from '../../store/cart-store';
 import useLanguageStore from '../../store/language-store';
@@ -222,7 +223,7 @@ export default function ProductDetailScreen() {
         Discount: product.Discount || 0,
         UserId: user?.UserID || user?.id || '',
         UniqueId: uniqueId,
-        IpAddress: '127.0.0.1', // Simplified for mobile app
+        IpAddress: await getDeviceIP(),
         Company: COMMON_PARAMS.Company,
         Location: COMMON_PARAMS.Location,
         Qty: quantity

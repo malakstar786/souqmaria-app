@@ -4,19 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerUser, loginUser, updateUserDetailsAPI, forgotPassword, socialMediaLogin, socialMediaRegister } from '../utils/api-service';
 import { RESPONSE_CODES } from '../utils/api-config';
 import { GoogleUserInfo } from '../utils/google-auth';
+import { getDeviceIP } from '../utils/ip-utils';
 import { Platform } from 'react-native';
-
-// Utility function to get device IP address
-const getDeviceIP = async (): Promise<string> => {
-  try {
-    // For development, return a placeholder IP
-    // In production, you might want to use a service to get the real IP
-    return '192.168.1.1';
-  } catch (error) {
-    console.error('Error getting device IP:', error);
-    return '192.168.1.1';
-  }
-};
 
 // User types
 interface User {

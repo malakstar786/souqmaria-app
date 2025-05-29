@@ -237,6 +237,6 @@ export const SP_QUERIES = {
     `[Web].[Sp_Get_SM_Apps]'Get_Related_Products_List_ByItemCode','${itemCode}','','','','',${cultureId},${COMMON_PARAMS.Company},'${userId}'`,
 
   // Cart queries
-  GET_CART_PRODUCTS: (userId: string = '', uniqueId: string, cultureId: string = '1') => 
-    `[Web].[SP_Template1_Get_CartProductsDetails_Apps]'${userId}','127.0.0.1','${uniqueId}',${COMMON_PARAMS.Company},${cultureId}`,
+  GET_CART_PRODUCTS: (userId: string = '', ipAddress: string, uniqueId: string, cultureId: string = '1') => 
+    `[Web].[SP_Template1_Get_CartProductsDetails_Apps]'${userId}','${ipAddress}','${uniqueId}',${COMMON_PARAMS.Company},${cultureId}`,
 }; 

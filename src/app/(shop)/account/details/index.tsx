@@ -18,6 +18,8 @@ import { useAuthStore } from '../../../../store/auth-store'; // Path relative to
 import { colors, spacing, radii } from '../../../../theme';
 import { useTranslation } from '../../../../utils/translations';
 import { useRTL } from '../../../../utils/rtl';
+import { updateUserDetailsAPI } from '../../../../utils/api-service';
+import { getDeviceIP } from '../../../../utils/ip-utils';
 
 export default function AccountDetailsScreen() {
   const router = useRouter();
@@ -98,7 +100,7 @@ export default function AccountDetailsScreen() {
         Email: user.email,
         Mobile: user.mobile || '',
         UserId: user.UserID,
-        IpAddress: '127.0.0.1',
+        IpAddress: await getDeviceIP(),
         CompanyId: 3044,
       });
       setPromptPasswordModal(true);
@@ -111,7 +113,7 @@ export default function AccountDetailsScreen() {
       Mobile: user.mobile || '', 
       Password: passwordToSend,
       UserId: user.UserID, 
-      IpAddress: '127.0.0.1',
+      IpAddress: await getDeviceIP(),
       CompanyId: 3044, 
     };
 

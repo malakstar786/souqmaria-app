@@ -16,6 +16,8 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
 import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse, saveBillingAddress, SaveBillingAddressPayload } from '../utils/api-service';
+import { registerGuestUser, GuestUserRegistrationParams } from '../utils/api-service';
+import { getDeviceIP } from '../utils/ip-utils';
 import { useTranslation } from '../utils/translations';
 
 // Define our own LocationItem interface to match the component usage
@@ -248,7 +250,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
           Command: 'Save',
           UserId: guestTrackId,
           CompanyId: 3044,
-          IpAddress: '127.0.0.1',
+          IpAddress: await getDeviceIP(),
         };
         
         console.log('Saving billing address with payload:', billingAddressPayload);

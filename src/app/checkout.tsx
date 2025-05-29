@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,12 +15,13 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
-  Image
+  Image,
+  Switch
 } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { colors } from '@theme';
+import { colors, spacing, typography } from '../theme';
 // Directly define theme constants since @theme import is not working correctly
 // const colors = {
 //   white: '#FFFFFF',
@@ -37,14 +38,6 @@ import { colors } from '@theme';
 //   borderLight: '#EEEEEE', // Lighter border color for dividers
 //   backgroundLight: '#F9F9F9', // Light background color for content containers
 // };
-
-const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-};
 
 const radii = {
   sm: 4,
@@ -78,6 +71,9 @@ import AddAddressModal from '../components/AddAddressModal';
 import AuthModal from '../components/AuthModal';
 import { useTranslation } from '../utils/translations';
 import { useRTL } from '../utils/rtl';
+import { COMMON_PARAMS, RESPONSE_CODES } from '../utils/api-config';
+import { getDeviceIP } from '../utils/ip-utils';
+import useLanguageStore from '../store/language-store';
 
 const { width, height } = Dimensions.get('window');
 
@@ -658,7 +654,7 @@ export default function CheckoutScreen() {
       // Create checkout parameters
       const checkoutParams: SaveCheckoutParams = {
         UserID: userId,
-        IpAddress: '127.0.0.1',
+        IpAddress: await getDeviceIP(),
         UniqueId: cartUniqueId,
         Company: 3044,
         CultureId: 1,

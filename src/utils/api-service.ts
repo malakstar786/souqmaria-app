@@ -1417,16 +1417,18 @@ export interface DeleteCartItemParams {
 export const getCartItems = async (
   userId: string = '',
   uniqueId: string,
+  ipAddress: string,
   cultureId?: string
 ): Promise<ApiResponse<CartItemsResponse | null>> => {
   try {
     const finalCultureId = cultureId || getCurrentCultureId();
-    const strQuery = SP_QUERIES.GET_CART_PRODUCTS(userId, uniqueId, finalCultureId);
+    const strQuery = SP_QUERIES.GET_CART_PRODUCTS(userId, ipAddress, uniqueId, finalCultureId);
     console.log('🛒 GetCartItems - Request:', JSON.stringify({
       endpoint: ENDPOINTS.GET_DATA_JSON,
       method: 'POST',
       userId: userId || 'Guest',
       uniqueId,
+      ipAddress,
       strQuery
     }, null, 2));
     
@@ -1600,7 +1602,7 @@ export const addWishlistItem = async (itemCode: string, userId: string): Promise
   const payload = {
     ItemCode: itemCode,
     UserId: userId,
-    IpAddress: '127.0.0.1', // Simplified for mobile
+    IpAddress: await getDeviceIpAddress(), // Use the internal function that already exists
     CompanyId: 3044, // Wishlist endpoints expect CompanyId
     Command: 'Save'
   };
