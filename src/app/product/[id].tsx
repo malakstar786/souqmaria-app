@@ -86,6 +86,7 @@ export default function ProductDetailScreen() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   
   const flatListRef = useRef<FlatList>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -122,24 +123,38 @@ export default function ProductDetailScreen() {
         // Get product images - only add valid, non-empty images
         const images: string[] = [];
         
-        // Image 1
-        if (productData.ImageUrl1 && productData.ImageUrl1.trim()) {
+        // Helper function to check if image URL is valid
+        const isValidImageUrl = (url: string | null | undefined): boolean => {
+          if (!url || !url.trim()) return false;
+          // Filter out common placeholder texts or invalid URLs
+          const lowerUrl = url.toLowerCase().trim();
+          return !lowerUrl.includes('placeholder') && 
+                 !lowerUrl.includes('no_image') && 
+                 !lowerUrl.includes('not_available') &&
+                 !lowerUrl.includes('default') &&
+                 lowerUrl !== 'null' &&
+                 lowerUrl !== 'undefined' &&
+                 lowerUrl.length > 5; // Minimum URL length
+        };
+        
+        // Image 1 - check both ImageUrl1 and Image1
+        if (isValidImageUrl(productData.ImageUrl1)) {
           images.push(productData.ImageUrl1);
-        } else if (productData.Image1 && productData.Image1.trim()) {
+        } else if (isValidImageUrl(productData.Image1)) {
           images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image1}`);
         }
         
-        // Image 2
-        if (productData.ImageUrl2 && productData.ImageUrl2.trim()) {
+        // Image 2 - check both ImageUrl2 and Image2
+        if (isValidImageUrl(productData.ImageUrl2)) {
           images.push(productData.ImageUrl2);
-        } else if (productData.Image2 && productData.Image2.trim()) {
+        } else if (isValidImageUrl(productData.Image2)) {
           images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image2}`);
         }
         
-        // Image 3
-        if (productData.ImageUrl3 && productData.ImageUrl3.trim()) {
+        // Image 3 - check both ImageUrl3 and Image3
+        if (isValidImageUrl(productData.ImageUrl3)) {
           images.push(productData.ImageUrl3);
-        } else if (productData.Image3 && productData.Image3.trim()) {
+        } else if (isValidImageUrl(productData.Image3)) {
           images.push(`https://erp.merpec.com/Upload/CompanyLogo/3044/${productData.Image3}`);
         }
         
@@ -252,13 +267,33 @@ export default function ProductDetailScreen() {
     setShowSuccessModal(false);
   };
 
-  const renderImageItem = ({ item }: { item: string }) => (
-    <Image
-      source={{ uri: item }}
-      style={styles.productImage}
-      resizeMode="contain"
-    />
-  );
+  const renderImageItem = ({ item, index }: { item: string; index: number }) => {
+    const hasFailedToLoad = failedImages.has(item);
+    
+    if (hasFailedToLoad) {
+      // Show placeholder for failed images
+      return (
+        <View style={styles.productImage}>
+          <View style={styles.imageErrorContainer}>
+            <FontAwesome name="image" size={40} color={colors.lightGray} />
+            <Text style={styles.imageErrorText}>{t('image_not_available')}</Text>
+          </View>
+        </View>
+      );
+    }
+    
+    return (
+      <Image
+        source={{ uri: item }}
+        style={styles.productImage}
+        resizeMode="contain"
+        onError={() => {
+          // Add failed image to set and trigger re-render
+          setFailedImages(prev => new Set(prev).add(item));
+        }}
+      />
+    );
+  };
 
   const handleScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
     const slideWidth = width;
@@ -897,7 +932,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.lightGray,
     paddingTop: spacing.sm,
-    paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.lg,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -906,5 +941,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 5,
+  },
+  imageErrorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageErrorText: {
+    color: colors.textGray,
+    fontSize: 14,
   },
 }); 

@@ -155,9 +155,6 @@ export default function CartScreen() {
             {item.ProductName}
           </Text>
           <View style={[styles.priceContainer, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
-            {item.Price !== item.SubTotal / item.Quantity && (
-              <Text style={[styles.oldPrice, { textAlign }]}>{(item.SubTotal / item.Quantity).toFixed(2)} KD</Text>
-            )}
             <Text style={[styles.price, { textAlign }]}>{item.Price.toFixed(2)} KD</Text>
           </View>
         </View>
@@ -206,17 +203,36 @@ export default function CartScreen() {
   const renderCartSummary = () => (
     <View style={[styles.summaryBar, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
       <View style={[styles.totalContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-        <Text style={[styles.totalText, { textAlign }]}>{t('total_caps')} :</Text>
-        <Text style={[
-          styles.totalAmount, 
-          { 
-            marginLeft: isRTL ? 0 : 8, 
-            marginRight: isRTL ? 8 : 0,
-            textAlign 
-          }
-        ]}>
-          {totalAmount.toFixed(2)} KD
-        </Text>
+        {/* For Android RTL, explicitly render price after text */}
+        {Platform.OS === 'android' && isRTL ? (
+          <>
+            <Text style={[styles.totalText, { textAlign }]}>{t('total_caps')} :</Text>
+            <Text style={[
+              styles.totalAmount, 
+              { 
+                marginLeft: 8, 
+                marginRight: 8,
+                textAlign: 'right'
+              }
+            ]}>
+              {totalAmount.toFixed(2)} KD
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.totalText, { textAlign }]}>{t('total_caps')} :</Text>
+            <Text style={[
+              styles.totalAmount, 
+              { 
+                marginLeft: isRTL ? 0 : 8, 
+                marginRight: isRTL ? 8 : 0,
+                textAlign 
+              }
+            ]}>
+              {totalAmount.toFixed(2)} KD
+            </Text>
+          </>
+        )}
       </View>
       
       <TouchableOpacity 
@@ -338,7 +354,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 30,
+    paddingTop: Platform.OS === 'ios' ? 20 : 20,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
@@ -360,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.white,
-    marginTop: Platform.OS === 'ios' ? 100 : 80,
+    marginTop: Platform.OS === 'ios' ? 0 : 0,
   },
   emptyCartContent: {
     alignItems: 'center',
@@ -452,12 +468,6 @@ const styles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'column',
     alignItems: 'flex-start',
-  },
-  oldPrice: {
-    fontSize: 12,
-    color: colors.textGray,
-    textDecorationLine: 'line-through',
-    marginRight: 8,
   },
   price: {
     fontSize: 18,

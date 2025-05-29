@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   readOnlyText: {
     fontSize: 16,
     color: colors.textGray, 
-    paddingVertical: Platform.OS === 'ios' ? (48 - 16 * 1.5) / 2 + 1: (48 - 16) / 2, 
+    paddingVertical: Platform.OS === 'ios' ? (48 - 16 * 1.5) / 2 + 1: (48 - 16 * 1.5) / 2 + 1, 
     paddingHorizontal: spacing.md,
     backgroundColor: colors.veryLightGray, 
     borderRadius: radii.md,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingTop: Platform.OS === 'ios' ? 20 : 20,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },

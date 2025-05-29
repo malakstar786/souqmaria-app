@@ -704,6 +704,10 @@ const translations = {
     en: 'OK',
     ar: 'موافق'
   },
+  'image_not_available': {
+    en: 'Image not available',
+    ar: 'الصورة غير متوفرة'
+  },
   
   // Common status messages
   'success': {

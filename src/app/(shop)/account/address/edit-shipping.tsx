@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 24,
+    paddingTop: Platform.OS === 'ios' ? 20 : 20,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 34,
     maxHeight: '70%',
   },
   modalHeader: {
