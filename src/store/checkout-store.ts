@@ -408,6 +408,11 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
     console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Current state billing addresses:', currentState.billingAddresses.length);
     console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Selected billing address ID:', currentState.selectedBillingAddressId);
     
+    // Get the device IP address - this is critical for cart item matching
+    const { getDeviceIP } = await import('../utils/ip-utils');
+    const deviceIP = await getDeviceIP();
+    console.log('🛒 TRIGGER ORDER REVIEW UPDATE - Using device IP:', deviceIP);
+    
     // Determine location parameters
     let country = '';
     let stateCode = '';
@@ -462,7 +467,7 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
       State: stateCode,
       City: city,
       UniqueId: uniqueId,
-      IpAddress: '127.0.0.1',
+      IpAddress: deviceIP,
       CultureId: parseInt(useLanguageStore.getState().getCultureId()),
       Company: 3044,
       UserId: isLoggedIn ? (user?.UserID || '') : '',

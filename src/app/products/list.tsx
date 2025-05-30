@@ -20,6 +20,7 @@ import {
   ProductFilterParams,
   ProductFilterResponse,
   FilterOption,
+  getAllProductsDirectly,
 } from '../../utils/api-service';
 import ProductCard from '../../components/ProductCard';
 import ProductFilters from '../../components/ProductFilters';
@@ -197,39 +198,40 @@ export default function ProductListScreen() {
         return;
       }
 
-      // Use the filter API instead to get both products and filter options
-      const filterParams: ProductFilterParams = {
-        ...apiParams,
-        Arry_Category: [],
-        Arry_SubCategory: [],
-        Arry_Brand: [],
-        Arry_Color: [],
-        MinPrice: 0,
-        MaxPrice: 1000,
-        SortBy: 'Srt_Dflt', // Default sorting
-      };
-
-      const filterResponse: ProductFilterResponse = await getFilteredProducts(filterParams);
-      console.log('Product Filter API response:', {
-        responseCode: filterResponse.ResponseCode,
-        message: filterResponse.Message,
-        hasData: filterResponse.List ? true : false,
-        productCount: filterResponse.List?.Productlist?.length || 0,
-        brandCount: filterResponse.List?.li_Brand_List?.length || 0,
-        categoryCount: filterResponse.List?.li_Category_List?.length || 0,
+      // Use the correct API for initial load: getAllProductsDirectly (GET endpoint)
+      console.log('Using getAllProductsDirectly API for initial category load');
+      const directResponse = await getAllProductsDirectly(apiParams);
+      console.log('Direct Product API response:', {
+        responseCode: directResponse.ResponseCode,
+        message: directResponse.Message,
+        hasData: directResponse.List ? true : false,
+        productCount: directResponse.List?.length || 0,
       });
 
-      if (String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
-          String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
+      if (String(directResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
+          String(directResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
         
-        // Set filter options
+        // Map products to the correct format from direct API response
+        const productArray = directResponse.List || [];
+        const mappedProducts = productArray.map((item) => ({
+          ItemCode: item.Item_XCode || item.ItemCode,
+          ItemName: item.Item_XName || item.ItemName,
+          OldPrice: item.OldPrice || 0,
+          Price: item.NewPrice || item.Price,
+          ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
+        }));
+        
+        setAllProducts(mappedProducts);
+        setFilteredProducts(mappedProducts);
+        
+        // Set default filter options (will be populated when filters are applied)
         setFilterOptions({
-          brands: filterResponse.List?.li_Brand_List || [],
-          categories: filterResponse.List?.li_Category_List || [],
-          subCategories: filterResponse.List?.li_SubCategory_List || [],
-          sortOptions: filterResponse.List?.li_SortBy_List || [],
-          minPrice: filterResponse.List?.MinPrice || 0,
-          maxPrice: filterResponse.List?.MaxPrice || 1000,
+          brands: [],
+          categories: [],
+          subCategories: [],
+          sortOptions: [],
+          minPrice: 0,
+          maxPrice: 1000,
         });
         
         // Reset active filters
@@ -237,38 +239,23 @@ export default function ProductListScreen() {
           brands: [],
           categories: [],
           subCategories: [],
-          priceRange: [
-            filterResponse.List?.MinPrice || 0, 
-            filterResponse.List?.MaxPrice || 1000
-          ],
+          priceRange: [0, 1000],
           sortBy: 'Srt_Dflt', // Default sorting
         });
         
-        // Map products to the correct format
-        const productArray = filterResponse.List?.Productlist || [];
-        const mappedProducts = productArray.map((item) => ({
-          ItemCode: item.Item_XCode,
-          ItemName: item.Item_XName,
-          OldPrice: item.OldPrice,
-          Price: item.NewPrice,
-          ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
-        }));
-        
-        setAllProducts(mappedProducts);
-        setFilteredProducts(mappedProducts);
         initialLoadDone.current = true;
       } else {
         // Handle specific error cases
-        if (filterResponse.ResponseCode === '-4' && filterResponse.Message === 'List not Found') {
-          // This is a normal case when no products match the filter criteria
+        if (directResponse.ResponseCode === '-4' && directResponse.Message === 'List not Found') {
+          // This is a normal case when no products are found
           setAllProducts([]);
           setFilteredProducts([]);
           setError(null); // Don't show error for empty results
-          console.log('Product filter: No products found for current filters');
+          console.log('Direct Product API: No products found for current category');
         } else {
           // Set error message for actual API failures
-          setError(filterResponse.Message || 'Failed to load products.');
-          console.error('Product filter API error:', filterResponse.Message);
+          setError(directResponse.Message || 'Failed to load products.');
+          console.error('Direct Product API error:', directResponse.Message);
         }
       }
 
@@ -432,6 +419,96 @@ export default function ProductListScreen() {
     loadProducts();
   };
 
+  const loadFilterOptions = useCallback(async () => {
+    // If we already have filter options, don't reload them
+    if (filterOptions.brands.length > 0 || filterOptions.categories.length > 0) {
+      return;
+    }
+    
+    try {
+      // Prepare filter API parameters to get filter options
+      let apiParams: any = {};
+      
+      if (params.pageCode === 'Srch' && params.searchName) {
+        apiParams = {
+          PageCode: 'Srch',
+          SearchName: params.searchName,
+          Category: '',
+          SubCategory: '',
+          HomePageCatSrNo: '',
+        };
+      } else if (params.homePageCatSrNo && params.pageCode) {
+        apiParams = {
+          PageCode: params.pageCode,
+          HomePageCatSrNo: params.homePageCatSrNo,
+          Category: '',
+          SubCategory: '',
+          SearchName: '',
+        };
+      } else if (params.pageCode === 'MN' && params.category) {
+        apiParams = {
+          PageCode: params.pageCode,
+          Category: params.category,
+          SubCategory: params.subCategory || '',
+          SearchName: '',
+          HomePageCatSrNo: '',
+        };
+      }
+      
+      const filterParams: ProductFilterParams = {
+        ...apiParams,
+        CultureId: cultureId,
+        UserId: user?.UserID || user?.id || '',
+        Company: API_COMMON_PARAMS.Company,
+        Arry_Category: [],
+        Arry_SubCategory: [],
+        Arry_Brand: [],
+        Arry_Color: [],
+        MinPrice: 0,
+        MaxPrice: 1000,
+        SortBy: 'Srt_Dflt',
+      };
+      
+      // Call the filter API to get filter options
+      const filterResponse = await getFilteredProducts(filterParams);
+      
+      if (String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
+          String(filterResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
+        
+        // Update filter options
+        setFilterOptions({
+          brands: filterResponse.List?.li_Brand_List || [],
+          categories: filterResponse.List?.li_Category_List || [],
+          subCategories: filterResponse.List?.li_SubCategory_List || [],
+          sortOptions: filterResponse.List?.li_SortBy_List || [],
+          minPrice: filterResponse.List?.MinPrice || 0,
+          maxPrice: filterResponse.List?.MaxPrice || 1000,
+        });
+        
+        // Update active filters price range to match available range
+        setActiveFilters(prev => ({
+          ...prev,
+          priceRange: [
+            filterResponse.List?.MinPrice || 0, 
+            filterResponse.List?.MaxPrice || 1000
+          ],
+        }));
+      }
+    } catch (e: any) {
+      console.error('Error loading filter options:', e);
+    }
+  }, [
+    cultureId, 
+    user, 
+    params.homePageCatSrNo, 
+    params.pageCode, 
+    params.category,
+    params.searchName,
+    params.subCategory,
+    filterOptions.brands.length,
+    filterOptions.categories.length
+  ]);
+
   if (isLoading && filteredProducts.length === 0) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -506,6 +583,7 @@ export default function ProductListScreen() {
           activeFilters={activeFilters}
           onApplyFilters={handleApplyFilters}
           onReset={handleResetFilters}
+          onLoadFilterOptions={loadFilterOptions}
         />
         
         <View style={styles.productsContainer}>

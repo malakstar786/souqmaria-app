@@ -42,6 +42,7 @@ interface ProductFiltersProps {
     sortBy: string;
   }) => void;
   onReset: () => void;
+  onLoadFilterOptions?: () => void;
 }
 
 const ProductFilters: React.FC<ProductFiltersProps> = ({
@@ -50,6 +51,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   activeFilters,
   onApplyFilters,
   onReset,
+  onLoadFilterOptions,
 }) => {
   const { t } = useTranslation();
   const [visibleFilter, setVisibleFilter] = useState<FilterType | null>(null);
@@ -64,6 +66,9 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
 
   const openFilter = (filterType: FilterType) => {
     setVisibleFilter(filterType);
+    if (onLoadFilterOptions) {
+      onLoadFilterOptions();
+    }
   };
 
   const closeFilter = () => {

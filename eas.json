@@ -49,7 +49,7 @@
       "production": {
         "ios": {
           "appleId": "mgt@malakstar.com",
-          "ascAppId": "69a6de94-5dbb-47e3-e053-5b8c7c11a4d1",
+          "ascAppId": "6746574294",
           "appleTeamId": "TMZ6C3NY96"
         },
         "android": {
@@ -59,5 +59,3 @@
       }
     }
   }
-    
-  
