@@ -14,7 +14,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth-store';
-import { colors, spacing, radii } from '@theme';
+import { colors, spacing, radii } from '../theme';
 import { authenticateWithGoogle } from '../utils/google-auth';
 
 interface SignupScreenProps {
@@ -424,6 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     fontSize: 16,
+    color: colors.black,
   },
   eyeIcon: {
     padding: spacing.md,

@@ -14,6 +14,9 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getOrderDetailsForThankYou } from '../utils/api-service';
 import useCartStore from '../store/cart-store';
+import { useTranslation } from '../utils/translations';
+import { useRTL } from '../utils/rtl';
+import { colors } from '@theme';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +29,9 @@ interface OrderDetails {
 export default function ThankYouScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
+  const { isRTL, textAlign, flexDirection } = useRTL();
+  
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -110,8 +116,8 @@ export default function ThankYouScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0063B1" />
-          <Text style={styles.loadingText}>Loading order details...</Text>
+          <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={[styles.loadingText, { textAlign }]}>{t('thank_you_loading_order_details')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -122,8 +128,8 @@ export default function ThankYouScreen() {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.brandName}>Marie Glam</Text>
-            <Text style={styles.brandSubtitle}>cosmetics</Text>
+            <Text style={[styles.brandName, { textAlign }]}>Marie Glam</Text>
+            <Text style={[styles.brandSubtitle, { textAlign }]}>cosmetics</Text>
           </View>
           
           <View style={styles.imageContainer}>
@@ -134,41 +140,47 @@ export default function ThankYouScreen() {
             />
           </View>
           
-          <Text style={styles.successTitle}>Order Successful</Text>
-          <Text style={styles.successSubtitle}>
-            You will be receiving a confirmation email with order details.
+          <Text style={[styles.successTitle, { textAlign }]}>{t('thank_you_order_successful')}</Text>
+          <Text style={[styles.successSubtitle, { textAlign }]}>
+            {t('order_confirmation_email')}
           </Text>
           
           <View style={styles.orderCard}>
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Track Id</Text>
-              <Text style={styles.orderDetailValue}>
+            <View style={[styles.orderDetailRow, { flexDirection }]}>
+              <Text style={[styles.orderDetailLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+                {t('track_id')}
+              </Text>
+              <Text style={[styles.orderDetailValue, { textAlign: isRTL ? 'left' : 'right' }]}>
                 {orderDetails?.TrackId}
               </Text>
             </View>
             
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Pay Status</Text>
-              <Text style={styles.orderDetailValue}>
-                {orderDetails?.PayStatus || 'SUCCESS'}
+            <View style={[styles.orderDetailRow, { flexDirection }]}>
+              <Text style={[styles.orderDetailLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+                {t('pay_status')}
+              </Text>
+              <Text style={[styles.orderDetailValue, { textAlign: isRTL ? 'left' : 'right' }]}>
+                {t('thank_you_success')}
               </Text>
             </View>
             
-            <View style={styles.orderDetailRow}>
-              <Text style={styles.orderDetailLabel}>Total</Text>
-              <Text style={styles.orderDetailValue}>
-                {orderDetails?.Total ? `${orderDetails.Total.toFixed(3)} KWD` : '0.000 KWD'}
+            <View style={[styles.orderDetailRow, { flexDirection }]}>
+              <Text style={[styles.orderDetailLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+                {t('total')}
+              </Text>
+              <Text style={[styles.orderDetailValue, { textAlign: isRTL ? 'left' : 'right' }]}>
+                {orderDetails?.Total ? `${orderDetails.Total.toFixed(3)} ${t('currency')}` : `0.000 ${t('currency')}`}
               </Text>
             </View>
           </View>
           
-          <Text style={styles.contactText}>
-            Your Order has been placed successfully. For any assistance contact here: 
-            <Text style={styles.phoneNumber}> +965-98900952</Text>
+          <Text style={[styles.contactText, { textAlign }]}>
+            {t('order_placed_contact')}{' '}
+            <Text style={styles.phoneNumber}>+965-98900952</Text>
           </Text>
           
           <TouchableOpacity style={styles.continueButton} onPress={handleContinueShopping}>
-            <Text style={styles.continueButtonText}>Continue Shopping</Text>
+            <Text style={[styles.continueButtonText, { textAlign: 'center' }]}>{t('thank_you_continue_shopping')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -179,8 +191,8 @@ export default function ThankYouScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.brandName}>Marie Glam</Text>
-          <Text style={styles.brandSubtitle}>cosmetics</Text>
+          <Text style={[styles.brandName, { textAlign }]}>Marie Glam</Text>
+          <Text style={[styles.brandSubtitle, { textAlign }]}>cosmetics</Text>
         </View>
         
         <View style={styles.imageContainer}>
@@ -191,30 +203,42 @@ export default function ThankYouScreen() {
           />
         </View>
         
-        <Text style={styles.failureTitle}>Oops! Something went wrong.</Text>
-        <Text style={styles.failureSubtitle}>
-          {errorMessage || 'Your Order was not placed please try again'}
+        <Text style={[styles.failureTitle, { textAlign }]}>{t('order_failed_title')}</Text>
+        <Text style={[styles.failureSubtitle, { textAlign }]}>
+          {errorMessage || t('order_failed_message')}
         </Text>
         
         <View style={styles.orderCard}>
-          <View style={styles.orderDetailRow}>
-            <Text style={styles.orderDetailLabel}>Track Id</Text>
-            <Text style={styles.orderDetailValue}>#23456789000</Text>
+          <View style={[styles.orderDetailRow, { flexDirection }]}>
+            <Text style={[styles.orderDetailLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {t('track_id')}
+            </Text>
+            <Text style={[styles.orderDetailValue, { textAlign: isRTL ? 'left' : 'right' }]}>
+              #23456789000
+            </Text>
           </View>
           
-          <View style={styles.orderDetailRow}>
-            <Text style={styles.orderDetailLabel}>Pay Status</Text>
-            <Text style={styles.orderDetailValue}>Failed</Text>
+          <View style={[styles.orderDetailRow, { flexDirection }]}>
+            <Text style={[styles.orderDetailLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {t('pay_status')}
+            </Text>
+            <Text style={[styles.orderDetailValue, { textAlign: isRTL ? 'left' : 'right' }]}>
+              {t('failed')}
+            </Text>
           </View>
           
-          <View style={styles.orderDetailRow}>
-            <Text style={styles.orderDetailLabel}>Total</Text>
-            <Text style={styles.orderDetailValue}>5.500 KWD</Text>
+          <View style={[styles.orderDetailRow, { flexDirection }]}>
+            <Text style={[styles.orderDetailLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {t('total')}
+            </Text>
+            <Text style={[styles.orderDetailValue, { textAlign: isRTL ? 'left' : 'right' }]}>
+              5.500 {t('currency')}
+            </Text>
           </View>
         </View>
         
         <TouchableOpacity style={styles.tryAgainButton} onPress={handleTryAgain}>
-          <Text style={styles.tryAgainButtonText}>Try again</Text>
+          <Text style={[styles.tryAgainButtonText, { textAlign: 'center' }]}>{t('try_again')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -224,7 +248,7 @@ export default function ThankYouScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
   },
   scrollContent: {
     flexGrow: 1,
@@ -240,7 +264,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666666',
+    color: colors.textGray,
   },
   header: {
     alignItems: 'center',
@@ -249,11 +273,11 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#000000',
+    color: colors.black,
   },
   brandSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textGray,
     fontStyle: 'italic',
   },
   imageContainer: {
@@ -275,13 +299,13 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#00AEEF',
+    color: colors.blue,
     textAlign: 'center',
     marginBottom: 8,
   },
   successSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textGray,
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 20,
@@ -289,25 +313,25 @@ const styles = StyleSheet.create({
   failureTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FF0000',
+    color: colors.red,
     textAlign: 'center',
     marginBottom: 8,
   },
   failureSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textGray,
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 20,
   },
   orderCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.veryLightGray,
     borderRadius: 8,
     padding: 20,
     width: '100%',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: colors.lightGray,
   },
   orderDetailRow: {
     flexDirection: 'row',
@@ -315,34 +339,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: colors.lightGray,
   },
   orderDetailLabel: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textGray,
     flex: 1,
   },
   orderDetailValue: {
     fontSize: 14,
-    color: '#000000',
+    color: colors.black,
     fontWeight: '500',
     flex: 1,
-    textAlign: 'right',
   },
   contactText: {
     fontSize: 12,
-    color: '#666666',
+    color: colors.textGray,
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 18,
     paddingHorizontal: 10,
   },
   phoneNumber: {
-    color: '#00AEEF',
+    color: colors.blue,
     fontWeight: '500',
   },
   continueButton: {
-    backgroundColor: '#00AEEF',
+    backgroundColor: colors.blue,
     paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 25,
@@ -350,12 +373,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   tryAgainButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: colors.red,
     paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 25,
@@ -363,7 +386,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tryAgainButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

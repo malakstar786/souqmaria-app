@@ -1,5 +1,5 @@
 // RTL (Right-to-Left) language support utilities
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import useLanguageStore from '../store/language-store';
 import { useEffect } from 'react';
 
@@ -48,9 +48,13 @@ export function getPositionEnd(value: number) {
   return isRTL() ? { left: value } : { right: value };
 }
 
-// Apply RTL styles to a style object
+// Apply RTL styles to a style object with immediate updates
 export function applyRTL(styles: any) {
-  if (!isRTL()) return styles;
+  // Always get the current RTL state from the store
+  const { currentLanguage } = useLanguageStore.getState();
+  const isCurrentRTL = currentLanguage.isRTL;
+  
+  if (!isCurrentRTL) return styles;
   
   const rtlStyles = { ...styles };
   
@@ -67,63 +71,126 @@ export function applyRTL(styles: any) {
   }
   
   // Convert margins
-  if (rtlStyles.marginLeft !== undefined) {
+  if (rtlStyles.marginLeft !== undefined && rtlStyles.marginRight !== undefined) {
     const temp = rtlStyles.marginLeft;
     rtlStyles.marginLeft = rtlStyles.marginRight;
     rtlStyles.marginRight = temp;
+  } else if (rtlStyles.marginLeft !== undefined) {
+    rtlStyles.marginRight = rtlStyles.marginLeft;
+    delete rtlStyles.marginLeft;
+  } else if (rtlStyles.marginRight !== undefined) {
+    rtlStyles.marginLeft = rtlStyles.marginRight;
+    delete rtlStyles.marginRight;
   }
   
   // Convert paddings
-  if (rtlStyles.paddingLeft !== undefined) {
+  if (rtlStyles.paddingLeft !== undefined && rtlStyles.paddingRight !== undefined) {
     const temp = rtlStyles.paddingLeft;
     rtlStyles.paddingLeft = rtlStyles.paddingRight;
     rtlStyles.paddingRight = temp;
+  } else if (rtlStyles.paddingLeft !== undefined) {
+    rtlStyles.paddingRight = rtlStyles.paddingLeft;
+    delete rtlStyles.paddingLeft;
+  } else if (rtlStyles.paddingRight !== undefined) {
+    rtlStyles.paddingLeft = rtlStyles.paddingRight;
+    delete rtlStyles.paddingRight;
   }
   
   // Convert positions
-  if (rtlStyles.left !== undefined) {
+  if (rtlStyles.left !== undefined && rtlStyles.right !== undefined) {
     const temp = rtlStyles.left;
     rtlStyles.left = rtlStyles.right;
     rtlStyles.right = temp;
+  } else if (rtlStyles.left !== undefined) {
+    rtlStyles.right = rtlStyles.left;
+    delete rtlStyles.left;
+  } else if (rtlStyles.right !== undefined) {
+    rtlStyles.left = rtlStyles.right;
+    delete rtlStyles.right;
   }
   
   return rtlStyles;
 }
 
-// Hook for RTL-aware styling - now includes layoutVersion for immediate updates
+// Enhanced hook for RTL-aware styling - includes immediate updates
 export function useRTL() {
   const { currentLanguage, layoutVersion } = useLanguageStore();
   
-  // Include layoutVersion to force re-render when language changes
+  // Get RTL state directly from the current language
   const isRTL = currentLanguage.isRTL;
   const textAlign = isRTL ? 'right' : 'left';
   const flexDirection = isRTL ? 'row-reverse' : 'row';
+  
+  // Log RTL changes for debugging
+  useEffect(() => {
+    console.log('🔄 RTL state updated:', {
+      language: currentLanguage.code,
+      isRTL,
+      I18nManagerRTL: I18nManager.isRTL,
+      layoutVersion,
+      platform: Platform.OS
+    });
+  }, [currentLanguage.code, isRTL, layoutVersion]);
   
   return {
     isRTL,
     textAlign: textAlign as 'left' | 'right',
     flexDirection: flexDirection as 'row' | 'row-reverse',
     layoutVersion, // Include for components that need to force re-render
-    marginStart: (value: number) => getMarginStart(value),
-    marginEnd: (value: number) => getMarginEnd(value),
-    paddingStart: (value: number) => getPaddingStart(value),
-    paddingEnd: (value: number) => getPaddingEnd(value),
-    positionStart: (value: number) => getPositionStart(value),
-    positionEnd: (value: number) => getPositionEnd(value),
-    applyRTL: (styles: any) => applyRTL(styles)
+    
+    // Helper functions that use current state
+    marginStart: (value: number) => isRTL ? { marginRight: value } : { marginLeft: value },
+    marginEnd: (value: number) => isRTL ? { marginLeft: value } : { marginRight: value },
+    paddingStart: (value: number) => isRTL ? { paddingRight: value } : { paddingLeft: value },
+    paddingEnd: (value: number) => isRTL ? { paddingLeft: value } : { paddingRight: value },
+    positionStart: (value: number) => isRTL ? { right: value } : { left: value },
+    positionEnd: (value: number) => isRTL ? { left: value } : { right: value },
+    
+    // Apply RTL with current state
+    applyRTL: (styles: any) => {
+      if (!isRTL) return styles;
+      
+      const rtlStyles = { ...styles };
+      
+      // Apply RTL transformations immediately
+      if (rtlStyles.flexDirection === 'row') {
+        rtlStyles.flexDirection = 'row-reverse';
+      }
+      
+      if (rtlStyles.textAlign === 'left') {
+        rtlStyles.textAlign = 'right';
+      } else if (rtlStyles.textAlign === 'right') {
+        rtlStyles.textAlign = 'left';
+      }
+      
+      return rtlStyles;
+    }
   };
 }
 
 // Force RTL layout update (call when language changes)
 export function forceRTL(enable: boolean) {
   I18nManager.forceRTL(enable);
-  // Note: This requires app restart to take effect in React Native
-  // For immediate changes, use the useRTL hook and layoutVersion
+  console.log('🔄 I18nManager.forceRTL called with:', enable);
+  
+  // On Android, this typically requires app restart to take full effect
+  if (Platform.OS === 'android') {
+    console.log('🤖 Android detected: RTL change may require app restart for full effect');
+  }
 }
 
 // Check if device supports RTL
 export function isRTLSupported(): boolean {
   return I18nManager.isRTL;
+}
+
+// Get current I18nManager state for debugging
+export function getI18nManagerState() {
+  return {
+    isRTL: I18nManager.isRTL,
+    platform: Platform.OS,
+    allowRTL: I18nManager.allowRTL,
+  };
 }
 
 // Hook to preload cache for the opposite language in the background

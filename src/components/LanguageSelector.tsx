@@ -8,10 +8,12 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import useLanguageStore, { LANGUAGES, Language } from '../store/language-store';
 import { colors, spacing, radii } from '@theme';
+import { useRTL } from '../utils/rtl';
 
 interface LanguageSelectorProps {
   style?: any;
@@ -26,19 +28,48 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
     clearError 
   } = useLanguageStore();
   
+  const { isRTL, flexDirection, textAlign } = useRTL();
   const [showModal, setShowModal] = useState(false);
 
   const handleLanguageSelect = async (languageCode: 'en' | 'ar') => {
     try {
-      await setLanguage(languageCode);
+      const selectedLanguage = LANGUAGES[languageCode];
+      const currentIsRTL = currentLanguage.isRTL;
+      const newIsRTL = selectedLanguage.isRTL;
+      const isRTLChanging = currentIsRTL !== newIsRTL;
+      
+      // Close modal immediately
       setShowModal(false);
       
-      // Show success message
-      Alert.alert(
-        'Language Changed',
-        `Language changed to ${LANGUAGES[languageCode].name}. The app will now display content in the selected language.`,
-        [{ text: 'OK' }]
-      );
+      // Handle Android RTL changes differently
+      if (Platform.OS === 'android' && isRTLChanging) {
+        Alert.alert(
+          'Language Change',
+          `You are switching to ${selectedLanguage.name}. This will change the app layout direction and requires the app to restart to apply properly.`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Continue',
+              onPress: async () => {
+                await setLanguage(languageCode);
+                // The language store will handle the restart prompt
+              }
+            }
+          ]
+        );
+      } else {
+        // For iOS or when no RTL change needed
+        await setLanguage(languageCode);
+        
+        Alert.alert(
+          'Language Changed',
+          `Language changed to ${selectedLanguage.name}. The app content will now display in the selected language.`,
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error) {
       console.error('Error changing language:', error);
       Alert.alert(
@@ -55,15 +86,27 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
     return (
       <TouchableOpacity
         key={language.code}
-        style={[styles.languageOption, isSelected && styles.selectedLanguageOption]}
+        style={[
+          styles.languageOption, 
+          isSelected && styles.selectedLanguageOption,
+          { flexDirection }
+        ]}
         onPress={() => handleLanguageSelect(language.code)}
         disabled={isLoading}
       >
-        <View style={styles.languageInfo}>
-          <Text style={[styles.languageName, isSelected && styles.selectedLanguageName]}>
+        <View style={[styles.languageInfo, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+          <Text style={[
+            styles.languageName, 
+            isSelected && styles.selectedLanguageName,
+            { textAlign }
+          ]}>
             {language.name}
           </Text>
-          <Text style={[styles.languageCode, isSelected && styles.selectedLanguageCode]}>
+          <Text style={[
+            styles.languageCode, 
+            isSelected && styles.selectedLanguageCode,
+            { textAlign }
+          ]}>
             {language.code.toUpperCase()}
           </Text>
         </View>
@@ -82,18 +125,27 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
   return (
     <>
       <TouchableOpacity
-        style={[styles.container, style]}
+        style={[styles.container, style, { flexDirection }]}
         onPress={() => setShowModal(true)}
         disabled={isLoading}
       >
-        <View style={styles.header}>
-          <FontAwesome name="globe" size={20} color={colors.blue} style={styles.icon} />
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Language</Text>
-            <Text style={styles.subtitle}>{currentLanguage.name}</Text>
+        <View style={[styles.header, { flexDirection }]}>
+          <FontAwesome 
+            name="globe" 
+            size={20} 
+            color={colors.blue} 
+            style={[styles.icon, isRTL ? { marginLeft: spacing.md } : { marginRight: spacing.md }]} 
+          />
+          <View style={[styles.textContainer, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+            <Text style={[styles.title, { textAlign }]}>Language</Text>
+            <Text style={[styles.subtitle, { textAlign }]}>{currentLanguage.name}</Text>
           </View>
         </View>
-        <FontAwesome name="chevron-right" size={16} color={colors.textGray} />
+        <FontAwesome 
+          name={isRTL ? "chevron-left" : "chevron-right"} 
+          size={16} 
+          color={colors.textGray} 
+        />
       </TouchableOpacity>
 
       <Modal
@@ -106,8 +158,8 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
           <View style={styles.backdrop} />
           
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Language</Text>
+            <View style={[styles.modalHeader, { flexDirection }]}>
+              <Text style={[styles.modalTitle, { textAlign }]}>Select Language</Text>
               <TouchableOpacity
                 onPress={() => setShowModal(false)}
                 style={styles.closeButton}
@@ -120,8 +172,9 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
               {Object.values(LANGUAGES).map(renderLanguageOption)}
             </View>
             
-            <Text style={styles.note}>
+            <Text style={[styles.note, { textAlign }]}>
               Changing the language will update all content in the app to the selected language.
+              {Platform.OS === 'android' && ' On Android, changing language direction may require an app restart.'}
             </Text>
           </View>
         </SafeAreaView>

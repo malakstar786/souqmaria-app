@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAuthStore } from '../store/auth-store';
-import { colors, spacing, radii } from '@theme';
+import { colors, spacing, radii } from '../theme';
 import { authenticateWithGoogle } from '../utils/google-auth';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -660,6 +660,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     fontSize: 16,
+    color: colors.black,
   },
   eyeIcon: {
     padding: spacing.md,

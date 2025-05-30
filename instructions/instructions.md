@@ -16,7 +16,7 @@
 12. [Troubleshooting](#12-troubleshooting)
 
 Test Credentials: 
-Email: hb@test.com
+Email: hb@test2.com
 Password: test@5253
 
 ---

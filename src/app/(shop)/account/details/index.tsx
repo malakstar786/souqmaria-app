@@ -16,7 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAuthStore } from '../../../../store/auth-store'; // Path relative to src/app/(shop)/account/details/
-import { colors, spacing, radii } from '@theme';
+import { colors, spacing, radii } from '../../../../theme';
 import { useTranslation } from '../../../../utils/translations';
 import { useRTL } from '../../../../utils/rtl';
 import { getDeviceIP } from '../../../../utils/ip-utils';
@@ -407,6 +407,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: colors.white,
     height: 48,
+    color: colors.black,
   },
   inputError: {
     borderColor: colors.red,

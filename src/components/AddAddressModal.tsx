@@ -24,6 +24,7 @@ import {
   SaveShippingAddressPayload 
 } from '../utils/api-service';
 import useAuthStore from '../store/auth-store';
+import { getDeviceIP } from '../utils/ip-utils';
 
 const colors = {
   white: '#FFFFFF',
@@ -113,14 +114,14 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
   // When country changes, fetch states
   useEffect(() => {
     if (country) {
-      fetchStates(country.XCode);
+      fetchStates(country.XCode.toString());
     }
   }, [country]);
 
   // When state changes, fetch cities
   useEffect(() => {
     if (state) {
-      fetchCities(state.XCode);
+      fetchCities(state.XCode.toString());
     }
   }, [state]);
 
@@ -129,81 +130,59 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
     setIsLoadingLocations(true);
     try {
       const response = await getCheckoutCountries();
-      if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
-        const mappedCountries: LocationItem[] = response.Data.row.map((item) => ({
-          XCode: item.XCode,
-          XName: item.XName
-        }));
-        setCountries(mappedCountries);
-      } else {
-        Alert.alert('Error', 'Failed to fetch countries');
+      if (response.ResponseCode === '2' && response.Data?.row) {
+        setCountries(response.Data.row);
       }
     } catch (error) {
       console.error('Error fetching countries:', error);
-      Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setIsLoadingLocations(false);
     }
   };
 
   // Fetch states for a country
-  const fetchStates = async (countryId: number) => {
+  const fetchStates = async (countryXCode: string) => {
     setIsLoadingLocations(true);
-    setState(null);
-    setCity(null);
-    setStates([]);
-    setCities([]);
-    
     try {
-      const response = await getCheckoutStates(countryId.toString());
-      if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
-        const mappedStates: LocationItem[] = response.Data.row.map((item) => ({
-          XCode: item.XCode,
-          XName: item.XName
-        }));
-        setStates(mappedStates);
+      const response = await getCheckoutStates(countryXCode);
+      if (response.ResponseCode === '2' && response.Data?.row) {
+        setStates(response.Data.row);
       } else {
-        Alert.alert('Error', 'Failed to fetch states');
+        setStates([]);
       }
     } catch (error) {
       console.error('Error fetching states:', error);
-      Alert.alert('Error', 'Network error. Please try again.');
+      setStates([]);
     } finally {
       setIsLoadingLocations(false);
     }
   };
 
   // Fetch cities for a state
-  const fetchCities = async (stateId: number) => {
+  const fetchCities = async (stateXCode: string) => {
     setIsLoadingLocations(true);
-    setCity(null);
-    setCities([]);
-    
     try {
-      const response = await getCheckoutCities(stateId.toString());
-      if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
-        const mappedCities: LocationItem[] = response.Data.row.map((item) => ({
-          XCode: item.XCode,
-          XName: item.XName
-        }));
-        setCities(mappedCities);
+      const response = await getCheckoutCities(stateXCode);
+      if (response.ResponseCode === '2' && response.Data?.row) {
+        setCities(response.Data.row);
       } else {
-        Alert.alert('Error', 'Failed to fetch cities');
+        setCities([]);
       }
     } catch (error) {
       console.error('Error fetching cities:', error);
-      Alert.alert('Error', 'Network error. Please try again.');
+      setCities([]);
     } finally {
       setIsLoadingLocations(false);
     }
   };
 
   // Form validation
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const errors: {[k: string]: string} = {};
+    
     if (!fullName.trim()) errors.fullName = 'Full name is required';
     if (!email.trim()) errors.email = 'Email is required';
-    if (!mobile.trim()) errors.mobile = 'Mobile number is required';
+    if (!mobile.trim()) errors.mobile = 'Mobile is required';
     if (!country) errors.country = 'Country is required';
     if (!state) errors.state = 'State is required';
     if (!city) errors.city = 'City is required';
@@ -212,15 +191,8 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
     if (!house.trim()) errors.house = 'House is required';
     
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email.trim() && !emailRegex.test(email.trim())) {
-      errors.email = 'Please enter a valid email';
-    }
-    
-    // Mobile validation
-    const mobileRegex = /^\d{8,15}$/;
-    if (mobile.trim() && !mobileRegex.test(mobile.trim())) {
-      errors.mobile = 'Please enter a valid mobile number';
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      errors.email = 'Invalid email format';
     }
     
     setFormErrors(errors);
@@ -239,6 +211,8 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
     setIsSaving(true);
     
     try {
+      const ipAddress = await getDeviceIP();
+      
       if (addressType === 'billing') {
         const billingAddressPayload: SaveBillingAddressPayload = {
           BillingAddressId: 0, // 0 for new address
@@ -257,14 +231,14 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
           Command: 'Save',
           UserId: user.UserID,
           CompanyId: 3044,
-          IpAddress: '127.0.0.1',
+          IpAddress: ipAddress,
         };
         
         const saveResponse = await saveBillingAddress(billingAddressPayload);
         if (saveResponse.ResponseCode === '2') {
           Alert.alert('Success', 'Billing address saved successfully!');
           onSuccess();
-          onClose();
+          handleClose();
         } else {
           Alert.alert('Error', saveResponse.Message || 'Failed to save address. Please try again.');
         }
@@ -286,14 +260,14 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
           Command: 'Save',
           UserId: user.UserID,
           CompanyId: 3044,
-          IpAddress: '127.0.0.1',
+          IpAddress: ipAddress,
         };
         
         const saveResponse = await saveShippingAddress(shippingAddressPayload);
         if (saveResponse.ResponseCode === '2') {
           Alert.alert('Success', 'Shipping address saved successfully!');
           onSuccess();
-          onClose();
+          handleClose();
         } else {
           Alert.alert('Error', saveResponse.Message || 'Failed to save address. Please try again.');
         }
@@ -365,7 +339,9 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalList}>
-            {items.length === 0 ? (
+            {isLoadingLocations ? (
+              <ActivityIndicator color={colors.blue} style={styles.loader} />
+            ) : items.length === 0 ? (
               <Text style={styles.noItemsText}>No items available</Text>
             ) : (
               items.map(item => renderOptionItem(item, selectedItem, onSelect))
@@ -376,10 +352,12 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
     </Modal>
   );
 
+  if (!isVisible) return null;
+
   return (
     <Modal
       animationType="slide"
-      transparent={true}
+      transparent={false}
       visible={isVisible}
       onRequestClose={handleClose}
     >
@@ -388,7 +366,7 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
-          {/* Header */}
+          {/* Single Header - No Double Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <FontAwesome name="arrow-left" size={20} color={colors.blue} />
@@ -449,57 +427,60 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
                 )}
               </View>
               
-              {/* Country Dropdown */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Country *</Text>
-                <TouchableOpacity
-                  style={[styles.dropdown, formErrors.country && styles.inputError]}
-                  onPress={() => setShowCountryModal(true)}
-                >
-                  <Text style={country ? styles.dropdownText : styles.placeholderText}>
-                    {country ? country.XName : 'Select Country'}
-                  </Text>
-                  <FontAwesome name="chevron-down" size={16} color={colors.gray} />
-                </TouchableOpacity>
-                {formErrors.country && (
-                  <Text style={styles.errorText}>{formErrors.country}</Text>
-                )}
-              </View>
-              
-              {/* State Dropdown */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>State *</Text>
-                <TouchableOpacity
-                  style={[styles.dropdown, formErrors.state && styles.inputError]}
-                  onPress={() => setShowStateModal(true)}
-                  disabled={!country}
-                >
-                  <Text style={state ? styles.dropdownText : styles.placeholderText}>
-                    {state ? state.XName : country ? 'Select State' : 'Select Country First'}
-                  </Text>
-                  <FontAwesome name="chevron-down" size={16} color={colors.gray} />
-                </TouchableOpacity>
-                {formErrors.state && (
-                  <Text style={styles.errorText}>{formErrors.state}</Text>
-                )}
-              </View>
-              
-              {/* City Dropdown */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>City *</Text>
-                <TouchableOpacity
-                  style={[styles.dropdown, formErrors.city && styles.inputError]}
-                  onPress={() => setShowCityModal(true)}
-                  disabled={!state}
-                >
-                  <Text style={city ? styles.dropdownText : styles.placeholderText}>
-                    {city ? city.XName : state ? 'Select City' : 'Select State First'}
-                  </Text>
-                  <FontAwesome name="chevron-down" size={16} color={colors.gray} />
-                </TouchableOpacity>
-                {formErrors.city && (
-                  <Text style={styles.errorText}>{formErrors.city}</Text>
-                )}
+              {/* Location Dropdowns - Ensured Column Layout */}
+              <View style={styles.locationSection}>
+                {/* Country Dropdown */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Country *</Text>
+                  <TouchableOpacity
+                    style={[styles.dropdown, formErrors.country && styles.inputError]}
+                    onPress={() => setShowCountryModal(true)}
+                  >
+                    <Text style={country ? styles.dropdownText : styles.placeholderText}>
+                      {country ? country.XName : 'Select Country'}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={16} color={colors.gray} />
+                  </TouchableOpacity>
+                  {formErrors.country && (
+                    <Text style={styles.errorText}>{formErrors.country}</Text>
+                  )}
+                </View>
+                
+                {/* State Dropdown */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>State *</Text>
+                  <TouchableOpacity
+                    style={[styles.dropdown, formErrors.state && styles.inputError]}
+                    onPress={() => setShowStateModal(true)}
+                    disabled={!country}
+                  >
+                    <Text style={state ? styles.dropdownText : styles.placeholderText}>
+                      {state ? state.XName : country ? 'Select State' : 'Select Country First'}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={16} color={colors.gray} />
+                  </TouchableOpacity>
+                  {formErrors.state && (
+                    <Text style={styles.errorText}>{formErrors.state}</Text>
+                  )}
+                </View>
+                
+                {/* City Dropdown */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>City *</Text>
+                  <TouchableOpacity
+                    style={[styles.dropdown, formErrors.city && styles.inputError]}
+                    onPress={() => setShowCityModal(true)}
+                    disabled={!state}
+                  >
+                    <Text style={city ? styles.dropdownText : styles.placeholderText}>
+                      {city ? city.XName : state ? 'Select City' : 'Select State First'}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={16} color={colors.gray} />
+                  </TouchableOpacity>
+                  {formErrors.city && (
+                    <Text style={styles.errorText}>{formErrors.city}</Text>
+                  )}
+                </View>
               </View>
               
               {/* Block */}
@@ -610,6 +591,8 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
             country,
             (selected) => {
               setCountry(selected);
+              setState(null); // Reset state when country changes
+              setCity(null); // Reset city when country changes
               setShowCountryModal(false);
             }
           )}
@@ -623,6 +606,7 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
             state,
             (selected) => {
               setState(selected);
+              setCity(null); // Reset city when state changes
               setShowStateModal(false);
             }
           )}
@@ -658,7 +642,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.lightGray,
-    marginTop: 40, // Account for status bar
+    backgroundColor: colors.white,
   },
   closeButton: {
     padding: spacing.sm,
@@ -676,6 +660,10 @@ const styles = StyleSheet.create({
   },
   formGroup: {
     marginBottom: spacing.md,
+  },
+  locationSection: {
+    // Ensure dropdowns are in column layout
+    width: '100%',
   },
   label: {
     fontSize: 14,
@@ -709,6 +697,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%', // Ensure full width
   },
   dropdownText: {
     fontSize: 16,
@@ -807,6 +796,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.gray,
     textAlign: 'center',
+    padding: spacing.md,
+  },
+  loader: {
     padding: spacing.md,
   },
 });

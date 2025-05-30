@@ -1157,6 +1157,64 @@ const translations = {
   'language_change_note_immediate': {
     en: 'The app layout and content will change immediately when you select a different language.',
     ar: 'سيتغير تخطيط ومحتوى التطبيق فوراً عند اختيار لغة مختلفة.'
+  },
+  
+  // Thank you page translations
+  'thank_you_loading_order_details': {
+    en: 'Loading order details...',
+    ar: 'جاري تحميل تفاصيل الطلب...'
+  },
+  'thank_you_order_successful': {
+    en: 'Order Successful',
+    ar: 'تم الطلب بنجاح'
+  },
+  'order_confirmation_email': {
+    en: 'You will be receiving a confirmation email with order details.',
+    ar: 'ستتلقى رسالة بريد إلكتروني للتأكيد مع تفاصيل الطلب.'
+  },
+  'track_id': {
+    en: 'Track Id',
+    ar: 'رقم التتبع'
+  },
+  'pay_status': {
+    en: 'Pay Status',
+    ar: 'حالة الدفع'
+  },
+  'total': {
+    en: 'Total',
+    ar: 'المجموع'
+  },
+  'currency': {
+    en: 'KWD',
+    ar: 'د.ك'
+  },
+  'thank_you_success': {
+    en: 'SUCCESS',
+    ar: 'نجح'
+  },
+  'failed': {
+    en: 'Failed',
+    ar: 'فشل'
+  },
+  'order_placed_contact': {
+    en: 'Your Order has been placed successfully. For any assistance contact here:',
+    ar: 'تم وضع طلبك بنجاح. للحصول على أي مساعدة، اتصل هنا:'
+  },
+  'thank_you_continue_shopping': {
+    en: 'Continue Shopping',
+    ar: 'متابعة التسوق'
+  },
+  'order_failed_title': {
+    en: 'Oops! Something went wrong.',
+    ar: 'عذراً! حدث خطأ ما.'
+  },
+  'order_failed_message': {
+    en: 'Your Order was not placed please try again',
+    ar: 'لم يتم وضع طلبك، يرجى المحاولة مرة أخرى'
+  },
+  'try_again': {
+    en: 'Try again',
+    ar: 'حاول مرة أخرى'
   }
 } as const;
 

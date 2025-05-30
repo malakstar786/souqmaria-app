@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform, ViewStyle, TextStyle } from 'react-native';
 import { colors } from '@theme';
 import CartIcon from '../../components/CartIcon';
 import useCartStore from '../../store/cart-store';
@@ -52,38 +52,70 @@ export default function ShopLayout() {
 
   // Force re-render when language changes by including layoutVersion in dependency
   useEffect(() => {
-    console.log('🌐 Layout updated for language:', currentLanguage.code, 'RTL:', currentLanguage.isRTL);
+    console.log('🌐 Layout updated for language:', {
+      language: currentLanguage.code,
+      isRTL: currentLanguage.isRTL,
+      I18nManagerRTL: I18nManager.isRTL,
+      layoutVersion,
+      platform: Platform.OS
+    });
   }, [currentLanguage.code, currentLanguage.isRTL, layoutVersion]);
   
-  // Determine tab order based on RTL
-  const isRTL = currentLanguage.isRTL;
-  
-  // Create tab screens in the correct order for RTL
-  const tabScreens = [
-    {
-      name: "index",
-      title: t('home'),
-      icon: "home"
-    },
-    {
-      name: "categories",
-      title: t('categories'),
-      icon: "th-large"
-    },
-    {
-      name: "cart",
-      title: t('cart'),
-      icon: "cart"
-    },
-    {
-      name: "account",
-      title: t('account_tab'),
-      icon: "user"
-    }
-  ];
+  // Memoize RTL-dependent values to ensure proper updates
+  const layoutConfig = useMemo(() => {
+    const isRTL = currentLanguage.isRTL;
+    
+    // Create tab screens in the correct order for RTL
+    const tabScreens = [
+      {
+        name: "index",
+        title: t('home'),
+        icon: "home"
+      },
+      {
+        name: "categories",
+        title: t('categories'),
+        icon: "th-large"
+      },
+      {
+        name: "cart",
+        title: t('cart'),
+        icon: "cart"
+      },
+      {
+        name: "account",
+        title: t('account_tab'),
+        icon: "user"
+      }
+    ];
 
-  // Reverse tab order for RTL
-  const orderedTabs = isRTL ? [...tabScreens].reverse() : tabScreens;
+    // Reverse tab order for RTL
+    const orderedTabs = isRTL ? [...tabScreens].reverse() : tabScreens;
+    
+    const tabBarStyle: ViewStyle = {
+      backgroundColor: colors.white,
+      // Apply RTL direction to tab bar
+      flexDirection: isRTL ? 'row-reverse' : 'row',
+    };
+    
+    const tabBarLabelStyle: TextStyle = {
+      textTransform: 'uppercase',
+      fontSize: 10,
+      textAlign: isRTL ? 'right' : 'left',
+    };
+    
+    const tabBarItemStyle: ViewStyle = {
+      flexDirection: isRTL ? 'row-reverse' : 'row',
+    };
+    
+    return {
+      isRTL,
+      orderedTabs,
+      tabBarStyle,
+      tabBarLabelStyle,
+      tabBarItemStyle,
+    };
+  }, [currentLanguage.code, currentLanguage.isRTL, layoutVersion, t]);
   
   return (
     <Tabs
@@ -91,23 +123,13 @@ export default function ShopLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.blue,
         tabBarInactiveTintColor: colors.black,
-        tabBarStyle: { 
-          backgroundColor: colors.white,
-          // Apply RTL direction to tab bar
-          flexDirection: isRTL ? 'row-reverse' : 'row',
-        },
-        tabBarLabelStyle: { 
-          textTransform: 'uppercase', 
-          fontSize: 10,
-          textAlign: isRTL ? 'right' : 'left',
-        },
+        tabBarStyle: layoutConfig.tabBarStyle,
+        tabBarLabelStyle: layoutConfig.tabBarLabelStyle,
         // Ensure tab bar respects RTL
-        tabBarItemStyle: {
-          flexDirection: isRTL ? 'row-reverse' : 'row',
-        },
+        tabBarItemStyle: layoutConfig.tabBarItemStyle,
       }}
     >
-      {orderedTabs.map((tab) => (
+      {layoutConfig.orderedTabs.map((tab) => (
         <Tabs.Screen
           key={tab.name}
           name={tab.name}

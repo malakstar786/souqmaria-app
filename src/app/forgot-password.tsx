@@ -175,6 +175,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     fontSize: 16,
     backgroundColor: colors.white,
+    color: colors.black,
   },
   inputError: {
     borderColor: colors.red,
