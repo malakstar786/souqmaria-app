@@ -14,17 +14,41 @@ export default function ShopLayout() {
   const { t } = useTranslation();
   const { getUniqueId } = useCartStore();
   const { user } = useAuthStore();
-  const { currentLanguage, layoutVersion } = useLanguageStore();
+  const { currentLanguage, layoutVersion, initializeLanguage } = useLanguageStore();
   
-  // Initialize unique ID and start preloading when app starts
+  // Initialize app on startup
   useEffect(() => {
-    const uniqueId = getUniqueId();
-    console.log('🆔 App initialized with unique ID:', uniqueId);
+    let mounted = true;
     
-    // Start preloading critical data
-    const userId = user?.UserID || user?.id || '';
-    startDataPreloading(userId);
-  }, [getUniqueId, user]);
+    const initializeApp = async () => {
+      try {
+        // Initialize language settings and RTL
+        await initializeLanguage();
+        
+        // Only proceed if component is still mounted
+        if (!mounted) return;
+        
+        // Initialize cart unique ID
+        const uniqueId = getUniqueId();
+        console.log('🆔 App initialized with unique ID:', uniqueId);
+        
+        // Start preloading critical data
+        const userId = user?.UserID || user?.id || '';
+        startDataPreloading(userId);
+        
+        console.log('🚀 App initialization completed');
+      } catch (error) {
+        console.error('🚀 App initialization error:', error);
+      }
+    };
+    
+    initializeApp();
+    
+    // Cleanup function
+    return () => {
+      mounted = false;
+    };
+  }, [getUniqueId, user, initializeLanguage]);
 
   // Force re-render when language changes by including layoutVersion in dependency
   useEffect(() => {

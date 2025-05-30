@@ -205,41 +205,45 @@ export default function ProductListScreen() {
         responseCode: directResponse.ResponseCode,
         message: directResponse.Message,
         hasData: directResponse.List ? true : false,
-        productCount: directResponse.List?.length || 0,
+        productCount: directResponse.List?.Productlist?.length || 0,
       });
 
       if (String(directResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS) || 
           String(directResponse.ResponseCode) === String(RESPONSE_CODES.SUCCESS_ALT)) {
         
         // Map products to the correct format from direct API response
-        const productArray = directResponse.List || [];
+        // The API returns List as an object containing Productlist array, not a direct array
+        const productArray = directResponse.List?.Productlist || [];
         const mappedProducts = productArray.map((item) => ({
-          ItemCode: item.Item_XCode || item.ItemCode,
-          ItemName: item.Item_XName || item.ItemName,
+          ItemCode: item.Item_XCode,
+          ItemName: item.Item_XName,
           OldPrice: item.OldPrice || 0,
-          Price: item.NewPrice || item.Price,
+          Price: item.NewPrice,
           ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
         }));
         
         setAllProducts(mappedProducts);
         setFilteredProducts(mappedProducts);
         
-        // Set default filter options (will be populated when filters are applied)
+        // Set filter options from the API response
         setFilterOptions({
-          brands: [],
-          categories: [],
-          subCategories: [],
-          sortOptions: [],
-          minPrice: 0,
-          maxPrice: 1000,
+          brands: directResponse.List?.li_Brand_List || [],
+          categories: directResponse.List?.li_Category_List || [],
+          subCategories: directResponse.List?.li_SubCategory_List || [],
+          sortOptions: directResponse.List?.li_SortBy_List || [],
+          minPrice: directResponse.List?.MinPrice || 0,
+          maxPrice: directResponse.List?.MaxPrice || 1000,
         });
         
-        // Reset active filters
+        // Reset active filters with correct price range
         setActiveFilters({
           brands: [],
           categories: [],
           subCategories: [],
-          priceRange: [0, 1000],
+          priceRange: [
+            directResponse.List?.MinPrice || 0, 
+            directResponse.List?.MaxPrice || 1000
+          ],
           sortBy: 'Srt_Dflt', // Default sorting
         });
         

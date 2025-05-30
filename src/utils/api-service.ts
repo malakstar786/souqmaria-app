@@ -188,17 +188,30 @@ export interface ProductListItem {
 
 // Product List Item Interface (from Get_AllProduct_List direct HTTP call)
 export interface DirectProductListItem {
-  ItemCode: string;
-  // Add any other fields directly returned by Get_AllProduct_List endpoint
-  [key: string]: any;
+  Item_XCode: string;        // Product code
+  Item_XName: string;        // Product name  
+  Item_Image1: string;       // Product image filename
+  OldPrice: number;          // Original price
+  Discount: number;          // Discount amount
+  NewPrice: number;          // Current price
+  IsWishListItem: boolean;   // Whether item is in wishlist
+  Last_CategoryName: string; // Category name
+  [key: string]: any;        // Allow other properties
 }
 
 // API response for the direct Get_AllProduct_List HTTP call
 export interface AllProductsDirectResponse {
-  List: DirectProductListItem[] | null;
+  List: {
+    Productlist: DirectProductListItem[];
+    li_Brand_List: FilterOption[];
+    li_Category_List: FilterOption[];
+    li_SubCategory_List: FilterOption[];
+    li_SortBy_List: FilterOption[];
+    MinPrice: number;
+    MaxPrice: number;
+  } | null;
   ResponseCode: string; // e.g., "2" for success, "-4" for not found
   Message: string;
-  // Include other fields if the direct API returns them at the top level
 }
 
 // Product Detail Interface (from Get_ProductDetails_ByItemCode SP)
@@ -856,19 +869,11 @@ export const searchOrderDetails = async (userId: string, searchOrderId: string, 
  */
 export const getCategories = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
   const finalCultureId = cultureId || getCurrentCultureId();
-  const cacheKey = 'getCategories';
-  const cacheParams = { cultureId: finalCultureId, userId };
   
-  return withCache(
-    cacheKey,
-    cacheParams,
-    finalCultureId,
-    async () => {
   try {
-        const query = SP_QUERIES.GET_CATEGORY_LIST(finalCultureId, userId); // This is Get_HomePage_Category_List
+    const query = SP_QUERIES.GET_CATEGORY_LIST(finalCultureId, userId); // This is Get_HomePage_Category_List
     // Use the updated apiRequest directly
     return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
-
   } catch (error) {
     console.error('Error getting categories (homepage):', error);
     return {
@@ -878,9 +883,6 @@ export const getCategories = async (cultureId?: string, userId: string = ''): Pr
       Data: null // Or { success: 0, row: [], Message: '...' }
     };
   }
-    },
-    true // Mark as critical for longer caching
-  );
 };
 
 /**
@@ -891,19 +893,11 @@ export const getCategories = async (cultureId?: string, userId: string = ''): Pr
  */
 export const getAllCategories = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
   const finalCultureId = cultureId || getCurrentCultureId();
-  const cacheKey = 'getAllCategories';
-  const cacheParams = { cultureId: finalCultureId, userId };
   
-  return withCache(
-    cacheKey,
-    cacheParams,
-    finalCultureId,
-    async () => {
   try {
-        const query = SP_QUERIES.GET_ALL_CATEGORY_LIST(finalCultureId, userId); // This is Get_All_HomePage_Category_List
+    const query = SP_QUERIES.GET_ALL_CATEGORY_LIST(finalCultureId, userId); // This is Get_All_HomePage_Category_List
     // Use the updated apiRequest directly
     return apiRequest<any>(ENDPOINTS.GET_DATA_JSON, 'POST', { strQuery: query });
-
   } catch (error) {
     console.error('Error getting all categories:', error);
     return {
@@ -913,9 +907,6 @@ export const getAllCategories = async (cultureId?: string, userId: string = ''):
       Data: null // Or { success: 0, row: [], Message: '...' }
     };
   }
-    },
-    true // Mark as critical for longer caching
-  );
 };
 
 /**
@@ -926,38 +917,28 @@ export const getAllCategories = async (cultureId?: string, userId: string = ''):
  */
 export const getBanners = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
   const finalCultureId = cultureId || getCurrentCultureId();
-  const cacheKey = 'getBanners';
-  const cacheParams = { cultureId: finalCultureId, userId };
   
-  return withCache(
-    cacheKey,
-    cacheParams,
-    finalCultureId,
-    async () => {
-      try {
-        const query = SP_QUERIES.GET_BANNER_LIST(finalCultureId, userId);
-        const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
-          strQuery: query
-        });
-        
-        return {
-          StatusCode: 200,
-          ResponseCode: response.data.success === 1 ? '2' : '-2',
-          Message: response.data.Message || 'Banners retrieved successfully',
-          Data: response.data
-        };
-      } catch (error) {
-        console.error('Error getting banners:', error);
-        return {
-          StatusCode: 500,
-          ResponseCode: '-2',
-          Message: 'Failed to fetch banners. Please try again.',
-          Data: null
-        };
-      }
-    },
-    true // Mark as critical for longer caching
-  );
+  try {
+    const query = SP_QUERIES.GET_BANNER_LIST(finalCultureId, userId);
+    const response = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
+    
+    return {
+      StatusCode: 200,
+      ResponseCode: response.data.success === 1 ? '2' : '-2',
+      Message: response.data.Message || 'Banners retrieved successfully',
+      Data: response.data
+    };
+  } catch (error) {
+    console.error('Error getting banners:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: '-2',
+      Message: 'Failed to fetch banners. Please try again.',
+      Data: null
+    };
+  }
 };
 
 /**
@@ -968,57 +949,47 @@ export const getBanners = async (cultureId?: string, userId: string = ''): Promi
  */
 export const getAdvertisements = async (cultureId?: string, userId: string = ''): Promise<ApiResponse<any>> => {
   const finalCultureId = cultureId || getCurrentCultureId();
-  const cacheKey = 'getAdvertisements';
-  const cacheParams = { cultureId: finalCultureId, userId };
   
-  return withCache(
-    cacheKey,
-    cacheParams,
-    finalCultureId,
-    async () => {
-      try {
-        const query = SP_QUERIES.GET_ADVERTISEMENT_LIST(finalCultureId, userId);
-        const axiosResponse = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
-          strQuery: query
-        });
+  try {
+    const query = SP_QUERIES.GET_ADVERTISEMENT_LIST(finalCultureId, userId);
+    const axiosResponse = await axios.post(`${API_BASE_URL}${ENDPOINTS.GET_DATA_JSON}`, {
+      strQuery: query
+    });
 
-        // The data from axiosResponse.data IS the { success, row, Message } object from the SP call.
-        // This entire object should be passed as the .Data property of our standard ApiResponse.
-        // The ResponseCode of our ApiResponse should reflect the success of the HTTP call to getData_JSON itself.
-        return {
-          StatusCode: axiosResponse.status, // HTTP status from the getData_JSON endpoint call
-          ResponseCode: RESPONSE_CODES.SUCCESS, // If axios.post succeeded, this wrapper considers it a success at HTTP level
-          // Message for the ApiResponse can be generic or use the SP message if appropriate for overall status.
-          // Let's use the SP message as it's more specific to the data operation.
-          Message: axiosResponse.data.Message || (axiosResponse.data.success === 1 ? 'Advertisements retrieved' : 'No advertisements found'),
-          Data: axiosResponse.data // This is the direct payload: { success: number, row: Ad[], Message: string }
-        };
-      } catch (error) {
-        console.error('Error getting advertisements:', error);
-        let statusCode = 500;
-        let message = 'Failed to fetch advertisements due to a server or network error. Please try again.';
-        
-        if (axios.isAxiosError(error)) {
-          if (error.response) {
-            statusCode = error.response.status;
-            // Try to get a message from the error response data if available
-            message = error.response.data?.Message || error.message || message;
-          } else {
-            // Network error or other non-response Axios error
-            message = error.message || message;
-          }
-        }
-        
-        return {
-          StatusCode: statusCode,
-          ResponseCode: RESPONSE_CODES.SERVER_ERROR, // Or a more specific error code if derivable
-          Message: message,
-          Data: null // No data in case of such an error
-        };
+    // The data from axiosResponse.data IS the { success, row, Message } object from the SP call.
+    // This entire object should be passed as the .Data property of our standard ApiResponse.
+    // The ResponseCode of our ApiResponse should reflect the success of the HTTP call to getData_JSON itself.
+    return {
+      StatusCode: axiosResponse.status, // HTTP status from the getData_JSON endpoint call
+      ResponseCode: RESPONSE_CODES.SUCCESS, // If axios.post succeeded, this wrapper considers it a success at HTTP level
+      // Message for the ApiResponse can be generic or use the SP message if appropriate for overall status.
+      // Let's use the SP message as it's more specific to the data operation.
+      Message: axiosResponse.data.Message || (axiosResponse.data.success === 1 ? 'Advertisements retrieved' : 'No advertisements found'),
+      Data: axiosResponse.data // This is the direct payload: { success: number, row: Ad[], Message: string }
+    };
+  } catch (error) {
+    console.error('Error getting advertisements:', error);
+    let statusCode = 500;
+    let message = 'Failed to fetch advertisements due to a server or network error. Please try again.';
+    
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        statusCode = error.response.status;
+        // Try to get a message from the error response data if available
+        message = error.response.data?.Message || error.message || message;
+      } else {
+        // Network error or other non-response Axios error
+        message = error.message || message;
       }
-    },
-    true // Mark as critical for longer caching
-  );
+    }
+    
+    return {
+      StatusCode: statusCode,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR, // Or a more specific error code if derivable
+      Message: message,
+      Data: null // No data in case of such an error
+    };
+  }
 };
 
 /**
@@ -1029,25 +1000,15 @@ export const getMenuCategories = async (
   userId: string = '' 
 ): Promise<ApiResponse<{ success: number; row: MenuCategory[]; Message: string }>> => {
   const finalCultureId = cultureId || getCurrentCultureId();
-  const cacheKey = 'getMenuCategories';
-  const cacheParams = { cultureId: finalCultureId, userId };
   
-  return withCache(
-    cacheKey,
-    cacheParams,
-    finalCultureId,
-    async () => {
-      const strQuery = SP_QUERIES.GET_MENU_CATEGORY_LIST(finalCultureId, userId);
-      const payload: GetDataJsonPayload = { strQuery };
-      
-      // apiRequest will now correctly wrap the SP result {success, row, Message} into its Data field.
-      return apiRequest<{ success: number; row: MenuCategory[]; Message: string }>(
-        ENDPOINTS.GET_DATA_JSON,
-        'POST',
-        payload
-      );
-    },
-    true // Mark as critical for longer caching
+  const strQuery = SP_QUERIES.GET_MENU_CATEGORY_LIST(finalCultureId, userId);
+  const payload: GetDataJsonPayload = { strQuery };
+  
+  // apiRequest will now correctly wrap the SP result {success, row, Message} into its Data field.
+  return apiRequest<{ success: number; row: MenuCategory[]; Message: string }>(
+    ENDPOINTS.GET_DATA_JSON,
+    'POST',
+    payload
   );
 };
 
@@ -1127,56 +1088,46 @@ export const searchItems = async (
   }
 
   const finalCultureId = cultureId || getCurrentCultureId();
-  const cacheKey = 'searchItems';
-  const cacheParams = { searchText: searchText.trim(), cultureId: finalCultureId, userId };
   
-  return withCache(
-    cacheKey,
-    cacheParams,
-    finalCultureId,
-    async () => {
-      try {
-        const strQuery = SP_QUERIES.GET_ITEM_NAME_LIST_BY_SEARCH(searchText.trim(), finalCultureId, userId);
-        const payload: GetDataJsonPayload = { strQuery };
+  try {
+    const strQuery = SP_QUERIES.GET_ITEM_NAME_LIST_BY_SEARCH(searchText.trim(), finalCultureId, userId);
+    const payload: GetDataJsonPayload = { strQuery };
 
-        const response = await apiRequest<{ success: number; row: SearchItem[]; Message: string }>(
-          ENDPOINTS.GET_DATA_JSON,
-          'POST',
-          payload
-        );
+    const response = await apiRequest<{ success: number; row: SearchItem[]; Message: string }>(
+      ENDPOINTS.GET_DATA_JSON,
+      'POST',
+      payload
+    );
 
-        if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
-          return {
-            ...response,
-            Data: {
-              success: response.Data.success,
-              row: response.Data.row,
-              Message: response.Data.Message,
-            },
-          };
-        } else {
-          // No search results found or API returned an error
-          return {
-            ...response,
-            Data: {
-              success: 0,
-              row: [],
-              Message: response.Data?.Message || 'No search results found.',
-            },
-          };
-        }
-      } catch (error) {
-        console.error('Error searching items:', error);
-        return {
-          StatusCode: 500,
-          ResponseCode: RESPONSE_CODES.SERVER_ERROR,
-          Message: 'Failed to search items. Please try again.',
-          Data: { success: 0, row: [], Message: 'Search failed due to a server error.' },
-        };
-      }
-    },
-    false // Search results don't need long caching
-  );
+    if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
+      return {
+        ...response,
+        Data: {
+          success: response.Data.success,
+          row: response.Data.row,
+          Message: response.Data.Message,
+        },
+      };
+    } else {
+      // No search results found or API returned an error
+      return {
+        ...response,
+        Data: {
+          success: 0,
+          row: [],
+          Message: response.Data?.Message || 'No search results found.',
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error searching items:', error);
+    return {
+      StatusCode: 500,
+      ResponseCode: RESPONSE_CODES.SERVER_ERROR,
+      Message: 'Failed to search items. Please try again.',
+      Data: { success: 0, row: [], Message: 'Search failed due to a server error.' },
+    };
+  }
 };
 
 // --- Product Listing and Details Functions ---
@@ -2355,4 +2306,4 @@ export async function getOrderReviewCheckout(params: OrderReviewCheckoutParams):
     console.error('❌ ORDER REVIEW CHECKOUT - Error occurred:', error);
     throw error;
   }
-} 
+}

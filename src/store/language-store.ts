@@ -41,6 +41,10 @@ interface LanguageStore {
   preloadLanguageCache: (languageCode: 'en' | 'ar') => Promise<void>;
   // Force layout update without app restart
   forceLayoutUpdate: () => void;
+  // Reset to default language and clear all cache
+  resetToDefault: () => Promise<void>;
+  // Initialize language on app start
+  initializeLanguage: () => Promise<void>;
 }
 
 const useLanguageStore = create<LanguageStore>()(
@@ -62,7 +66,10 @@ const useLanguageStore = create<LanguageStore>()(
             throw new Error(`Unsupported language: ${languageCode}`);
           }
 
-          // Update RTL layout direction for future app launches
+          // Clear cache for the new language to ensure fresh data
+          await apiCache.clearByCultureId(newLanguage.cultureId);
+
+          // Update RTL layout direction
           I18nManager.forceRTL(newLanguage.isRTL);
 
           // Preload cache for the new language to improve performance
@@ -84,6 +91,54 @@ const useLanguageStore = create<LanguageStore>()(
             isLoading: false 
           });
           console.error('🌐 Language change error:', error);
+        }
+      },
+
+      // Initialize language on app start - ensures proper RTL state
+      initializeLanguage: async () => {
+        try {
+          const currentLang = get().currentLanguage;
+          
+          // Force RTL setting to match current language
+          I18nManager.forceRTL(currentLang.isRTL);
+          
+          // Increment layout version to force re-render
+          set({ layoutVersion: get().layoutVersion + 1 });
+          
+          console.log(`🌐 Language initialized: ${currentLang.name} (RTL: ${currentLang.isRTL})`);
+        } catch (error) {
+          console.error('🌐 Language initialization error:', error);
+          // Fallback to English if initialization fails
+          await get().resetToDefault();
+        }
+      },
+
+      // Reset to default language and clear all cache
+      resetToDefault: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          // Clear all API cache
+          await apiCache.clearAll();
+          
+          // Reset to English (LTR)
+          I18nManager.forceRTL(false);
+          
+          // Reset state to default
+          set({
+            currentLanguage: LANGUAGES.en,
+            isLoading: false,
+            error: null,
+            layoutVersion: get().layoutVersion + 1,
+          });
+          
+          console.log('🌐 Language reset to default (English)');
+        } catch (error) {
+          console.error('🌐 Language reset error:', error);
+          set({
+            error: 'Failed to reset language',
+            isLoading: false,
+          });
         }
       },
 
@@ -125,6 +180,22 @@ const useLanguageStore = create<LanguageStore>()(
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist the current language, not loading/error states or layoutVersion
       partialize: (state) => ({ currentLanguage: state.currentLanguage }),
+      // Add migration to handle any corrupted data
+      migrate: (persistedState, version) => {
+        // If the persisted state is corrupted or invalid, reset to default
+        if (!persistedState || typeof persistedState !== 'object') {
+          return { currentLanguage: LANGUAGES.en };
+        }
+        
+        const state = persistedState as any;
+        
+        // Validate the current language
+        if (!state.currentLanguage || !LANGUAGES[state.currentLanguage.code]) {
+          return { currentLanguage: LANGUAGES.en };
+        }
+        
+        return state;
+      },
     }
   )
 );
