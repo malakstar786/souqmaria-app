@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,18 +10,15 @@ import {
   Modal,
   SafeAreaView,
   StatusBar,
-  Dimensions,
   Alert,
   ActivityIndicator,
   Platform,
-  KeyboardAvoidingView,
   Image,
-  Switch
 } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { colors, spacing, typography } from '@theme';
+import { colors, spacing } from '@theme';
 
 const radii = {
   sm: 4,
@@ -1288,7 +1285,7 @@ export default function CheckoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(122, 121, 121, 0.5)',
   },
   modalContainer: {
     flex: 1,

@@ -7,18 +7,18 @@ import useAuthStore from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
 import useLanguageStore from '../../../../store/language-store';
 import { useTranslation } from '../../../../utils/translations';
+import { useRTL } from '../../../../utils/rtl';
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams();
-  const orderNo = slug as string;
+  const orderNo = Array.isArray(slug) ? slug[0] : slug;
   
   const { user } = useAuthStore();
   const { orderDetails, isLoadingDetails, errorDetails, fetchOrderDetails, orders } = useOrderStore();
   const { currentLanguage } = useLanguageStore();
   const { t } = useTranslation();
-  
-  const isRTL = currentLanguage.isRTL;
+  const { isRTL, flexDirection, textAlign } = useRTL();
 
   // Fetch order details when the screen loads
   useEffect(() => {
@@ -48,8 +48,8 @@ export default function OrderDetailsScreen() {
 
   // Render an individual order item
   const renderOrderItem = ({ item, index }: { item: any; index: number }) => (
-    <View style={[styles.itemCard, isRTL && styles.itemCardRTL]}>
-      <View style={[styles.itemImageContainer, isRTL && styles.itemImageContainerRTL]}>
+    <View style={styles.itemCard}>
+      <View style={styles.itemImageContainer}>
         {item.ItemImage ? (
           <Image 
             source={{ uri: getProductImageUrl(item.ItemImage) }} 
@@ -63,13 +63,13 @@ export default function OrderDetailsScreen() {
         )}
       </View>
       
-      <View style={[styles.itemDetails, isRTL && styles.itemDetailsRTL]}>
-        <Text style={[styles.itemName, isRTL && styles.textRTL]} numberOfLines={2}>{item.ItemName}</Text>
-        <Text style={[styles.itemQuantity, isRTL && styles.textRTL]}>{t('qty')}: {item.Quantity}</Text>
-        <View style={[styles.itemPriceRow, isRTL && styles.itemPriceRowRTL]}>
-          <Text style={[styles.itemPrice, isRTL && styles.textRTL]}>{formatPrice(item.ProdPrice)}</Text>
+      <View style={styles.itemDetails}>
+        <Text style={[styles.itemName, { textAlign }]} numberOfLines={2}>{item.ItemName}</Text>
+        <Text style={[styles.itemQuantity, { textAlign }]}>{t('qty')}: {item.Quantity}</Text>
+        <View style={[styles.itemPriceRow, { flexDirection }]}>
+          <Text style={[styles.itemPrice, { textAlign }]}>{formatPrice(item.ProdPrice)}</Text>
         </View>
-        <Text style={[styles.itemTotal, isRTL && styles.textRTL]}>{t('subtotal')}: {formatPrice(item.ProdPrice * item.Quantity)}</Text>
+        <Text style={[styles.itemTotal, { textAlign }]}>{t('subtotal')}: {formatPrice(item.ProdPrice * item.Quantity)}</Text>
       </View>
     </View>
   );
@@ -78,7 +78,7 @@ export default function OrderDetailsScreen() {
   const renderEmptyOrderDetails = () => (
     <View style={styles.emptyContainer}>
       <FontAwesome name="exclamation-circle" size={64} color={colors.lightGray} />
-      <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t('no_order_details_found')}</Text>
+      <Text style={[styles.emptyText, { textAlign }]}>{t('no_order_details_found')}</Text>
     </View>
   );
 
@@ -253,19 +253,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lightGray,
   },
-  itemCardRTL: {
-    flexDirection: 'row-reverse',
-  },
   itemImageContainer: {
     width: 80,
     height: 80,
     borderRadius: radii.sm,
     overflow: 'hidden',
     marginRight: spacing.md,
-  },
-  itemImageContainerRTL: {
-    marginRight: 0,
-    marginLeft: spacing.md,
   },
   itemImage: {
     width: '100%',
@@ -282,9 +275,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
   },
-  itemDetailsRTL: {
-    alignItems: 'flex-end',
-  },
   itemName: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -300,17 +290,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xs,
   },
-  itemPriceRowRTL: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'flex-end',
-  },
   itemPrice: {
     fontSize: 14,
     marginRight: spacing.sm,
-  },
-  itemDiscount: {
-    fontSize: 14,
-    color: colors.red,
   },
   itemTotal: {
     fontSize: 14,

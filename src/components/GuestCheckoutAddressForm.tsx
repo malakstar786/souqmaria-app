@@ -96,19 +96,24 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
   const fetchCountries = async () => {
     setIsLoadingLocations(true);
     try {
+      console.log('🌍 Fetching countries for checkout...');
       const response = await getCheckoutCountries();
+      console.log('🌍 Countries response:', JSON.stringify(response, null, 2));
+      
       if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
         // Map API response to our LocationItem structure
         const mappedCountries: LocationItem[] = response.Data.row.map((item) => ({
           XCode: item.XCode,
           XName: item.XName
         }));
+        console.log('🌍 Mapped countries:', mappedCountries.length, 'items');
         setCountries(mappedCountries);
       } else {
+        console.error('🌍 Failed to fetch countries:', response);
         Alert.alert('Error', 'Failed to fetch countries');
       }
     } catch (error) {
-      console.error('Error fetching countries:', error);
+      console.error('🌍 Error fetching countries:', error);
       Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setIsLoadingLocations(false);
@@ -396,15 +401,31 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
           <View style={styles.formGroup}>
             <TouchableOpacity
               style={[styles.dropdown, formErrors.country && styles.inputError]}
-              onPress={() => setShowCountryModal(true)}
+              onPress={() => {
+                console.log('🌍 Country dropdown pressed, countries count:', countries.length);
+                if (countries.length > 0) {
+                  setShowCountryModal(true);
+                } else {
+                  console.log('🌍 No countries available, fetching again...');
+                  fetchCountries();
+                }
+              }}
+              disabled={isLoadingLocations}
             >
               <Text style={country ? styles.dropdownText : styles.placeholderText}>
                 {country ? country.XName : t('country')}
               </Text>
-              <FontAwesome name="chevron-down" size={16} color="#666" />
+              {isLoadingLocations ? (
+                <ActivityIndicator size="small" color="#00AEEF" />
+              ) : (
+                <FontAwesome name="chevron-down" size={16} color="#666" />
+              )}
             </TouchableOpacity>
             {formErrors.country && (
               <Text style={styles.errorText}>{formErrors.country}</Text>
+            )}
+            {countries.length === 0 && !isLoadingLocations && (
+              <Text style={styles.infoText}>No countries available. Tap to retry.</Text>
             )}
           </View>
           
@@ -762,6 +783,12 @@ const styles = StyleSheet.create({
   },
   noItemsText: {
     fontSize: 16,
+    color: '#999999',
+    textAlign: 'center',
+    padding: 16,
+  },
+  infoText: {
+    fontSize: 12,
     color: '#999999',
     textAlign: 'center',
     padding: 16,

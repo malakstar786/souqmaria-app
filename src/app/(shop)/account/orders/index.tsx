@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  Alert,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii, typography } from '@theme';
@@ -147,31 +148,31 @@ export default function OrdersScreen() {
   // Render an individual order card
   const renderOrderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity 
-      style={[styles.orderCard, currentLanguage.isRTL && styles.orderCardRTL]} 
+      style={styles.orderCard} 
       onPress={() => handleOrderPress(item)}
       activeOpacity={0.7}
     >
-      <View style={[styles.orderHeader, currentLanguage.isRTL && styles.orderHeaderRTL]}>
-        <Text style={[styles.orderNumber, currentLanguage.isRTL && styles.textRTL]}>
+      <View style={[styles.orderHeader, { flexDirection }]}>
+        <Text style={[styles.orderNumber, { textAlign }]}>
           {t('order_number')}{item.OrderId}
         </Text>
-        <Text style={[styles.orderDate, currentLanguage.isRTL && styles.textRTL]}>
+        <Text style={[styles.orderDate, { textAlign }]}>
           {formatDate(item.OrderOn)}
         </Text>
       </View>
       
       <View style={styles.orderInfo}>
-        <Text style={[styles.orderTotal, currentLanguage.isRTL && styles.textRTL]}>
+        <Text style={[styles.orderTotal, { textAlign }]}>
           {t('total_amount')}: {formatPrice(item.OrderTotal)}
         </Text>
       </View>
       
-      <View style={[styles.orderFooter, currentLanguage.isRTL && styles.orderFooterRTL]}>
-        <Text style={[styles.itemCount, currentLanguage.isRTL && styles.textRTL]}>
+      <View style={[styles.orderFooter, { flexDirection }]}>
+        <Text style={[styles.itemCount, { textAlign }]}>
           {t('view_details')}
         </Text>
         <FontAwesome 
-          name={currentLanguage.isRTL ? "chevron-left" : "chevron-right"} 
+          name={isRTL ? "chevron-left" : "chevron-right"} 
           size={14} 
           color={colors.textGray} 
         />
@@ -186,10 +187,10 @@ export default function OrdersScreen() {
     return (
       <View style={styles.emptyContainer}>
         <FontAwesome name="shopping-bag" size={64} color={colors.lightGray} />
-        <Text style={[styles.emptyText, currentLanguage.isRTL && styles.textRTL]}>
+        <Text style={[styles.emptyText, { textAlign }]}>
           {isSearchActive ? t('no_orders_match_search') : t('no_orders_found')}
         </Text>
-        <Text style={[styles.emptySubText, currentLanguage.isRTL && styles.textRTL]}>
+        <Text style={[styles.emptySubText, { textAlign }]}>
           {isSearchActive ? t('try_different_search') : t('order_history_appears_here')}
         </Text>
         {isSearchActive && (

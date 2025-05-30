@@ -14,8 +14,8 @@ import {
   Image
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, radii, typography } from '@theme';
-import { useRouter, Link } from 'expo-router';
+import { colors, spacing } from '@theme';
+import { useRouter } from 'expo-router';
 import useCartStore from '../../store/cart-store';
 import useAuthStore from '../../store/auth-store';
 import useWishlistStore from '../../store/wishlist-store';

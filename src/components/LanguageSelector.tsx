@@ -34,9 +34,18 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
   const handleLanguageSelect = async (languageCode: 'en' | 'ar') => {
     try {
       const selectedLanguage = LANGUAGES[languageCode];
-      const currentIsRTL = currentLanguage.isRTL;
-      const newIsRTL = selectedLanguage.isRTL;
-      const isRTLChanging = currentIsRTL !== newIsRTL;
+      
+      // For Android: Check if we're switching between Arabic and non-Arabic
+      // For iOS: Check if RTL property is changing
+      let isRTLChanging = false;
+      if (Platform.OS === 'android') {
+        const currentIsArabic = currentLanguage.code === 'ar';
+        const newIsArabic = languageCode === 'ar';
+        isRTLChanging = currentIsArabic !== newIsArabic;
+      } else {
+        // iOS - use natural RTL property
+        isRTLChanging = currentLanguage.isRTL !== selectedLanguage.isRTL;
+      }
       
       // Close modal immediately
       setShowModal(false);

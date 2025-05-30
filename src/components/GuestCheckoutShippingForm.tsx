@@ -15,6 +15,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
 import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse, saveShippingAddress, SaveShippingAddressPayload } from '../utils/api-service';
+import { getDeviceIP } from '../utils/ip-utils';
 
 // Define our own LocationItem interface to match the component usage
 interface LocationItem {
@@ -93,19 +94,24 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
   const fetchCountries = async () => {
     setIsLoadingLocations(true);
     try {
+      console.log('🚢 Fetching countries for shipping...');
       const response = await getCheckoutCountries();
+      console.log('🚢 Countries response:', JSON.stringify(response, null, 2));
+      
       if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
         // Map API response to our LocationItem structure
         const mappedCountries: LocationItem[] = response.Data.row.map((item) => ({
           XCode: item.XCode,
           XName: item.XName
         }));
+        console.log('🚢 Mapped countries:', mappedCountries.length, 'items');
         setCountries(mappedCountries);
       } else {
+        console.error('🚢 Failed to fetch countries:', response);
         Alert.alert('Error', 'Failed to fetch countries');
       }
     } catch (error) {
-      console.error('Error fetching countries:', error);
+      console.error('🚢 Error fetching countries:', error);
       Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setIsLoadingLocations(false);
@@ -241,7 +247,7 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
         Command: 'Save',
         UserId: guestTrackId,
         CompanyId: 3044,
-        IpAddress: '127.0.0.1',
+        IpAddress: await getDeviceIP(),
       };
       
       console.log('Saving shipping address with payload:', shippingAddressPayload);

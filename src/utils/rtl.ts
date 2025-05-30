@@ -6,9 +6,16 @@ import { useEffect } from 'react';
 // RTL languages list
 const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];
 
-// Check if current language is RTL
+// Check if current language should use RTL
 export function isRTL(): boolean {
   const { currentLanguage } = useLanguageStore.getState();
+  
+  // For Android: only apply RTL if language is Arabic
+  if (Platform.OS === 'android') {
+    return currentLanguage.code === 'ar';
+  }
+  
+  // For iOS: use the language's natural RTL property
   return currentLanguage.isRTL;
 }
 
@@ -50,11 +57,10 @@ export function getPositionEnd(value: number) {
 
 // Apply RTL styles to a style object with immediate updates
 export function applyRTL(styles: any) {
-  // Always get the current RTL state from the store
-  const { currentLanguage } = useLanguageStore.getState();
-  const isCurrentRTL = currentLanguage.isRTL;
+  // Use the platform-specific RTL check
+  const shouldApplyRTL = isRTL();
   
-  if (!isCurrentRTL) return styles;
+  if (!shouldApplyRTL) return styles;
   
   const rtlStyles = { ...styles };
   
@@ -116,39 +122,39 @@ export function applyRTL(styles: any) {
 export function useRTL() {
   const { currentLanguage, layoutVersion } = useLanguageStore();
   
-  // Get RTL state directly from the current language
-  const isRTL = currentLanguage.isRTL;
-  const textAlign = isRTL ? 'right' : 'left';
-  const flexDirection = isRTL ? 'row-reverse' : 'row';
+  // Use platform-specific RTL logic
+  const currentIsRTL = isRTL();
+  const textAlign = currentIsRTL ? 'right' : 'left';
+  const flexDirection = currentIsRTL ? 'row-reverse' : 'row';
   
   // Log RTL changes for debugging
   useEffect(() => {
     console.log('🔄 RTL state updated:', {
       language: currentLanguage.code,
-      isRTL,
+      isRTL: currentIsRTL,
       I18nManagerRTL: I18nManager.isRTL,
       layoutVersion,
       platform: Platform.OS
     });
-  }, [currentLanguage.code, isRTL, layoutVersion]);
+  }, [currentLanguage.code, currentIsRTL, layoutVersion]);
   
   return {
-    isRTL,
+    isRTL: currentIsRTL,
     textAlign: textAlign as 'left' | 'right',
     flexDirection: flexDirection as 'row' | 'row-reverse',
     layoutVersion, // Include for components that need to force re-render
     
     // Helper functions that use current state
-    marginStart: (value: number) => isRTL ? { marginRight: value } : { marginLeft: value },
-    marginEnd: (value: number) => isRTL ? { marginLeft: value } : { marginRight: value },
-    paddingStart: (value: number) => isRTL ? { paddingRight: value } : { paddingLeft: value },
-    paddingEnd: (value: number) => isRTL ? { paddingLeft: value } : { paddingRight: value },
-    positionStart: (value: number) => isRTL ? { right: value } : { left: value },
-    positionEnd: (value: number) => isRTL ? { left: value } : { right: value },
+    marginStart: (value: number) => currentIsRTL ? { marginRight: value } : { marginLeft: value },
+    marginEnd: (value: number) => currentIsRTL ? { marginLeft: value } : { marginRight: value },
+    paddingStart: (value: number) => currentIsRTL ? { paddingRight: value } : { paddingLeft: value },
+    paddingEnd: (value: number) => currentIsRTL ? { paddingLeft: value } : { paddingRight: value },
+    positionStart: (value: number) => currentIsRTL ? { right: value } : { left: value },
+    positionEnd: (value: number) => currentIsRTL ? { left: value } : { right: value },
     
     // Apply RTL with current state
     applyRTL: (styles: any) => {
-      if (!isRTL) return styles;
+      if (!currentIsRTL) return styles;
       
       const rtlStyles = { ...styles };
       

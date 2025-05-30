@@ -129,12 +129,25 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
   const fetchCountries = async () => {
     setIsLoadingLocations(true);
     try {
+      console.log('🌍 Fetching countries for authenticated user checkout...');
       const response = await getCheckoutCountries();
-      if (response.ResponseCode === '2' && response.Data?.row) {
-        setCountries(response.Data.row);
+      console.log('🌍 Countries response:', JSON.stringify(response, null, 2));
+      
+      if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
+        // Map API response to our LocationItem structure
+        const mappedCountries: LocationItem[] = response.Data.row.map((item) => ({
+          XCode: item.XCode,
+          XName: item.XName
+        }));
+        console.log('🌍 Mapped countries:', mappedCountries.length, 'items');
+        setCountries(mappedCountries);
+      } else {
+        console.error('🌍 Failed to fetch countries:', response);
+        Alert.alert('Error', 'Failed to fetch countries');
       }
     } catch (error) {
-      console.error('Error fetching countries:', error);
+      console.error('🌍 Error fetching countries:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setIsLoadingLocations(false);
     }
@@ -143,16 +156,30 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
   // Fetch states for a country
   const fetchStates = async (countryXCode: string) => {
     setIsLoadingLocations(true);
+    setState(null);
+    setCity(null);
+    setStates([]);
+    setCities([]);
+    
     try {
+      console.log('🌍 Fetching states for country:', countryXCode);
       const response = await getCheckoutStates(countryXCode);
-      if (response.ResponseCode === '2' && response.Data?.row) {
-        setStates(response.Data.row);
+      console.log('🌍 States response:', JSON.stringify(response, null, 2));
+      
+      if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
+        const mappedStates: LocationItem[] = response.Data.row.map((item) => ({
+          XCode: item.XCode,
+          XName: item.XName
+        }));
+        console.log('🌍 Mapped states:', mappedStates.length, 'items');
+        setStates(mappedStates);
       } else {
-        setStates([]);
+        console.error('🌍 Failed to fetch states:', response);
+        Alert.alert('Error', 'Failed to fetch states');
       }
     } catch (error) {
-      console.error('Error fetching states:', error);
-      setStates([]);
+      console.error('🌍 Error fetching states:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setIsLoadingLocations(false);
     }
@@ -161,16 +188,28 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
   // Fetch cities for a state
   const fetchCities = async (stateXCode: string) => {
     setIsLoadingLocations(true);
+    setCity(null);
+    setCities([]);
+    
     try {
+      console.log('🌍 Fetching cities for state:', stateXCode);
       const response = await getCheckoutCities(stateXCode);
-      if (response.ResponseCode === '2' && response.Data?.row) {
-        setCities(response.Data.row);
+      console.log('🌍 Cities response:', JSON.stringify(response, null, 2));
+      
+      if (response.Data && response.Data.success === 1 && Array.isArray(response.Data.row)) {
+        const mappedCities: LocationItem[] = response.Data.row.map((item) => ({
+          XCode: item.XCode,
+          XName: item.XName
+        }));
+        console.log('🌍 Mapped cities:', mappedCities.length, 'items');
+        setCities(mappedCities);
       } else {
-        setCities([]);
+        console.error('🌍 Failed to fetch cities:', response);
+        Alert.alert('Error', 'Failed to fetch cities');
       }
     } catch (error) {
-      console.error('Error fetching cities:', error);
-      setCities([]);
+      console.error('🌍 Error fetching cities:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setIsLoadingLocations(false);
     }
@@ -434,15 +473,31 @@ const AddAddressModal = ({ isVisible, onClose, onSuccess, addressType }: AddAddr
                   <Text style={styles.label}>Country *</Text>
                   <TouchableOpacity
                     style={[styles.dropdown, formErrors.country && styles.inputError]}
-                    onPress={() => setShowCountryModal(true)}
+                    onPress={() => {
+                      console.log('🌍 Country dropdown pressed, countries count:', countries.length);
+                      if (countries.length > 0) {
+                        setShowCountryModal(true);
+                      } else {
+                        console.log('🌍 No countries available, fetching again...');
+                        fetchCountries();
+                      }
+                    }}
+                    disabled={isLoadingLocations}
                   >
                     <Text style={country ? styles.dropdownText : styles.placeholderText}>
                       {country ? country.XName : 'Select Country'}
                     </Text>
-                    <FontAwesome name="chevron-down" size={16} color={colors.gray} />
+                    {isLoadingLocations ? (
+                      <ActivityIndicator size="small" color={colors.blue} />
+                    ) : (
+                      <FontAwesome name="chevron-down" size={16} color={colors.gray} />
+                    )}
                   </TouchableOpacity>
                   {formErrors.country && (
                     <Text style={styles.errorText}>{formErrors.country}</Text>
+                  )}
+                  {countries.length === 0 && !isLoadingLocations && (
+                    <Text style={styles.infoText}>No countries available. Tap to retry.</Text>
                   )}
                 </View>
                 
@@ -799,6 +854,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   loader: {
+    padding: spacing.md,
+  },
+  infoText: {
+    fontSize: 12,
+    color: colors.gray,
+    textAlign: 'center',
     padding: spacing.md,
   },
 });

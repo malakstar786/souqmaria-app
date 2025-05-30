@@ -26,9 +26,64 @@ export const LANGUAGES: Record<string, Language> = {
   },
 };
 
-// Early RTL initialization for Android - this runs synchronously
+// Android-specific RTL handler - only apply RTL when language is Arabic
+const handleAndroidRTL = (language: Language) => {
+  if (Platform.OS === 'android') {
+    // Only force RTL if language is Arabic, otherwise force LTR
+    const shouldApplyRTL = language.code === 'ar';
+    
+    console.log(`🤖 Android RTL: Setting ${language.code} -> RTL: ${shouldApplyRTL}`);
+    
+    // Apply immediately and verify with multiple attempts for stubborn Android caching
+    I18nManager.forceRTL(shouldApplyRTL);
+    
+    // Add verification with retry mechanism for Android with stronger forcing
+    setTimeout(() => {
+      const currentRTLState = I18nManager.isRTL;
+      if (currentRTLState !== shouldApplyRTL) {
+        console.warn(`🤖 Android RTL mismatch detected! Expected: ${shouldApplyRTL}, Actual: ${currentRTLState}`);
+        
+        // Force apply again with more aggressive approach
+        I18nManager.forceRTL(shouldApplyRTL);
+        
+        // For English (LTR), try forcing RTL to false multiple times to clear cache
+        if (!shouldApplyRTL) {
+          console.log('🤖 Attempting to clear Android RTL cache...');
+          // Try multiple times to clear stubborn RTL state
+          setTimeout(() => I18nManager.forceRTL(false), 10);
+          setTimeout(() => I18nManager.forceRTL(false), 50);
+          setTimeout(() => I18nManager.forceRTL(false), 100);
+        }
+        
+        // Final check after aggressive clearing
+        setTimeout(() => {
+          const finalRTLState = I18nManager.isRTL;
+          if (finalRTLState !== shouldApplyRTL) {
+            console.error(`🤖 Android RTL failed to apply correctly. Final state: ${finalRTLState}, Expected: ${shouldApplyRTL}`);
+            // As a last resort, try clearing AsyncStorage RTL state
+            AsyncStorage.removeItem('last-rtl-state').then(() => {
+              console.log('🤖 Cleared RTL state from storage');
+              I18nManager.forceRTL(shouldApplyRTL);
+            });
+          } else {
+            console.log(`🤖 Android RTL corrected: ${language.code} -> RTL: ${shouldApplyRTL}`);
+          }
+        }, 200);
+      } else {
+        console.log(`🤖 Android RTL applied correctly: ${language.code} -> RTL: ${shouldApplyRTL}`);
+      }
+    }, 50);
+  }
+  // iOS handles RTL naturally, no need to force
+};
+
+// Early RTL initialization for Android - only apply RTL for Arabic
 const initializeRTLEarly = () => {
+  if (Platform.OS !== 'android') return; // Only for Android
+  
   try {
+    console.log('🤖 Early RTL initialization starting...');
+    
     // Get the stored language synchronously (best effort)
     AsyncStorage.getItem('souq-maria-language').then((storedData) => {
       if (storedData) {
@@ -37,57 +92,107 @@ const initializeRTLEarly = () => {
           const storedLanguage = parsedData?.state?.currentLanguage;
           
           if (storedLanguage && LANGUAGES[storedLanguage.code]) {
-            const shouldBeRTL = storedLanguage.isRTL;
+            // Only apply RTL if the language is Arabic
+            const shouldBeRTL = storedLanguage.code === 'ar';
             
-            // Force RTL state synchronously for Android
+            console.log(`🤖 Early init: Stored language ${storedLanguage.code}, setting RTL to ${shouldBeRTL}`);
+            
+            // Force clear any cached RTL state first for LTR languages
+            if (!shouldBeRTL) {
+              console.log('🤖 Early init: Clearing RTL cache for LTR language');
+              I18nManager.forceRTL(false);
+              setTimeout(() => I18nManager.forceRTL(false), 10);
+              setTimeout(() => I18nManager.forceRTL(false), 50);
+            }
+            
+            // Then set the correct state
             I18nManager.forceRTL(shouldBeRTL);
+            
+            // Store the last applied RTL state
+            AsyncStorage.setItem('last-rtl-state', JSON.stringify(shouldBeRTL));
             
             console.log(`🤖 Early Android RTL init: ${storedLanguage.code} (RTL: ${shouldBeRTL})`);
           }
         } catch (error) {
-          console.warn('🤖 Failed to parse stored language, defaulting to LTR');
+          console.warn('🤖 Failed to parse stored language, defaulting to LTR and clearing cache');
+          // Clear any potential RTL cache
           I18nManager.forceRTL(false);
+          setTimeout(() => I18nManager.forceRTL(false), 10);
+          setTimeout(() => I18nManager.forceRTL(false), 50);
+          AsyncStorage.setItem('last-rtl-state', JSON.stringify(false));
+          AsyncStorage.removeItem('last-rtl-state'); // Clear cached state
         }
       } else {
-        // First time user - default to English (LTR)
+        // First time user - default to English (LTR) and clear any cache
+        console.log('🤖 First time user - defaulting to LTR and clearing cache');
         I18nManager.forceRTL(false);
+        setTimeout(() => I18nManager.forceRTL(false), 10);
+        setTimeout(() => I18nManager.forceRTL(false), 50);
+        AsyncStorage.setItem('last-rtl-state', JSON.stringify(false));
         console.log('🤖 First time user - defaulting to LTR');
       }
     }).catch(() => {
-      // Storage error - default to LTR
+      // Storage error - default to LTR and clear cache
+      console.log('🤖 Storage error - defaulting to LTR and clearing cache');
       I18nManager.forceRTL(false);
-      console.log('🤖 Storage error - defaulting to LTR');
+      setTimeout(() => I18nManager.forceRTL(false), 10);
+      setTimeout(() => I18nManager.forceRTL(false), 50);
+      AsyncStorage.setItem('last-rtl-state', JSON.stringify(false));
+      AsyncStorage.removeItem('last-rtl-state'); // Clear cached state
     });
   } catch (error) {
     console.error('🤖 Early RTL initialization error:', error);
+    // Fallback - force LTR and clear cache
     I18nManager.forceRTL(false);
+    setTimeout(() => I18nManager.forceRTL(false), 10);
+    setTimeout(() => I18nManager.forceRTL(false), 50);
   }
 };
 
-// Initialize RTL early on Android
-if (Platform.OS === 'android') {
-  initializeRTLEarly();
-}
+// Function to verify and restore RTL state if needed (for Android navigation issues)
+const verifyAndRestoreRTL = async () => {
+  if (Platform.OS !== 'android') return;
+  
+  try {
+    const storedData = await AsyncStorage.getItem('souq-maria-language');
+    const lastRTLState = await AsyncStorage.getItem('last-rtl-state');
+    
+    if (storedData) {
+      const parsedData = JSON.parse(storedData);
+      const storedLanguage = parsedData?.state?.currentLanguage;
+      
+      if (storedLanguage && LANGUAGES[storedLanguage.code]) {
+        const shouldBeRTL = storedLanguage.code === 'ar';
+        const currentRTLState = I18nManager.isRTL;
+        const lastRTL = lastRTLState ? JSON.parse(lastRTLState) : false;
+        
+        // If there's a mismatch between expected and actual RTL state
+        if (currentRTLState !== shouldBeRTL || lastRTL !== shouldBeRTL) {
+          console.log(`🤖 Restoring Android RTL state: ${storedLanguage.code} (RTL: ${shouldBeRTL})`);
+          I18nManager.forceRTL(shouldBeRTL);
+          await AsyncStorage.setItem('last-rtl-state', JSON.stringify(shouldBeRTL));
+        }
+      }
+    }
+  } catch (error) {
+    console.error('🤖 Error verifying RTL state:', error);
+  }
+};
+
+// Initialize RTL early on Android only
+initializeRTLEarly();
 
 interface LanguageStore {
   currentLanguage: Language;
   isLoading: boolean;
   error: string | null;
-  // Add a counter to force re-renders when language changes
   layoutVersion: number;
+  lastUpdate: number;
   
   // Actions
-  setLanguage: (languageCode: 'en' | 'ar') => Promise<void>;
-  getCultureId: () => string;
-  getCurrentLanguage: () => Language;
-  clearError: () => void;
-  preloadLanguageCache: (languageCode: 'en' | 'ar') => Promise<void>;
-  // Force layout update without app restart
-  forceLayoutUpdate: () => void;
-  // Reset to default language and clear all cache
-  resetToDefault: () => Promise<void>;
-  // Initialize language on app start
+  setLanguage: (languageCode: 'en' | 'ar') => Promise<boolean>;
   initializeLanguage: () => Promise<void>;
+  verifyRTLState: () => Promise<void>;
 }
 
 // Function to handle app restart on Android when RTL changes
@@ -121,9 +226,10 @@ const useLanguageStore = create<LanguageStore>()(
       isLoading: false,
       error: null,
       layoutVersion: 0,
+      lastUpdate: 0,
 
       // Set language and persist the choice
-      setLanguage: async (languageCode: 'en' | 'ar') => {
+      setLanguage: async (languageCode: 'en' | 'ar'): Promise<boolean> => {
         try {
           set({ isLoading: true, error: null });
           
@@ -131,42 +237,82 @@ const useLanguageStore = create<LanguageStore>()(
           if (!newLanguage) {
             throw new Error(`Unsupported language: ${languageCode}`);
           }
-
-          const currentLanguage = get().currentLanguage;
-          const isRTLChanging = currentLanguage.isRTL !== newLanguage.isRTL;
-
-          // Clear cache for the new language to ensure fresh data
-          await apiCache.clearByCultureId(newLanguage.cultureId);
-
-          // Update RTL layout direction immediately
-          I18nManager.forceRTL(newLanguage.isRTL);
-
-          // Preload cache for the new language to improve performance
-          await apiCache.preloadForLanguage(newLanguage.cultureId);
-
-          // Update language and force layout re-render
+          
+          const previousLanguage = get().currentLanguage;
+          
+          // For Android: Check if we're switching between Arabic and non-Arabic
+          // For iOS: Check if RTL property is changing
+          let isRTLChanging = false;
+          if (Platform.OS === 'android') {
+            const currentIsArabic = previousLanguage.code === 'ar';
+            const newIsArabic = newLanguage.code === 'ar';
+            isRTLChanging = currentIsArabic !== newIsArabic;
+          } else {
+            // iOS - use natural RTL property
+            isRTLChanging = previousLanguage.isRTL !== newLanguage.isRTL;
+          }
+          
+          console.log(`🌐 Language change: ${previousLanguage.code} -> ${newLanguage.code}, RTL changing: ${isRTLChanging}`);
+          
+          // Update state first
           set({ 
             currentLanguage: newLanguage,
             isLoading: false,
-            layoutVersion: get().layoutVersion + 1 // Force re-render
+            lastUpdate: Date.now(),
+            layoutVersion: get().layoutVersion + 1
           });
-
-          console.log(`🌐 Language changed to: ${newLanguage.name} (Culture ID: ${newLanguage.cultureId}, RTL: ${newLanguage.isRTL})`);
           
-          // Handle Android RTL change - only if direction actually changed
+          // For Android with RTL changes: aggressive cache clearing
           if (Platform.OS === 'android' && isRTLChanging) {
-            setTimeout(() => {
-              handleAndroidRTLChange();
-            }, 1000); // Give time for state to update
+            console.log('🤖 Clearing Android RTL cache before language change');
+            
+            // Clear any stored RTL state first
+            await AsyncStorage.removeItem('last-rtl-state');
+            
+            // Aggressive RTL cache clearing for Android
+            const shouldApplyRTL = newLanguage.code === 'ar';
+            
+            if (!shouldApplyRTL) {
+              // For switching to English (LTR), force clear multiple times
+              console.log('🤖 Aggressively clearing RTL cache for LTR');
+              I18nManager.forceRTL(false);
+              await new Promise(resolve => setTimeout(resolve, 10));
+              I18nManager.forceRTL(false);
+              await new Promise(resolve => setTimeout(resolve, 10));
+              I18nManager.forceRTL(false);
+              await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            // Now apply the correct RTL state
+            I18nManager.forceRTL(shouldApplyRTL);
+            
+            // Store the new RTL state
+            AsyncStorage.setItem('last-rtl-state', JSON.stringify(shouldApplyRTL));
+            
+            console.log(`🤖 Applied RTL state: ${newLanguage.code} -> ${shouldApplyRTL}`);
+          } else {
+            // Handle Android-specific RTL logic
+            handleAndroidRTL(newLanguage);
           }
           
+          // Log state update
+          const currentState = {
+            language: newLanguage.code,
+            isRTL: Platform.OS === 'android' ? newLanguage.code === 'ar' : newLanguage.isRTL,
+            I18nManagerRTL: I18nManager.isRTL,
+            platform: Platform.OS,
+            layoutVersion: get().layoutVersion
+          };
+          console.log('🔄 RTL state updated:', currentState);
+          
+          return true;
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Failed to change language';
+          console.error('🔴 Language setting error:', error);
           set({ 
-            error: errorMessage,
-            isLoading: false 
+            isLoading: false, 
+            error: 'Failed to set language' 
           });
-          console.error('🌐 Language change error:', error);
+          return false;
         }
       },
 
@@ -175,91 +321,80 @@ const useLanguageStore = create<LanguageStore>()(
         try {
           const currentLang = get().currentLanguage;
           
-          // Force RTL setting to match current language immediately
-          I18nManager.forceRTL(currentLang.isRTL);
+          // For Android: verify and restore RTL state first
+          if (Platform.OS === 'android') {
+            await verifyAndRestoreRTL();
+          }
+          
+          // Apply Android-specific RTL logic
+          handleAndroidRTL(currentLang);
           
           // On Android, add extra verification and logging
           if (Platform.OS === 'android') {
             // Small delay to ensure I18nManager state is properly set
-            setTimeout(() => {
+            setTimeout(async () => {
               const i18nState = I18nManager.isRTL;
-              const expectedRTL = currentLang.isRTL;
+              const expectedRTL = currentLang.code === 'ar';
               
               if (i18nState !== expectedRTL) {
-                console.warn(`🤖 Android RTL mismatch detected! Expected: ${expectedRTL}, Actual: ${i18nState}`);
-                // Force set again
+                console.warn(`🤖 Android RTL mismatch during init! Expected: ${expectedRTL}, Actual: ${i18nState}`);
+                // Force set again with storage update
                 I18nManager.forceRTL(expectedRTL);
+                await AsyncStorage.setItem('last-rtl-state', JSON.stringify(expectedRTL));
                 
                 // Force layout update
                 set({ layoutVersion: get().layoutVersion + 1 });
+              } else {
+                console.log(`🤖 Android RTL state verified correctly: ${currentLang.code} (RTL: ${expectedRTL})`);
               }
             }, 100);
           }
           
           // Increment layout version to force re-render
           set({ layoutVersion: get().layoutVersion + 1 });
-          
-          console.log(`🌐 Language initialized: ${currentLang.name} (RTL: ${currentLang.isRTL}, I18nManager.isRTL: ${I18nManager.isRTL}, Platform: ${Platform.OS})`);
+
+          console.log(`🌐 Language initialized: ${currentLang.name} (RTL: ${currentLang.isRTL})`);
         } catch (error) {
           console.error('🌐 Language initialization error:', error);
-          // Fallback to English if initialization fails
-          await get().resetToDefault();
         }
       },
 
-      // Reset to default language and clear all cache
+      // Reset to default English language
       resetToDefault: async () => {
         try {
           set({ isLoading: true, error: null });
           
-          // Clear all API cache
+          // Clear all cache
           await apiCache.clearAll();
           
-          // Reset to English (LTR)
-          I18nManager.forceRTL(false);
+          // Reset to English
+          const defaultLanguage = LANGUAGES.en;
           
-          // Reset state to default
-          set({
-            currentLanguage: LANGUAGES.en,
+          // Apply Android-specific RTL logic
+          handleAndroidRTL(defaultLanguage);
+          
+          set({ 
+            currentLanguage: defaultLanguage,
             isLoading: false,
-            error: null,
-            layoutVersion: get().layoutVersion + 1,
+            layoutVersion: get().layoutVersion + 1
           });
           
           console.log('🌐 Language reset to default (English)');
         } catch (error) {
-          console.error('🌐 Language reset error:', error);
-          set({
+          set({ 
             error: 'Failed to reset language',
-            isLoading: false,
+            isLoading: false 
           });
+          console.error('🌐 Language reset error:', error);
         }
       },
 
-      // Force layout update without changing language
-      forceLayoutUpdate: () => {
-        set({ layoutVersion: get().layoutVersion + 1 });
-      },
-
-      // Preload cache for a specific language (useful for background preloading)
-      preloadLanguageCache: async (languageCode: 'en' | 'ar') => {
-        try {
-          const language = LANGUAGES[languageCode];
-          if (language) {
-            await apiCache.preloadForLanguage(language.cultureId);
-            console.log(`🔄 Cache preloaded for language: ${language.name}`);
-          }
-        } catch (error) {
-          console.error('🔄 Cache preload error:', error);
-        }
-      },
-
-      // Get current culture ID for API calls
+      // Get culture ID for API calls
       getCultureId: () => {
         return get().currentLanguage.cultureId;
       },
 
-      // Get current language object
+      // Get current language
       getCurrentLanguage: () => {
         return get().currentLanguage;
       },
@@ -268,28 +403,76 @@ const useLanguageStore = create<LanguageStore>()(
       clearError: () => {
         set({ error: null });
       },
+
+      // Force layout update (useful for triggering re-renders)
+      forceLayoutUpdate: () => {
+        set({ layoutVersion: get().layoutVersion + 1 });
+      },
+
+      // Preload cache for a specific language
+      preloadLanguageCache: async (languageCode: 'en' | 'ar') => {
+        try {
+          const language = LANGUAGES[languageCode];
+          if (language) {
+            await apiCache.preloadForLanguage(language.cultureId);
+            console.log(`🌐 Cache preloaded for language: ${language.name}`);
+          }
+        } catch (error) {
+          console.error('🌐 Cache preload error:', error);
+        }
+      },
+
+      // Add method to verify RTL state during navigation
+      verifyRTLState: async () => {
+        try {
+          const currentLang = get().currentLanguage;
+          
+          // For Android: verify and restore RTL state first
+          if (Platform.OS === 'android') {
+            await verifyAndRestoreRTL();
+          }
+          
+          // Apply Android-specific RTL logic
+          handleAndroidRTL(currentLang);
+          
+          // On Android, add extra verification and logging
+          if (Platform.OS === 'android') {
+            // Small delay to ensure I18nManager state is properly set
+            setTimeout(async () => {
+              const i18nState = I18nManager.isRTL;
+              const expectedRTL = currentLang.code === 'ar';
+              
+              if (i18nState !== expectedRTL) {
+                console.warn(`🤖 Android RTL mismatch during verifyRTLState! Expected: ${expectedRTL}, Actual: ${i18nState}`);
+                // Force set again with storage update
+                I18nManager.forceRTL(expectedRTL);
+                await AsyncStorage.setItem('last-rtl-state', JSON.stringify(expectedRTL));
+                
+                // Force layout update
+                set({ layoutVersion: get().layoutVersion + 1 });
+              } else {
+                console.log(`🤖 Android RTL state verified correctly: ${currentLang.code} (RTL: ${expectedRTL})`);
+              }
+            }, 100);
+          }
+          
+          // Increment layout version to force re-render
+          set({ layoutVersion: get().layoutVersion + 1 });
+
+          console.log(`🌐 RTL state verified: ${currentLang.name} (RTL: ${currentLang.isRTL})`);
+        } catch (error) {
+          console.error('🌐 RTL state verification error:', error);
+        }
+      },
     }),
     {
       name: 'souq-maria-language',
       storage: createJSONStorage(() => AsyncStorage),
-      // Only persist the current language, not loading/error states or layoutVersion
-      partialize: (state) => ({ currentLanguage: state.currentLanguage }),
-      // Add migration to handle any corrupted data
-      migrate: (persistedState, version) => {
-        // If the persisted state is corrupted or invalid, reset to default
-        if (!persistedState || typeof persistedState !== 'object') {
-          return { currentLanguage: LANGUAGES.en };
-        }
-        
-        const state = persistedState as any;
-        
-        // Validate the current language
-        if (!state.currentLanguage || !LANGUAGES[state.currentLanguage.code]) {
-          return { currentLanguage: LANGUAGES.en };
-        }
-        
-        return state;
-      },
+      // Only persist the language choice, not loading states
+      partialize: (state) => ({ 
+        currentLanguage: state.currentLanguage,
+        layoutVersion: state.layoutVersion
+      }),
     }
   )
 );
