@@ -22,10 +22,14 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
   
   const imageUrl = product.ImageUrl || 'https://via.placeholder.com/150';
   const name = product.ItemName || 'Product Name';
-  const oldPrice = product.OldPrice && product.OldPrice > 0 ? `${product.OldPrice.toFixed(3)} KD` : null;
-  const newPrice = product.Price && product.Price > 0 ? `${product.Price.toFixed(3)} KD` : 'N/A';
   const isOutOfStock = product.Stock === 0;
   const isNewArrival = product.NewArrival === true;
+  
+  // Discount logic
+  const oldPrice = product.OldPrice || 0;
+  const newPrice = product.Price || 0;
+  const shouldShowDiscount = oldPrice > 0 && oldPrice > newPrice;
+  const discountPercentage = shouldShowDiscount ? Math.round(((oldPrice - newPrice) / oldPrice) * 100) : 0;
 
   return (
     <TouchableOpacity style={styles.container} onPress={() => onPress(product)} activeOpacity={0.85} accessibilityRole="button">
@@ -49,8 +53,24 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
       </View>
       <View style={styles.infoContainer}>
         <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">{name}</Text>
-        {oldPrice && <Text style={styles.oldPrice}>{oldPrice}</Text>}
-        <Text style={styles.newPrice}>{newPrice}</Text>
+        
+        {/* Price container with discount logic */}
+        <View style={styles.priceContainer}>
+          {shouldShowDiscount && (
+            <>
+              <Text style={styles.oldPrice}>
+                {`${oldPrice.toFixed(3)} KD`}
+              </Text>
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>{`${discountPercentage}% OFF`}</Text>
+              </View>
+            </>
+          )}
+          <Text style={styles.newPrice}>
+            {newPrice > 0 ? `${newPrice.toFixed(3)} KD` : 'N/A'}
+          </Text>
+        </View>
+        
         {isOutOfStock && (
           <Text style={styles.outOfStockText}>{t('out_of_stock')}</Text>
         )}
@@ -107,11 +127,28 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     minHeight: 36,
   },
+  priceContainer: {
+    width: '100%',
+    alignItems: 'flex-start',
+  },
   oldPrice: {
     fontSize: 12,
     color: colors.textGray,
     textDecorationLine: 'line-through',
-    marginBottom: 2,
+    marginBottom: 6,
+  },
+  discountBadge: {
+    backgroundColor: colors.green,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radii.md,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  discountText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: colors.white,
   },
   newPrice: {
     fontSize: 16,

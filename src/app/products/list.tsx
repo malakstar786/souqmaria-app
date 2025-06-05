@@ -397,7 +397,7 @@ export default function ProductListScreen() {
         const mappedProducts = productArray.map((item) => ({
           ItemCode: item.Item_XCode,
           ItemName: item.Item_XName,
-          OldPrice: item.OldPrice,
+          OldPrice: item.OldPrice || 0,
           Price: item.NewPrice,
           ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
           Stock: item.StockQty, // NEW: Stock quantity (0 = out of stock)
