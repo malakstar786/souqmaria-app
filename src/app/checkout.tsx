@@ -430,6 +430,7 @@ export default function CheckoutScreen() {
     // Refresh the addresses and close modal
     if (user?.UserID) {
       fetchAllAddresses(user.UserID);
+      triggerOrderReviewUpdate(); // Refresh order review to get updated totals
     }
     setShowAddBillingModal(false);
   };
@@ -439,6 +440,7 @@ export default function CheckoutScreen() {
     // Refresh the addresses and close modal  
     if (user?.UserID) {
       fetchAllAddresses(user.UserID);
+      triggerOrderReviewUpdate(); // Refresh order review to get updated totals
     }
     setShowAddShippingModal(false);
   };

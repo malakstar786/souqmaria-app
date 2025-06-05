@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { registerUser, loginUser, updateUserDetailsAPI, forgotPassword, socialMediaLogin, socialMediaRegister } from '../utils/api-service';
+import { registerUser, loginUser, updateUserDetailsAPI, forgotPassword, socialMediaLogin, socialMediaRegister, registerGuestUser, ApiResponse } from '../utils/api-service';
 import { RESPONSE_CODES } from '../utils/api-config';
 import { GoogleUserInfo } from '../utils/google-auth';
 import { getDeviceIP } from '../utils/ip-utils';
@@ -15,6 +15,7 @@ interface User {
   email: string;
   mobile?: string;
   password?: string; // Store password in memory only
+  isGuest?: boolean; // NEW: Flag to indicate if user is a guest
 }
 
 interface LoginParams {
@@ -33,23 +34,7 @@ interface UpdateUserPayload {
   CompanyId: number;
 }
 
-// Types for API requests and responses
-interface ApiResponse<T = any> {
-  StatusCode?: number;
-  ResponseCode: string | number;
-  Message: string;
-  Data?: T;
-  TrackId?: string | null;
-  // Add UserDetails for login response
-  UserDetails?: {
-    UserID: string;
-    FullName: string;
-    Email: string;
-    Mobile: string;
-    UserName?: string | null;
-    Password?: string;
-  };
-}
+// Remove local ApiResponse interface - using the one from api-service.ts
 
 // Authentication state
 interface AuthState {
@@ -63,6 +48,7 @@ interface AuthState {
   
   // Actions
   register: (fullName: string, email: string, mobile: string, password: string) => Promise<boolean>;
+  registerGuest: (fullName: string, email: string, mobile: string) => Promise<boolean>; // NEW: Guest registration
   login: (params: LoginParams) => Promise<boolean>;
   googleLogin: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
   logout: () => void;
@@ -101,29 +87,37 @@ export const useAuthStore = create<AuthState>()(
           const responseCodeStr = String(response.ResponseCode);
 
           if (responseCodeStr === String(RESPONSE_CODES.CREATED)) {
-            // Extract the user ID from the response
-            let userId = '';
-            if (response.Data?.UserId) {
-              userId = response.Data.UserId;
-            } else if (response.Data?.UserID) {
-              userId = response.Data.UserID;
-            } else if (response.UserDetails?.UserID) {
-              userId = response.UserDetails.UserID;
+            // NEW: Extract user data directly from response (not nested in Data field)
+            const userId = response.UserId || '';
+            const userFullName = response.FullName || fullName;
+            const userEmail = response.Email || email;
+            const userMobile = response.Mobile || mobile;
+            const userPassword = response.Password || password;
+            
+            console.log(`✅ Registration successful - Auto-login enabled`);
+            console.log(`📋 User data extracted: UserId=${userId}, FullName=${userFullName}, Email=${userEmail}`);
+            
+            if (!userId) {
+              console.error('⚠️ WARNING: No UserId received from registration API!');
+              console.error('Full response received:', JSON.stringify(response, null, 2));
             }
             
-            console.log(`Registration successful, user ID: ${userId || 'Not provided by API'}`);
+            const userData = {
+              fullName: userFullName,
+              email: userEmail,
+              mobile: userMobile,
+              UserID: userId,
+              id: userId,
+              password: userPassword, // Store password in memory
+            };
             
+            console.log(`📦 Setting user data in store:`, userData);
+            
+            // Auto-login: Set user as logged in immediately after registration
             set({
               isLoading: false,
               isLoggedIn: true,
-              user: {
-                fullName,
-                email,
-                mobile,
-                UserID: userId,
-                id: userId,
-                password, // Store password in memory
-              },
+              user: userData,
               error: null,
             });
             return true;
@@ -146,6 +140,81 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             isLoading: false, 
             error: 'Registration failed due to a network error. Please check your connection and try again.' 
+          });
+          return false;
+        }
+      },
+      
+      // Register a guest user (auto-login)
+      registerGuest: async (fullName, email, mobile) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await registerGuestUser({
+            FullName: fullName,
+            Email: email,
+            Mobile: mobile,
+          });
+
+          console.log('Full API Response (Guest Register) in auth-store:', JSON.stringify(response, null, 2));
+          
+          const responseCodeStr = String(response.ResponseCode);
+
+          if (responseCodeStr === String(RESPONSE_CODES.CREATED)) {
+            // NEW: Extract guest user data directly from response 
+            const userId = response.UserId || '';
+            const userFullName = response.FullName || fullName;
+            const userEmail = response.Email || email;
+            const userMobile = response.Mobile || mobile;
+            const userPassword = response.Password || ''; // Auto-generated password
+            
+            console.log(`✅ Guest registration successful - Auto-session enabled`);
+            console.log(`📋 Guest data extracted: UserId=${userId}, FullName=${userFullName}, Email=${userEmail}`);
+            
+            if (!userId) {
+              console.error('⚠️ WARNING: No UserId received from guest registration API!');
+              console.error('Full response received:', JSON.stringify(response, null, 2));
+            }
+            
+            const userData = {
+              fullName: userFullName,
+              email: userEmail,
+              mobile: userMobile,
+              UserID: userId,
+              id: userId,
+              password: userPassword, // Store auto-generated password in memory
+              isGuest: true, // Mark as guest user
+            };
+            
+            console.log(`📦 Setting guest user data in store:`, userData);
+            
+            // Auto-session: Set guest user as logged in immediately after registration
+            set({
+              isLoading: false,
+              isLoggedIn: true,
+              user: userData,
+              error: null,
+            });
+            return true;
+          } else {
+            let errorMessage = response.Message || 'Guest registration failed. Please try again.';
+            
+            if (responseCodeStr === String(RESPONSE_CODES.EMAIL_EXISTS)) {
+              errorMessage = response.Message || 'This email is already registered.';
+            } else if (responseCodeStr === String(RESPONSE_CODES.MOBILE_EXISTS)) {
+              errorMessage = response.Message || 'This mobile number is already registered.';
+            } else if (!response.Message && response.ResponseCode) {
+                errorMessage = `Guest registration failed (Code: ${response.ResponseCode}). Please try again.`;
+            }
+            
+            set({ isLoading: false, error: errorMessage });
+            return false;
+          }
+        } catch (error) {
+          console.error('Error during guest registration call in auth-store:', error);
+          set({ 
+            isLoading: false, 
+            error: 'Guest registration failed due to a network error. Please check your connection and try again.' 
           });
           return false;
         }
@@ -285,25 +354,26 @@ export const useAuthStore = create<AuthState>()(
             if (registerResponse.StatusCode === 200 && String(registerResponse.ResponseCode) === '2') {
               console.log('✅ User registered and logged in successfully');
               
-              // Extract the user ID from the response
-              let userId = '';
-              if (registerResponse.Data?.UserId) {
-                userId = registerResponse.Data.UserId;
-              } else if (registerResponse.Data?.UserID) {
-                userId = registerResponse.Data.UserID;
-              } else if (registerResponse.UserDetails?.UserID) {
-                userId = registerResponse.UserDetails.UserID;
-              }
+              // Extract the user ID from the response (now directly available due to apiRequest fix)
+              const userId = registerResponse.UserId || '';
+              const userFullName = registerResponse.FullName || googleUserInfo.name;
+              const userEmail = registerResponse.Email || googleUserInfo.email;
+              const userMobile = registerResponse.Mobile || '';
               
-              console.log(`📋 Registration successful, user ID: ${userId || 'Not provided by API'}`);
+              console.log(`📋 Social registration successful, user ID: ${userId || 'Not provided by API'}`);
+              
+              if (!userId) {
+                console.error('⚠️ WARNING: No UserId received from social registration API!');
+                console.error('Full response received:', JSON.stringify(registerResponse, null, 2));
+              }
               
               set({
                 isLoading: false,
                 isLoggedIn: true,
                 user: {
-                  fullName: googleUserInfo.name,
-                  email: googleUserInfo.email,
-                  mobile: '',
+                  fullName: userFullName,
+                  email: userEmail,
+                  mobile: userMobile,
                   UserID: userId,
                   id: userId,
                 },
@@ -453,11 +523,35 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Exclude password from persisted state
+      // Exclude password from persisted state but preserve UserID
       partialize: (state) => {
         if (!state.user) return { ...state, user: null };
         const { password, ...userWithoutPassword } = state.user;
-        return { ...state, user: userWithoutPassword };
+        // Ensure UserID and id are preserved during persistence
+        const persistedUser = {
+          ...userWithoutPassword,
+          UserID: state.user.UserID || state.user.id || '',
+          id: state.user.id || state.user.UserID || '',
+        };
+        console.log('📦 Persisting user data:', persistedUser);
+        return { ...state, user: persistedUser };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state?.user) {
+          console.log('💧 Hydrated user data from storage:', state.user);
+          // Ensure both UserID and id are set after hydration
+          if (state.user.UserID && !state.user.id) {
+            state.user.id = state.user.UserID;
+            console.log('🔧 Fixed missing id field after hydration');
+          } else if (state.user.id && !state.user.UserID) {
+            state.user.UserID = state.user.id;
+            console.log('🔧 Fixed missing UserID field after hydration');
+          } else if (!state.user.UserID && !state.user.id) {
+            console.error('⚠️ WARNING: Both UserID and id are missing after hydration!');
+          }
+        } else {
+          console.log('💧 No user data found during hydration');
+        }
       },
     }
   )

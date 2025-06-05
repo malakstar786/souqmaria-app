@@ -28,6 +28,12 @@ export interface ApiResponse<T = any> {
     UserName?: string | null;
     Password?: string;
   };
+  // NEW: Registration response fields (returned directly in response)
+  UserId?: string;
+  FullName?: string;
+  Email?: string;
+  Mobile?: string;
+  Password?: string;
 }
 
 // Common type for address location data (country, state, city)
@@ -443,6 +449,23 @@ const apiRequest = async <T>(
         ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.SUCCESS),
         Message: responseData.Message || 'Order review completed',
         Data: responseData as T, // responseData is the {li, ResponseCode, Message} object
+      };
+    }
+
+    // For registration endpoints, preserve the registration fields directly in the response
+    if (endpoint === ENDPOINTS.REGISTER_USER || endpoint === ENDPOINTS.GUEST_SAVE_USER_REGISTRATION || endpoint === ENDPOINTS.SOCIAL_REGISTER) {
+      return {
+        StatusCode: httpResponse.status,
+        ResponseCode: String(responseData.ResponseCode || RESPONSE_CODES.SUCCESS),
+        Message: responseData.Message || 'Registration successful',
+        UserId: responseData.UserId,
+        FullName: responseData.FullName,
+        Email: responseData.Email,
+        Mobile: responseData.Mobile,
+        Password: responseData.Password,
+        Data: responseData.Data as T,
+        TrackId: responseData.TrackId,
+        UserDetails: responseData.UserDetails,
       };
     }
 

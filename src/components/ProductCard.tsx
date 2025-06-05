@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Image, I18nManager } from 'react-native';
 import { colors, spacing, radii, typography } from '@theme';
 import { ProductDetail } from '../utils/api-service';
+import { useTranslation } from '../utils/translations';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width / 2) - (spacing.md * 1.5);
@@ -16,6 +17,8 @@ interface ProductCardProps {
 
 const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
   const [imageError, setImageError] = useState(false);
+  const { t } = useTranslation();
+  const isRTL = I18nManager.isRTL;
   
   const imageUrl = product.ImageUrl || 'https://via.placeholder.com/150';
   const name = product.ItemName || 'Product Name';
@@ -28,8 +31,8 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
     <TouchableOpacity style={styles.container} onPress={() => onPress(product)} activeOpacity={0.85} accessibilityRole="button">
       <View style={styles.imageContainer}>
         {isNewArrival && (
-          <View style={styles.newArrivalBadge}>
-            <Text style={styles.newArrivalText}>New Arrival</Text>
+          <View style={[styles.newArrivalBadge, isRTL && styles.newArrivalBadgeRTL]}>
+            <Text style={styles.newArrivalText}>{t('new_arrival')}</Text>
           </View>
         )}
         {imageUrl && !imageError ? (
@@ -49,7 +52,7 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
         {oldPrice && <Text style={styles.oldPrice}>{oldPrice}</Text>}
         <Text style={styles.newPrice}>{newPrice}</Text>
         {isOutOfStock && (
-          <Text style={styles.outOfStockText}>Out of Stock</Text>
+          <Text style={styles.outOfStockText}>{t('out_of_stock')}</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -124,6 +127,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
     zIndex: 1,
+  },
+  newArrivalBadgeRTL: {
+    right: undefined,
+    left: spacing.xs,
   },
   newArrivalText: {
     fontSize: 13,

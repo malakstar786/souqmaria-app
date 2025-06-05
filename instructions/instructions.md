@@ -1381,9 +1381,58 @@ interface SaveShippingAddressRequest {
 }
 ```
 
-### 5.9 Checkout APIs
+### 5.9 Authentication APIs
 
-#### Guest User Registration
+#### User Registration (Auto-Login)
+**Endpoint**: `POST /SaveUserRegistration/`
+
+**Request Body**:
+```typescript
+interface RegisterUserRequest {
+  FullName: string;         // User's full name
+  Email: string;            // User's email
+  Mobile: string;           // User's mobile number (format: 96512345678)
+  Password: string;         // User's password
+  IpAddress: string;        // Auto-populated by API service
+  Source: 'iOS' | 'Android'; // Auto-populated by API service
+  CompanyId: number;        // Auto-populated (3044)
+}
+```
+
+**Successful Response (ResponseCode: "2")**:
+```typescript
+interface RegisterUserResponse {
+  ResponseCode: string;     // "2" for success
+  Message: string;          // "User Registration Save Successfully!!!"
+  UserId: string;           // Generated user ID (e.g., "8097")
+  FullName: string;         // User's full name
+  Email: string;            // User's email
+  Mobile: string;           // User's mobile number
+  Password: string;         // User's password (same as input)
+}
+```
+
+**Auto-Login Implementation**:
+- Registration response contains all necessary data for immediate user session
+- `UserId` serves as primary identifier for user session storage
+- Data structure is compatible with login response (`UserDetails` object)
+- After successful registration, user should be automatically logged in
+- Store user data in auth store for immediate use
+
+**Test Response Example**:
+```json
+{
+  "ResponseCode": "2",
+  "Message": "User Registration Save Successfully!!!",
+  "UserId": "8097",
+  "FullName": "Test User 1749120895138",
+  "Email": "testuser1749120895138@test3.com",
+  "Mobile": "96588447994",
+  "Password": "test@5253"
+}
+```
+
+#### Guest User Registration (Auto-Session)
 **Endpoint**: `POST /Guest_SaveUserRegistration/`
 
 **Request Body**:
@@ -1391,17 +1440,52 @@ interface SaveShippingAddressRequest {
 interface GuestUserRegistrationRequest {
   FullName: string;         // Guest full name
   Email: string;            // Guest email
-  Mobile: string;           // Guest mobile
-  IpAddress: string;        // Client IP
-  Source: 'iOS' | 'Android'; // Platform
-  CompanyId: number;        // Fixed: 3044
+  Mobile: string;           // Guest mobile number (format: 96512345678)
+  IpAddress: string;        // Auto-populated by API service
+  Source: 'iOS' | 'Android'; // Auto-populated by API service
+  CompanyId: number;        // Auto-populated (3044)
 }
 ```
 
-**Response Codes**:
-- `2`: Guest registration successful
-- `4`: User already registered
-- `-2`: General error in guest registration
+**Successful Response (ResponseCode: "2")**:
+```typescript
+interface GuestUserResponse {
+  ResponseCode: string;     // "2" for success
+  Message: string;          // "User Registration Save Successfully!!!"
+  UserId: string;           // Generated guest user ID (e.g., "8098")
+  FullName: string;         // Guest user's full name
+  Email: string;            // Guest user's email
+  Mobile: string;           // Guest user's mobile number
+  Password: string;         // Auto-generated password (e.g., "836e0e50")
+}
+```
+
+**Guest Session Implementation**:
+- Guest registration creates a full user account with auto-generated password
+- `UserId` can be used for cart, addresses, and checkout operations
+- No difference in session management between regular and guest users
+- Guest users can continue shopping with their `UserId` throughout the session
+- Store guest user data in auth store with `isGuest: true` flag
+
+**Test Response Example**:
+```json
+{
+  "ResponseCode": "2",
+  "Message": "User Registration Save Successfully!!!",
+  "UserId": "8098",
+  "FullName": "Guest User 1749120897704",
+  "Email": "guestuser1749120897704@test2.com",
+  "Mobile": "96525666180",
+  "Password": "836e0e50"
+}
+```
+
+**Error Response Codes**:
+- `-8`: Server side validation error
+- `-4`: User already exists
+- `-2`: General error
+
+### 5.10 Checkout APIs
 
 #### Order Review Checkout
 **Endpoint**: `POST /Order_Review_Checkout/`

@@ -200,6 +200,10 @@ const translations = {
     en: 'Close',
     ar: 'إغلاق'
   },
+  'new_arrival': {
+    en: 'New Arrival',
+    ar: 'وصول جديد'
+  },
   
   // Product detail page
   'add_to_cart': {
