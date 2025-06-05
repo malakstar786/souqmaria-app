@@ -163,7 +163,7 @@ export const SP_QUERIES = {
   GET_CHECKOUT_CITY_LIST: (stateXcode: string) => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_City_List','${stateXcode}','','','','',1,3044,''`,
   
   // Payment mode query
-  GET_PAYMENT_MODE_LIST: (countryXcode: string = '69', cultureId: string = '1') => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_PaymentMode_List','${countryXcode}','','','','',${cultureId},3044,''`,
+  GET_PAYMENT_MODE_LIST: (countryXcode: string = '69', cultureId: string = '1') => `[Web].[Sp_CheckoutMst_Apps_SM]'Get_PaymentMode_List_SM','${countryXcode}','','','','',${cultureId},3044,''`,
   
   // Address listing queries
   GET_BILLING_ADDRESSES: (userId: string) => 

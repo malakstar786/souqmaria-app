@@ -162,6 +162,7 @@ export default function ProductListScreen() {
           CultureId: cultureId,
           UserId: user?.UserID || user?.id || '',
           Company: API_COMMON_PARAMS.Company,
+          Value2: API_COMMON_PARAMS.Location,
         };
         console.log('Fetching products with Search params:', apiParams);
       } else if (params.homePageCatSrNo && params.pageCode) {
@@ -174,6 +175,7 @@ export default function ProductListScreen() {
           CultureId: cultureId,
           UserId: user?.UserID || user?.id || '',
           Company: API_COMMON_PARAMS.Company,
+          Value2: API_COMMON_PARAMS.Location,
         };
         console.log('Fetching products with HomePageCatSrNo params:', apiParams);
       } else if (params.pageCode === 'MN' && params.category) {
@@ -186,6 +188,7 @@ export default function ProductListScreen() {
           CultureId: cultureId,
           UserId: user?.UserID || user?.id || '',
           Company: API_COMMON_PARAMS.Company,
+          Value2: API_COMMON_PARAMS.Location,
         };
         console.log('Fetching products with Menu params:', apiParams);
       } else {
@@ -220,7 +223,22 @@ export default function ProductListScreen() {
           OldPrice: item.OldPrice || 0,
           Price: item.NewPrice,
           ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
+          Stock: item.StockQty, // NEW: Stock quantity (0 = out of stock)
+          NewArrival: item.IsNewArrival, // NEW: Whether item is a new arrival
         }));
+        
+        // Debug logging for stock and new arrival implementation
+        if (productArray.length > 0) {
+          const firstProduct = productArray[0];
+          console.log('🛍️ Product mapping debug:', {
+            ItemCode: firstProduct.Item_XCode,
+            ItemName: firstProduct.Item_XName,
+            StockQty: firstProduct.StockQty,
+            IsNewArrival: firstProduct.IsNewArrival,
+            'Stock field exists': firstProduct.StockQty !== undefined,
+            'NewArrival field exists': firstProduct.IsNewArrival !== undefined
+          });
+        }
         
         setAllProducts(mappedProducts);
         setFilteredProducts(mappedProducts);
@@ -362,6 +380,7 @@ export default function ProductListScreen() {
         MinPrice: filters.priceRange[0],
         MaxPrice: filters.priceRange[1],
         SortBy: filters.sortBy,
+        Value2: API_COMMON_PARAMS.Location,
       };
       
       // Call the filter API
@@ -381,7 +400,22 @@ export default function ProductListScreen() {
           OldPrice: item.OldPrice,
           Price: item.NewPrice,
           ImageUrl: item.Item_Image1 ? `${PRODUCT_IMAGE_BASE_URL}${item.Item_Image1}` : undefined,
+          Stock: item.StockQty, // NEW: Stock quantity (0 = out of stock)
+          NewArrival: item.IsNewArrival, // NEW: Whether item is a new arrival
         }));
+        
+        // Debug logging for filter API stock and new arrival implementation
+        if (productArray.length > 0) {
+          const firstProduct = productArray[0];
+          console.log('🔍 Filter API mapping debug:', {
+            ItemCode: firstProduct.Item_XCode,
+            ItemName: firstProduct.Item_XName,
+            StockQty: firstProduct.StockQty,
+            IsNewArrival: firstProduct.IsNewArrival,
+            'Stock field exists': firstProduct.StockQty !== undefined,
+            'NewArrival field exists': firstProduct.IsNewArrival !== undefined
+          });
+        }
         
         setFilteredProducts(mappedProducts);
       } else {
@@ -471,6 +505,7 @@ export default function ProductListScreen() {
         MinPrice: 0,
         MaxPrice: 1000,
         SortBy: 'Srt_Dflt',
+        Value2: API_COMMON_PARAMS.Location,
       };
       
       // Call the filter API to get filter options

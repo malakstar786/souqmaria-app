@@ -7,7 +7,10 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width / 2) - (spacing.md * 1.5);
 
 interface ProductCardProps {
-  product: ProductDetail;
+  product: ProductDetail & {
+    Stock?: number;
+    NewArrival?: boolean;
+  };
   onPress: (product: ProductDetail) => void;
 }
 
@@ -18,10 +21,17 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
   const name = product.ItemName || 'Product Name';
   const oldPrice = product.OldPrice && product.OldPrice > 0 ? `${product.OldPrice.toFixed(3)} KD` : null;
   const newPrice = product.Price && product.Price > 0 ? `${product.Price.toFixed(3)} KD` : 'N/A';
+  const isOutOfStock = product.Stock === 0;
+  const isNewArrival = product.NewArrival === true;
 
   return (
     <TouchableOpacity style={styles.container} onPress={() => onPress(product)} activeOpacity={0.85} accessibilityRole="button">
       <View style={styles.imageContainer}>
+        {isNewArrival && (
+          <View style={styles.newArrivalBadge}>
+            <Text style={styles.newArrivalText}>New Arrival</Text>
+          </View>
+        )}
         {imageUrl && !imageError ? (
           <Image 
             source={{ uri: imageUrl }} 
@@ -38,6 +48,9 @@ const ProductCard = React.memo(({ product, onPress }: ProductCardProps) => {
         <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">{name}</Text>
         {oldPrice && <Text style={styles.oldPrice}>{oldPrice}</Text>}
         <Text style={styles.newPrice}>{newPrice}</Text>
+        {isOutOfStock && (
+          <Text style={styles.outOfStockText}>Out of Stock</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -101,6 +114,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.blue,
+  },
+  newArrivalBadge: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    backgroundColor: colors.blue,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 4,
+    zIndex: 1,
+  },
+  newArrivalText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  outOfStockText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.red,
+    marginTop: 2,
   },
 });
 

@@ -193,6 +193,12 @@ interface LanguageStore {
   setLanguage: (languageCode: 'en' | 'ar') => Promise<boolean>;
   initializeLanguage: () => Promise<void>;
   verifyRTLState: () => Promise<void>;
+  getCultureId: () => string;
+  getCurrentLanguage: () => Language;
+  clearError: () => void;
+  forceLayoutUpdate: () => void;
+  preloadLanguageCache: (languageCode: 'en' | 'ar') => Promise<void>;
+  resetToDefault: () => Promise<void>;
 }
 
 // Function to handle app restart on Android when RTL changes

@@ -956,6 +956,39 @@ interface GetAllProductsParams {
   SearchName?: string;      // Search term
   HomePageCatSrNo?: string; // Homepage category number
   UserId?: string;          // User ID (optional)
+  Value2: string;           // Required: Location parameter (304401HO)
+}
+```
+
+**Example Request**:
+```
+GET /Get_AllProduct_List?Company=3044&CultureId=1&PageCode=HPC2&Category=&SubCategory=&SearchName=&HomePageCatSrNo=HC31790006&UserId=&Value2=304401HO
+```
+
+**Response Structure**:
+```typescript
+interface ProductListResponse {
+  List: {
+    Productlist: Array<{
+      Item_XCode: string;        // Product code
+      Item_XName: string;        // Product name
+      NewPrice: number;          // Current price
+      OldPrice: number;          // Original price (0 if no discount)
+      Discount: number;          // Discount amount
+      Item_Image1: string;       // Product image filename
+      IsWishListItem: boolean;   // Whether item is in wishlist
+      IsNewArrival: boolean;     // NEW: Whether item is new arrival
+      StockQty: number;          // NEW: Stock quantity (0 = out of stock)
+    }>;
+    li_Brand_List: Array<FilterOption>;      // Available brands
+    li_Category_List: Array<FilterOption>;   // Available categories
+    li_SubCategory_List: Array<FilterOption>; // Available subcategories
+    li_SortBy_List: Array<FilterOption>;     // Available sorting options
+    MinPrice: number;          // Minimum price in results
+    MaxPrice: number;          // Maximum price in results
+  };
+  ResponseCode: string;        // "2" for success
+  Message: string;             // Status message
 }
 ```
 
@@ -971,17 +1004,48 @@ interface ProductFilterRequest {
   SearchName?: string;
   HomePageCatSrNo?: string;
   UserId?: string;
-  Company: string | number;
-  CultureId: string | number;
-  Arry_Category: string[];
-  Arry_SubCategory: string[];
-  Arry_Brand: string[];
-  Arry_Color: string[];
-  MinPrice: number;
-  MaxPrice: number;
-  SortBy: string;
+  Company: number;
+  CultureId: number;
+  Arry_Category?: string[];
+  Arry_SubCategory?: string[];
+  Arry_Brand?: string[];
+  Arry_Color?: string[];
+  MinPrice?: number;
+  MaxPrice?: number;
+  SortBy: string;              // LtoH, HtoL, AtoZ, ZtoA, Srt_Nwst, Srt_Old
+  Value2: string;              // Required: Location parameter (304401HO)
 }
 ```
+
+**Example Request**:
+```json
+{
+  "PageCode": "HPC2",
+  "Category": "",
+  "SubCategory": "",
+  "SearchName": "",
+  "HomePageCatSrNo": "HC31790006",
+  "UserId": "",
+  "Company": 3044,
+  "CultureId": 1,
+  "Arry_Category": [],
+  "Arry_SubCategory": [],
+  "Arry_Brand": [],
+  "Arry_Color": [],
+  "MinPrice": 0,
+  "MaxPrice": 1000,
+  "SortBy": "LtoH",
+  "Value2": "304401HO"
+}
+```
+
+**Response Structure**: Same as Get All Products (Direct) endpoint
+
+**Testing Results** (Last tested: 2024):
+- ✅ Both endpoints working with Value2 parameter
+- ✅ Response contains StockQty and IsNewArrival fields
+- ✅ Sorting and filtering working correctly
+- Test parameters used: PageCode=HPC2, HomePageCatSrNo=HC31790006, SortBy=LtoH
 
 ### 5.4 Cart Management APIs
 

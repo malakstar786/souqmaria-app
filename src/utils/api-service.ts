@@ -196,6 +196,8 @@ export interface DirectProductListItem {
   NewPrice: number;          // Current price
   IsWishListItem: boolean;   // Whether item is in wishlist
   Last_CategoryName: string; // Category name
+  StockQty: number;          // NEW: Stock quantity (0 = out of stock)
+  IsNewArrival: boolean;     // NEW: Whether item is a new arrival
   [key: string]: any;        // Allow other properties
 }
 
@@ -245,7 +247,7 @@ export interface FilterOption {
 // Interface for product filter response
 export interface ProductFilterResponse {
   List: {
-    Productlist: any[];
+    Productlist: DirectProductListItem[];
     li_Brand_List: FilterOption[];
     li_Category_List: FilterOption[];
     li_SubCategory_List: FilterOption[];
@@ -274,6 +276,7 @@ export interface ProductFilterParams {
   MinPrice: number;
   MaxPrice: number;
   SortBy: string;
+  Value2: string; // Required: location parameter
 }
 
 // Interfaces for promo code API requests
@@ -1142,6 +1145,7 @@ interface GetAllProductsDirectParams {
   CultureId?: string;
   UserId?: string;
   Company?: string;
+  Value2: string; // Required: location parameter
 }
 
 /**
@@ -1159,6 +1163,7 @@ export const getAllProductsDirectly = async (
     SearchName: params.SearchName || '',
     HomePageCatSrNo: params.HomePageCatSrNo || '',
     UserId: params.UserId || '',
+    Value2: params.Value2, // Required: location parameter
   }).toString();
 
   const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_DIRECT}?${queryParams}`;
