@@ -14,8 +14,7 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
-import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse, saveShippingAddress, SaveShippingAddressPayload } from '../utils/api-service';
-import { getDeviceIP } from '../utils/ip-utils';
+import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse } from '../utils/api-service';
 
 // Define our own LocationItem interface to match the component usage
 interface LocationItem {
@@ -32,7 +31,7 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
     billingAddress,
     shippingAddress,
     setShippingAddress,
-    fetchShippingAddressId,
+    saveGuestShippingAddress,
     isLoading: isSubmitting,
     error: submissionError,
   } = useCheckoutStore();
@@ -205,7 +204,7 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
   const handleSave = async () => {
     if (!validateForm()) return;
     
-    // Save the shipping address to store
+    // Prepare the shipping address data
     const addressData: CheckoutAddress = {
       fullName: fullName.trim(),
       email: email.trim(),
@@ -220,52 +219,19 @@ const GuestCheckoutShippingForm = ({ onComplete }: GuestCheckoutShippingFormProp
       address2: address2.trim(),
     };
     
+    // Save the shipping address to store
     setShippingAddress(addressData);
     
-    // Save the shipping address using the API
-    try {
-      const { guestTrackId } = useCheckoutStore.getState();
-      if (!guestTrackId) {
-        Alert.alert('Error', 'Guest user not found. Please try again.');
-        return;
-      }
-      
-      const shippingAddressPayload: SaveShippingAddressPayload = {
-        ShippingAddressId: 0, // 0 for new address
-        FullName: fullName.trim(),
-        Email: email.trim(),
-        Mobile: mobile.trim(),
-        Address2: address2.trim(),
-        Country: country?.XCode.toString() || '',
-        State: state?.XCode.toString() || '',
-        City: city?.XCode.toString() || '',
-        Block: block.trim(),
-        Street: street.trim(),
-        House: house.trim(),
-        Apartment: apartment.trim(),
-        IsDefault: 1, // 1 for true, 0 for false - must be number not boolean
-        Command: 'Save',
-        UserId: guestTrackId,
-        CompanyId: 3044,
-        IpAddress: await getDeviceIP(),
-      };
-      
-      console.log('Saving shipping address with payload:', shippingAddressPayload);
-      const saveResponse = await saveShippingAddress(shippingAddressPayload);
-      console.log('Save shipping address response:', saveResponse);
-      
-      if (saveResponse.ResponseCode === '2') {
-        // Successfully saved address, now fetch the address ID
-        await fetchShippingAddressId();
-        
-        // Continue to next step
-        onComplete();
-      } else {
-        Alert.alert('Error', saveResponse.Message || 'Failed to save address. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error saving shipping address:', error);
-      Alert.alert('Error', 'Failed to save address. Please try again.');
+    // Save the shipping address using the new store function
+    console.log('🚢 Saving guest shipping address...');
+    const addressSaveSuccess = await saveGuestShippingAddress(addressData);
+    
+    if (addressSaveSuccess) {
+      console.log('✅ Guest shipping address saved successfully');
+      // Continue to next step
+      onComplete();
+    } else {
+      Alert.alert('Error', submissionError || 'Failed to save shipping address. Please try again.');
     }
   };
 

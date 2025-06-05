@@ -1467,18 +1467,32 @@ interface GuestUserResponse {
 - Guest users can continue shopping with their `UserId` throughout the session
 - Store guest user data in auth store with `isGuest: true` flag
 
-**Test Response Example**:
+**Test Response Example** (Verified December 2024):
 ```json
 {
   "ResponseCode": "2",
   "Message": "User Registration Save Successfully!!!",
-  "UserId": "8098",
-  "FullName": "Guest User 1749120897704",
-  "Email": "guestuser1749120897704@test2.com",
-  "Mobile": "96525666180",
-  "Password": "836e0e50"
+  "UserId": "8104",
+  "FullName": "Guest User Test 1749126769904",
+  "Email": "guesttest264822@test.com",
+  "Mobile": "96512264822",
+  "Password": "1846a6f7"
 }
 ```
+
+**Guest Address Management**:
+After guest registration, addresses can be saved using the standard address APIs:
+
+**CRUD_Billing_Manage_Address Response**:
+```json
+{
+  "ResponseCode": "2", 
+  "Message": "Billing Address Save Successfully!!!",
+  "TrackId": "703"
+}
+```
+
+**Important**: The `TrackId` returned from address APIs serves as the address ID for checkout operations.
 
 **Error Response Codes**:
 - `-8`: Server side validation error

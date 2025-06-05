@@ -15,9 +15,7 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import useCheckoutStore, { CheckoutAddress } from '../store/checkout-store';
-import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse, saveBillingAddress, SaveBillingAddressPayload } from '../utils/api-service';
-import { registerGuestUser, GuestUserRegistrationParams } from '../utils/api-service';
-import { getDeviceIP } from '../utils/ip-utils';
+import { getCheckoutCountries, getCheckoutStates, getCheckoutCities, CheckoutLocationDataResponse } from '../utils/api-service';
 import { useTranslation } from '../utils/translations';
 
 // Define our own LocationItem interface to match the component usage
@@ -38,9 +36,9 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
     useShippingForBilling, 
     setUseShippingForBilling,
     registerGuestUser,
+    saveGuestBillingAddress,
     isLoading: isSubmitting,
     error: submissionError,
-    fetchBillingAddressId,
   } = useCheckoutStore();
 
   // Form state
@@ -205,7 +203,7 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
   const handleSave = async () => {
     if (!validateForm()) return;
     
-    // Save the billing address to store
+    // Prepare the billing address data
     const addressData: CheckoutAddress = {
       fullName: fullName.trim(),
       email: email.trim(),
@@ -220,9 +218,11 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
       address2: address2.trim(),
     };
     
+    // Save the billing address to store
     setBillingAddress(addressData);
     
     // Register as guest user first
+    console.log('🧪 Step 1: Registering guest user...');
     const registrationSuccess = await registerGuestUser({
       fullName: fullName.trim(),
       email: email.trim(),
@@ -230,50 +230,16 @@ const GuestCheckoutAddressForm = ({ onComplete }: GuestCheckoutAddressFormProps)
     });
     
     if (registrationSuccess) {
-      // Now save the billing address using the API
-      try {
-        const { guestTrackId } = useCheckoutStore.getState();
-        if (!guestTrackId) {
-          Alert.alert('Error', 'Guest registration failed. Please try again.');
-          return;
-        }
-        
-        const billingAddressPayload: SaveBillingAddressPayload = {
-          BillingAddressId: 0, // 0 for new address
-          FullName: fullName.trim(),
-          Email: email.trim(),
-          Mobile: mobile.trim(),
-          Address2: address2.trim(),
-          Country: country?.XCode.toString() || '',
-          State: state?.XCode.toString() || '',
-          City: city?.XCode.toString() || '',
-          Block: block.trim(),
-          Street: street.trim(),
-          House: house.trim(),
-          Apartment: apartment.trim(),
-          IsDefault: 1, // 1 for true, 0 for false - must be number not boolean
-          Command: 'Save',
-          UserId: guestTrackId,
-          CompanyId: 3044,
-          IpAddress: await getDeviceIP(),
-        };
-        
-        console.log('Saving billing address with payload:', billingAddressPayload);
-        const saveResponse = await saveBillingAddress(billingAddressPayload);
-        console.log('Save billing address response:', saveResponse);
-        
-        if (saveResponse.ResponseCode === '2') {
-          // Successfully saved address, now fetch the address ID
-          await fetchBillingAddressId();
-          
-          // Continue to next step based on whether user wants to ship to a different address
-          onComplete(shipToDifferentAddress);
-        } else {
-          Alert.alert('Error', saveResponse.Message || 'Failed to save address. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error saving billing address:', error);
-        Alert.alert('Error', 'Failed to save address. Please try again.');
+      // Now save the billing address using the new store function
+      console.log('🧪 Step 2: Saving guest billing address...');
+      const addressSaveSuccess = await saveGuestBillingAddress(addressData);
+      
+      if (addressSaveSuccess) {
+        console.log('✅ Guest checkout flow completed successfully');
+        // Continue to next step based on whether user wants to ship to a different address
+        onComplete(shipToDifferentAddress);
+      } else {
+        Alert.alert('Error', submissionError || 'Failed to save address. Please try again.');
       }
     } else {
       // Show error message

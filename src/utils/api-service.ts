@@ -329,7 +329,11 @@ export interface GuestUserRegistrationParams {
 export interface GuestUserRegistrationResponse {
   ResponseCode: string;
   Message: string;
-  TrackId: string;
+  UserId: string;
+  FullName: string;
+  Email: string;
+  Mobile: string;
+  Password: string;
 }
 
 /**
@@ -1887,7 +1891,6 @@ export const registerGuestUser = async (params: GuestUserRegistrationParams): Pr
       ResponseCode: responseData.ResponseCode,
       Message: responseData.Message,
       Data: responseData,
-      TrackId: responseData.TrackId,
     };
   } catch (error) {
     console.error('Error registering guest user:', error);
@@ -1895,7 +1898,6 @@ export const registerGuestUser = async (params: GuestUserRegistrationParams): Pr
       StatusCode: 500,
       ResponseCode: RESPONSE_CODES.GUEST_REGISTRATION_ERROR,
       Message: 'Failed to register guest user. Please try again.',
-      TrackId: null,
     };
   }
 };

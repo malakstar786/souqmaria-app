@@ -9,11 +9,16 @@ import {
   ApiAddress,
   getOrderReviewCheckout,
   OrderReviewCheckoutParams,
-  OrderReviewData
+  OrderReviewData,
+  saveBillingAddress,
+  SaveBillingAddressPayload,
+  saveShippingAddress,
+  SaveShippingAddressPayload
 } from '../utils/api-service';
 import { Platform } from 'react-native';
 import { RESPONSE_CODES } from '../utils/api-config';
 import useLanguageStore from './language-store';
+import { getDeviceIP } from '../utils/ip-utils';
 
 // Interface for address data
 export interface CheckoutAddress {
@@ -69,6 +74,8 @@ interface CheckoutState {
   setShippingAddress: (address: CheckoutAddress) => void;
   setUseShippingForBilling: (value: boolean) => void;
   registerGuestUser: (userData: { fullName: string; email: string; mobile: string }) => Promise<boolean>;
+  saveGuestBillingAddress: (addressData: CheckoutAddress) => Promise<boolean>;
+  saveGuestShippingAddress: (addressData: CheckoutAddress) => Promise<boolean>;
   fetchBillingAddressId: () => Promise<void>;
   fetchShippingAddressId: () => Promise<void>;
   
@@ -146,18 +153,22 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
         Source: Platform.OS === 'ios' ? 'iOS' : 'Android',
       };
       
+      console.log('🧪 Registering guest user with payload:', JSON.stringify(payload, null, 2));
       const response = await registerGuestUser(payload);
+      console.log('🧪 Guest registration response:', JSON.stringify(response, null, 2));
       
-      // Accept both success (2) and already registered (4) responses
-      if ((response.ResponseCode === '2' || response.ResponseCode === '4') && response.TrackId) {
+      // Guest_SaveUserRegistration returns UserId in Data field
+      if (response.ResponseCode === '2' && response.Data?.UserId) {
+        console.log('✅ Guest registration successful, UserId:', response.Data.UserId);
         set({ 
-          guestTrackId: response.TrackId, 
+          guestTrackId: response.Data.UserId, // Store UserId as guestTrackId
           isLoading: false,
           error: null
         });
         return true;
       } else {
         // API returned an error
+        console.log('❌ Guest registration failed:', response.ResponseCode, response.Message);
         set({ 
           isLoading: false, 
           error: response.Message || 'Failed to register as guest user'
@@ -165,9 +176,132 @@ const useCheckoutStore = create<CheckoutState>((set, get) => ({
         return false;
       }
     } catch (error) {
+      console.error('❌ Guest registration error:', error);
       set({ 
         isLoading: false, 
         error: error instanceof Error ? error.message : 'Failed to register as guest user'
+      });
+      return false;
+    }
+  },
+
+  saveGuestBillingAddress: async (addressData: CheckoutAddress) => {
+    const { guestTrackId } = get();
+    if (!guestTrackId) {
+      console.error('❌ No guest track ID available for saving billing address');
+      return false;
+    }
+
+    set({ isLoading: true, error: null });
+
+    try {
+      const payload: SaveBillingAddressPayload = {
+        BillingAddressId: 0, // 0 for new address
+        FullName: addressData.fullName,
+        Email: addressData.email,
+        Mobile: addressData.mobile,
+        Address2: addressData.address2,
+        Country: addressData.country?.XCode.toString() || '',
+        State: addressData.state?.XCode.toString() || '',
+        City: addressData.city?.XCode.toString() || '',
+        Block: addressData.block,
+        Street: addressData.street,
+        House: addressData.house,
+        Apartment: addressData.apartment,
+        IsDefault: 1, // 1 for true
+        Command: 'Save',
+        UserId: guestTrackId,
+        CompanyId: 3044,
+        IpAddress: await getDeviceIP(),
+      };
+
+      console.log('🏠 Saving guest billing address with payload:', JSON.stringify(payload, null, 2));
+      const response = await saveBillingAddress(payload);
+      console.log('🏠 Billing address save response:', JSON.stringify(response, null, 2));
+
+      if (response.ResponseCode === '2' && response.TrackId) {
+        console.log('✅ Guest billing address saved successfully, TrackId:', response.TrackId);
+        // Store the TrackId as the billing address ID
+        set({ 
+          billingAddressId: parseInt(response.TrackId),
+          isLoading: false,
+          error: null
+        });
+        return true;
+      } else {
+        console.log('❌ Failed to save guest billing address:', response.ResponseCode, response.Message);
+        set({ 
+          isLoading: false, 
+          error: response.Message || 'Failed to save billing address'
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error saving guest billing address:', error);
+      set({ 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to save billing address'
+      });
+      return false;
+    }
+  },
+
+  saveGuestShippingAddress: async (addressData: CheckoutAddress) => {
+    const { guestTrackId } = get();
+    if (!guestTrackId) {
+      console.error('❌ No guest track ID available for saving shipping address');
+      return false;
+    }
+
+    set({ isLoading: true, error: null });
+
+    try {
+      const payload: SaveShippingAddressPayload = {
+        ShippingAddressId: 0, // 0 for new address
+        FullName: addressData.fullName,
+        Email: addressData.email,
+        Mobile: addressData.mobile,
+        Address2: addressData.address2,
+        Country: addressData.country?.XCode.toString() || '',
+        State: addressData.state?.XCode.toString() || '',
+        City: addressData.city?.XCode.toString() || '',
+        Block: addressData.block,
+        Street: addressData.street,
+        House: addressData.house,
+        Apartment: addressData.apartment,
+        IsDefault: 1, // 1 for true
+        Command: 'Save',
+        UserId: guestTrackId,
+        CompanyId: 3044,
+        IpAddress: await getDeviceIP(),
+      };
+
+      console.log('🏠 Saving guest shipping address with payload:', JSON.stringify(payload, null, 2));
+      const response = await saveShippingAddress(payload);
+      console.log('🏠 Shipping address save response:', JSON.stringify(response, null, 2));
+
+      if (response.ResponseCode === '2' && response.TrackId) {
+        console.log('✅ Guest shipping address saved successfully, TrackId:', response.TrackId);
+        // Store the TrackId as the shipping address ID
+        set({ 
+          shippingAddressId: parseInt(response.TrackId),
+          isLoading: false,
+          error: null
+        });
+        return true;
+      } else {
+        console.log('❌ Failed to save guest shipping address:', response.ResponseCode, response.Message);
+        set({ 
+          isLoading: false, 
+          error: response.Message || 'Failed to save shipping address'
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error saving guest shipping address:', error);
+      set({ 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to save shipping address'
       });
       return false;
     }
