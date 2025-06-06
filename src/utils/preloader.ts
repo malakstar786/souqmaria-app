@@ -1,9 +1,10 @@
 // Data preloader utility to improve app performance
 // This preloads critical data for both languages in the background
 
-import { getCategories, getAllCategories, getBanners } from './api-service';
+import { getCategories, getAllCategories, getBanners, getAllProductsDirectly } from './api-service';
 import { apiCache } from './api-cache';
 import useLanguageStore from '../store/language-store';
+import { COMMON_PARAMS, CULTURE_IDS } from './api-config';
 
 class DataPreloader {
   private isPreloading = false;
@@ -19,12 +20,15 @@ class DataPreloader {
     console.log('🚀 Preloading data for culture:', cultureId);
 
     try {
-      // Preload in parallel for better performance
+      // Preload core UI data in parallel for better performance
       await Promise.allSettled([
         getCategories(cultureId, userId),
         getAllCategories(cultureId, userId),
         getBanners(cultureId, userId),
       ]);
+
+      // Preload popular product categories after core data
+      await this.preloadPopularProducts(cultureId, userId);
 
       this.preloadedLanguages.add(cultureId);
       console.log('✅ Preloading completed for culture:', cultureId);
@@ -33,6 +37,46 @@ class DataPreloader {
     } finally {
       this.isPreloading = false;
     }
+  }
+
+  // Preload popular product categories for faster initial product loading
+  private async preloadPopularProducts(cultureId: string, userId = ''): Promise<void> {
+    console.log('📦 Preloading popular products for culture:', cultureId);
+    
+    // Popular homepage categories to preload
+    const popularCategories = [
+      { PageCode: 'HPC2', HomePageCatSrNo: 'HC31790006' }, // Mobile
+      { PageCode: 'HPC2', HomePageCatSrNo: 'HC31790007' }, // Tablet  
+      { PageCode: 'HPC2', HomePageCatSrNo: 'HC31790008' }, // Accessories
+      { PageCode: 'HPC2', HomePageCatSrNo: 'HC31790009' }, // Speakers & Headphones
+      { PageCode: 'HPC2', HomePageCatSrNo: 'HC31790010' }, // Smart Watches
+    ];
+
+    // Preload each category in the background
+    const preloadPromises = popularCategories.map(async (category) => {
+      try {
+        const params = {
+          PageCode: category.PageCode,
+          HomePageCatSrNo: category.HomePageCatSrNo,
+          Category: '',
+          SubCategory: '',
+          SearchName: '',
+          CultureId: cultureId,
+          UserId: userId,
+          Company: COMMON_PARAMS.Company,
+          Value2: COMMON_PARAMS.Location,
+        };
+        
+        await getAllProductsDirectly(params);
+        console.log(`📦 Preloaded products for category: ${category.HomePageCatSrNo}`);
+      } catch (error) {
+        console.warn(`📦 Failed to preload category ${category.HomePageCatSrNo}:`, error);
+      }
+    });
+
+    // Execute all preloads in parallel with a timeout
+    await Promise.allSettled(preloadPromises);
+    console.log('✅ Product preloading completed for culture:', cultureId);
   }
 
   // Preload data for both languages

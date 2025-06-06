@@ -1181,46 +1181,57 @@ interface GetAllProductsDirectParams {
 export const getAllProductsDirectly = async (
   params: GetAllProductsDirectParams
 ): Promise<AllProductsDirectResponse> => {
-  const queryParams = new URLSearchParams({
-    Company: params.Company || COMMON_PARAMS.Company,
-    CultureId: params.CultureId || CULTURE_IDS.ENGLISH,
-    PageCode: params.PageCode,
-    Category: params.Category || '',
-    SubCategory: params.SubCategory || '',
-    SearchName: params.SearchName || '',
-    HomePageCatSrNo: params.HomePageCatSrNo || '',
-    UserId: params.UserId || '',
-    Value2: params.Value2, // Required: location parameter
-  }).toString();
+  const cultureId = String(params.CultureId || getCurrentCultureId());
+  const cacheKey = 'getAllProductsDirectly';
+  
+  return withCache(
+    cacheKey,
+    params,
+    cultureId,
+    async () => {
+      const queryParams = new URLSearchParams({
+        Company: params.Company || COMMON_PARAMS.Company,
+        CultureId: cultureId,
+        PageCode: params.PageCode,
+        Category: params.Category || '',
+        SubCategory: params.SubCategory || '',
+        SearchName: params.SearchName || '',
+        HomePageCatSrNo: params.HomePageCatSrNo || '',
+        UserId: params.UserId || '',
+        Value2: params.Value2, // Required: location parameter
+      }).toString();
 
-  const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_DIRECT}?${queryParams}`;
+      const url = `${API_BASE_URL}${ENDPOINTS.GET_ALL_PRODUCT_LIST_DIRECT}?${queryParams}`;
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    const data: AllProductsDirectResponse = await response.json();
-    if (!response.ok) {
-      // Even if not ok, the body might contain ResponseCode and Message
-      console.error(`Error fetching all products directly: ${response.status}`, data);
-      return { 
-        List: data.List || null,
-        ResponseCode: data.ResponseCode || String(response.status),
-        Message: data.Message || `HTTP error ${response.status}`
-      };
-    }
-    return data;
-  } catch (error) {
-    console.error('Network error in getAllProductsDirectly:', error);
-    return {
-      List: null,
-      ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
-      Message: 'Network request failed. Please check your connection.',
-    };
-  }
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        const data: AllProductsDirectResponse = await response.json();
+        if (!response.ok) {
+          // Even if not ok, the body might contain ResponseCode and Message
+          console.error(`Error fetching all products directly: ${response.status}`, data);
+          return { 
+            List: data.List || null,
+            ResponseCode: data.ResponseCode || String(response.status),
+            Message: data.Message || `HTTP error ${response.status}`
+          };
+        }
+        return data;
+      } catch (error) {
+        console.error('Network error in getAllProductsDirectly:', error);
+        return {
+          List: null,
+          ResponseCode: String(RESPONSE_CODES.SERVER_ERROR),
+          Message: 'Network request failed. Please check your connection.',
+        };
+      }
+    },
+    true // Mark as critical cache
+  );
 };
 
 /**

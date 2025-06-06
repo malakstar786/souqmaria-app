@@ -159,7 +159,7 @@ export default function AccountDetailsScreen() {
 
   const handleDeleteProfile = async () => {
     try {
-      const url = 'https://example.com/delete-profile';
+      const url = 'https://souqmaria.com/DeleteUser';
       const supported = await Linking.canOpenURL(url);
       
       if (supported) {
