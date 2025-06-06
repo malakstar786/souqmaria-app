@@ -38,19 +38,7 @@
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
-      ],
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "buildToolsVersion": "34.0.0",
-      "proguardSettings": {
-        "enableInReleaseBuilds": true
-      },
-      "packagingOptions": {
-        "pickFirst": [
-          "**/libc++_shared.so",
-          "**/libjsc.so"
-        ]
-      }
+      ]
     },
     "web": {
       "favicon": "./src/assets/logo.png",

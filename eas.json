@@ -1,6 +1,6 @@
 {
     "cli": {
-      "version": ">= 5.0.0",
+      "version": ">= 12.0.0",
       "appVersionSource": "local"
     },
     "build": {
@@ -39,8 +39,7 @@
         "android": {
           "resourceClass": "large",
           "autoIncrement": "versionCode",
-          "buildType": "aab",
-          "gradleCommand": ":app:bundleRelease",
+          "buildType": "app-bundle",
           "env": {
             "_JAVA_OPTIONS": "-Xmx4096m",
             "GRADLE_OPTS": "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.jvmargs=-Xmx4096m"
