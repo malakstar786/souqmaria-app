@@ -3,6 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@assets/*": [
@@ -36,5 +39,14 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".expo",
+    "dist",
+    "build",
+    "android",
+    "ios",
+    "**/node_modules/react-native-maps/**"
   ]
 }
