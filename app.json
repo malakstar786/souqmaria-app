@@ -38,7 +38,8 @@
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
-      ]
+      ],
+      "supportsRtl": true
     },
     "web": {
       "favicon": "./src/assets/logo.png",
