@@ -1,7 +1,6 @@
 // RTL (Right-to-Left) language support utilities
-import { I18nManager, Platform } from 'react-native';
+import { I18nManager } from 'react-native';
 import useLanguageStore from '../store/language-store';
-import { useEffect } from 'react';
 
 // RTL languages list
 const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];
@@ -9,14 +8,7 @@ const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];
 // Check if current language should use RTL
 export function isRTL(): boolean {
   const { currentLanguage } = useLanguageStore.getState();
-  
-  // For Android: only apply RTL if language is Arabic
-  if (Platform.OS === 'android') {
-    return currentLanguage.code === 'ar';
-  }
-  
-  // For iOS: use the language's natural RTL property
-  return currentLanguage.isRTL;
+  return currentLanguage.code === 'ar';
 }
 
 // Get text alignment based on language direction
@@ -55,9 +47,8 @@ export function getPositionEnd(value: number) {
   return isRTL() ? { left: value } : { right: value };
 }
 
-// Apply RTL styles to a style object with immediate updates
+// Apply RTL styles to a style object
 export function applyRTL(styles: any) {
-  // Use the platform-specific RTL check
   const shouldApplyRTL = isRTL();
   
   if (!shouldApplyRTL) return styles;
@@ -118,33 +109,20 @@ export function applyRTL(styles: any) {
   return rtlStyles;
 }
 
-// Enhanced hook for RTL-aware styling - includes immediate updates
+// Simple hook for RTL-aware styling
 export function useRTL() {
-  const { currentLanguage, layoutVersion } = useLanguageStore();
+  const { currentLanguage } = useLanguageStore();
   
-  // Use platform-specific RTL logic
   const currentIsRTL = isRTL();
   const textAlign = currentIsRTL ? 'right' : 'left';
   const flexDirection = currentIsRTL ? 'row-reverse' : 'row';
-  
-  // Log RTL changes for debugging
-  useEffect(() => {
-    console.log('🔄 RTL state updated:', {
-      language: currentLanguage.code,
-      isRTL: currentIsRTL,
-      I18nManagerRTL: I18nManager.isRTL,
-      layoutVersion,
-      platform: Platform.OS
-    });
-  }, [currentLanguage.code, currentIsRTL, layoutVersion]);
   
   return {
     isRTL: currentIsRTL,
     textAlign: textAlign as 'left' | 'right',
     flexDirection: flexDirection as 'row' | 'row-reverse',
-    layoutVersion, // Include for components that need to force re-render
     
-    // Helper functions that use current state
+    // Helper functions
     marginStart: (value: number) => currentIsRTL ? { marginRight: value } : { marginLeft: value },
     marginEnd: (value: number) => currentIsRTL ? { marginLeft: value } : { marginRight: value },
     paddingStart: (value: number) => currentIsRTL ? { paddingRight: value } : { paddingLeft: value },
@@ -158,7 +136,6 @@ export function useRTL() {
       
       const rtlStyles = { ...styles };
       
-      // Apply RTL transformations immediately
       if (rtlStyles.flexDirection === 'row') {
         rtlStyles.flexDirection = 'row-reverse';
       }
@@ -177,12 +154,6 @@ export function useRTL() {
 // Force RTL layout update (call when language changes)
 export function forceRTL(enable: boolean) {
   I18nManager.forceRTL(enable);
-  console.log('🔄 I18nManager.forceRTL called with:', enable);
-  
-  // On Android, this typically requires app restart to take full effect
-  if (Platform.OS === 'android') {
-    console.log('🤖 Android detected: RTL change may require app restart for full effect');
-  }
 }
 
 // Check if device supports RTL
@@ -190,26 +161,8 @@ export function isRTLSupported(): boolean {
   return I18nManager.isRTL;
 }
 
-// Get current I18nManager state for debugging
-export function getI18nManagerState() {
-  return {
-    isRTL: I18nManager.isRTL,
-    platform: Platform.OS,
-    allowRTL: I18nManager.allowRTL,
-  };
-}
-
-// Hook to preload cache for the opposite language in the background
+// Simple background cache preload hook (keeping for compatibility)
 export const useBackgroundCachePreload = () => {
-  const { currentLanguage, preloadLanguageCache } = useLanguageStore();
-  
-  useEffect(() => {
-    // Preload cache for the opposite language after a short delay
-    const timer = setTimeout(() => {
-      const oppositeLanguage = currentLanguage.code === 'en' ? 'ar' : 'en';
-      preloadLanguageCache(oppositeLanguage);
-    }, 3000); // Wait 3 seconds after component mount
-    
-    return () => clearTimeout(timer);
-  }, [currentLanguage.code, preloadLanguageCache]);
+  // This was used for cache preloading but can be simplified or removed
+  return {};
 }; 

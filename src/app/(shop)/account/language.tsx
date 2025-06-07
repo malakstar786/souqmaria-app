@@ -24,8 +24,8 @@ import { useRTL } from '../../../utils/rtl';
 export default function LanguageScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { isRTL, textAlign, flexDirection, layoutVersion } = useRTL();
-  const { currentLanguage, setLanguage, getCultureId, forceLayoutUpdate } = useLanguageStore();
+  const { isRTL, textAlign, flexDirection } = useRTL();
+  const { currentLanguage, setLanguage, getCultureId } = useLanguageStore();
   
   // Get store actions to refresh data when language changes
   const { fetchCategories } = useCategoryStore();
@@ -57,9 +57,6 @@ export default function LanguageScreen() {
             try {
               // Update language in store (this will trigger immediate layout changes)
               await setLanguage(languageCode);
-              
-              // Force additional layout update to ensure all components re-render
-              forceLayoutUpdate();
               
               // Clear API cache to force fresh data in new language
               apiCache.clearAll();
@@ -96,7 +93,7 @@ export default function LanguageScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} key={`language-screen-${layoutVersion}`}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { flexDirection }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>

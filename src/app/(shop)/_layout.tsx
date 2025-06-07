@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { I18nManager, Platform, ViewStyle, TextStyle } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { ViewStyle, TextStyle } from 'react-native';
 import { colors } from '@theme';
 import CartIcon from '../../components/CartIcon';
 import useCartStore from '../../store/cart-store';
@@ -16,68 +15,31 @@ export default function ShopLayout() {
   const { t } = useTranslation();
   const { getUniqueId } = useCartStore();
   const { user } = useAuthStore();
-  const { currentLanguage, layoutVersion, initializeLanguage, verifyRTLState } = useLanguageStore();
+  const { currentLanguage } = useLanguageStore();
   
   // Initialize app on startup
   useEffect(() => {
-    let mounted = true;
-    
     const initializeApp = async () => {
       try {
-        // Initialize language settings and RTL
-        await initializeLanguage();
-        
-        // Only proceed if component is still mounted
-        if (!mounted) return;
-        
         // Initialize cart unique ID
         const uniqueId = getUniqueId();
-        console.log('🆔 App initialized with unique ID:', uniqueId);
         
         // Start preloading critical data
         const userId = user?.UserID || user?.id || '';
         startDataPreloading(userId);
-        
-        console.log('🚀 App initialization completed');
       } catch (error) {
-        console.error('🚀 App initialization error:', error);
+        console.error('App initialization error:', error);
       }
     };
     
     initializeApp();
-    
-    // Cleanup function
-    return () => {
-      mounted = false;
-    };
-  }, [getUniqueId, user, initializeLanguage]);
-
-  // Handle Android RTL navigation issues by verifying state on focus
-  useFocusEffect(
-    React.useCallback(() => {
-      if (Platform.OS === 'android') {
-        // Verify and restore RTL state when screen comes into focus
-        verifyRTLState();
-      }
-    }, [verifyRTLState])
-  );
-
-  // Force re-render when language changes by including layoutVersion in dependency
-  useEffect(() => {
-    console.log('🌐 Layout updated for language:', {
-      language: currentLanguage.code,
-      isRTL: isRTL(),
-      I18nManagerRTL: I18nManager.isRTL,
-      layoutVersion,
-      platform: Platform.OS
-    });
-  }, [currentLanguage.code, layoutVersion]);
+  }, [getUniqueId, user]);
   
-  // Memoize RTL-dependent values to ensure proper updates
+  // Memoize RTL-dependent values
   const layoutConfig = useMemo(() => {
     const currentIsRTL = isRTL();
     
-    // Create tab screens in the correct order for RTL
+    // Create tab screens
     const tabScreens = [
       {
         name: "index",
@@ -106,7 +68,6 @@ export default function ShopLayout() {
     
     const tabBarStyle: ViewStyle = {
       backgroundColor: colors.white,
-      // Apply RTL direction to tab bar
       flexDirection: currentIsRTL ? 'row-reverse' : 'row',
     };
     
@@ -121,23 +82,21 @@ export default function ShopLayout() {
     };
     
     return {
-      isRTL: currentIsRTL,
       orderedTabs,
       tabBarStyle,
       tabBarLabelStyle,
       tabBarItemStyle,
     };
-  }, [currentLanguage.code, layoutVersion, t]);
+  }, [currentLanguage.code, t]);
   
   return (
     <Tabs
-      key={`tabs-${currentLanguage.code}-${layoutVersion}`} // Force re-render on language change
+      key={`tabs-${currentLanguage.code}`}
       screenOptions={{
         tabBarActiveTintColor: colors.blue,
         tabBarInactiveTintColor: colors.black,
         tabBarStyle: layoutConfig.tabBarStyle,
         tabBarLabelStyle: layoutConfig.tabBarLabelStyle,
-        // Ensure tab bar respects RTL
         tabBarItemStyle: layoutConfig.tabBarItemStyle,
       }}
     >
