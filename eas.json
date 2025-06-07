@@ -38,7 +38,7 @@
           "autoIncrement": "buildNumber"
         },
         "android": {
-          "resourceClass": "large",
+          "resourceClass": "medium",
           "autoIncrement": "versionCode",
           "buildType": "app-bundle",
           "env": {
