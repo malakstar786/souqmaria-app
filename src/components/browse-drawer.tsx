@@ -90,6 +90,8 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
   }, [slideAnim]);
 
   const handleCategoryPress = useCallback((categoryXcode: string, categoryName: string) => {
+    // Close the drawer first, then navigate
+    onClose();
     // Navigate to products list with pageCode=MN and category=XCode
     router.push({
       pathname: '/products/list',
@@ -99,7 +101,6 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
         category: categoryXcode
       }
     });
-    onClose();
   }, [router, onClose]);
 
   // Toggle category expansion state
@@ -129,6 +130,8 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
   }, [expandedCategories, menuStructure, fetchSubCategoriesForCategory]);
   
   const handleSubCategoryPress = useCallback((categoryXcode: string, categoryName: string, subCategoryXCode: string, subCategoryName: string) => {
+    // Close the drawer first, then navigate
+    onClose();
     // Navigate to products list with pageCode=MN, category=XCode, and subcategory=XCode
     router.push({
       pathname: '/products/list',
@@ -139,7 +142,6 @@ function BrowseDrawer({ isVisible, onClose }: BrowseDrawerProps) {
         subCategory: subCategoryXCode
       }
     });
-    onClose();
   }, [router, onClose]);
 
   const renderContent = () => {

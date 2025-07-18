@@ -665,7 +665,8 @@ export default function CheckoutScreen() {
         console.log('🛒 SAVE CHECKOUT - Final TrackId for navigation:', trackId);
         setOrderPlacedTrackId(trackId || null);
         
-        // Navigate to success page
+        // Close checkout modal and navigate to success page
+        setIsModalVisible(false);
         router.push({
           pathname: '/thank-you',
           params: { 
@@ -688,7 +689,8 @@ export default function CheckoutScreen() {
           errorMessage = 'One or more items in your cart are not available in the requested quantity.';
         }
         
-        // Navigate to failure page
+        // Close checkout modal and navigate to failure page
+        setIsModalVisible(false);
         router.push({
           pathname: '/thank-you',
           params: { 

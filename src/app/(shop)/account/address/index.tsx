@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../../../store/auth-store';
 import useAddressStore, { Address } from '../../../../store/address-store';
-import { useTranslation } from '../../../../utils/translations';
-import { useRTL } from '../../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../../hooks';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function AddressScreen() {
@@ -257,7 +256,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#D9F4FF',
-    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 56,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },

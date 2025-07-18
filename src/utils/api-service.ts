@@ -353,16 +353,31 @@ const getPlatformSource = (): string => {
   return Platform.OS === 'ios' ? PLATFORM.IOS : PLATFORM.ANDROID;
 };
 
-// Helper function to get current culture ID from language store
-const getCurrentCultureId = (): string => {
-  try {
-    const cultureId = useLanguageStore.getState().getCultureId();
-    console.log('🌐 getCurrentCultureId() called, returning:', cultureId);
-    return cultureId;
-  } catch (error) {
-    console.warn('🌐 Failed to get culture ID from language store, defaulting to English:', error);
-    return CULTURE_IDS.ENGLISH;
-  }
+// Improve and export the CultureId function
+export const getCurrentCultureId = (): string => {
+  const { currentLanguage } = useLanguageStore.getState();
+  // Return culture ID directly from language object with fallback
+  return currentLanguage.cultureId || (currentLanguage.code === 'ar' ? CULTURE_IDS.ARABIC : CULTURE_IDS.ENGLISH);
+};
+
+// Helper for API calls to maintain RTL-aware culture ID
+export const getApiParams = (additionalParams: Record<string, any> = {}) => {
+  // Get current culture ID based on active language
+  const cultureId = getCurrentCultureId();
+  
+  // Base common parameters used in most API calls
+  const baseParams = {
+    CultureId: cultureId,
+    Company: COMMON_PARAMS.Company,
+    Location: COMMON_PARAMS.Location,
+    Salesman: COMMON_PARAMS.Salesman,
+  };
+  
+  // Return merged parameters
+  return {
+    ...baseParams,
+    ...additionalParams,
+  };
 };
 
 /**

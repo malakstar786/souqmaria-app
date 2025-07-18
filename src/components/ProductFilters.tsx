@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   modalScrollView: {
-    maxHeight: '60%',
+    maxHeight: '82%',
   },
   filterItem: {
     flexDirection: 'row',

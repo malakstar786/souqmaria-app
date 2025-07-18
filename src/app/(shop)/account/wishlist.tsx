@@ -21,8 +21,7 @@ import useAuthStore from '../../../store/auth-store';
 import useWishlistStore from '../../../store/wishlist-store';
 import AuthModal from '../../../components/AuthModal';
 import { PRODUCT_IMAGE_BASE_URL } from '../../../utils/api-config';
-import { useTranslation } from '../../../utils/translations';
-import { useRTL } from '../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../hooks';
 
 const { width } = Dimensions.get('window');
 
@@ -281,7 +280,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingVertical: 12,
+    paddingTop: Platform.OS === 'ios' ? 30 : 30,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   headerTitle: {

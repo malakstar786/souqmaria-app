@@ -16,8 +16,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
 import useLanguageStore from '../../../../store/language-store';
-import { useTranslation } from '../../../../utils/translations';
-import { useRTL } from '../../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../../hooks';
 
 // Define the Order interface based on the actual API response
 interface Order {
@@ -277,7 +276,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 56,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },

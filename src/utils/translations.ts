@@ -84,6 +84,10 @@ const translations = {
     en: 'Are you sure you want to change the language to',
     ar: 'هل أنت متأكد من أنك تريد تغيير اللغة إلى'
   },
+  'layout_will_change_immediately': {
+    en: 'The app layout will change immediately.',
+    ar: 'سيتغير تخطيط التطبيق على الفور.'
+  },
   'english': {
     en: 'English',
     ar: 'الإنجليزية'
@@ -101,8 +105,8 @@ const translations = {
     ar: 'تغيير'
   },
   'language_change_note': {
-    en: 'Changing the language will refresh the app content to display in the selected language.',
-    ar: 'سيؤدي تغيير اللغة إلى تحديث محتوى التطبيق لعرضه باللغة المحددة.'
+    en: 'Changing the language will update all content in the app to the selected language.',
+    ar: 'سيؤدي تغيير اللغة إلى تحديث جميع محتويات التطبيق إلى اللغة المحددة.'
   },
   
   // Error messages
@@ -835,12 +839,12 @@ const translations = {
     ar: 'يرجى تسجيل الدخول'
   },
   'login_to_view_orders': {
-    en: 'You need to be logged in to view your order history',
-    ar: 'تحتاج إلى تسجيل الدخول لعرض تاريخ طلباتك'
+    en: 'Please log in to view your order history.',
+    ar: 'يرجى تسجيل الدخول لعرض تاريخ طلباتك.'
   },
   'log_in_sign_up': {
     en: 'Log In / Sign Up',
-    ar: 'تسجيل الدخول / إنشاء حساب'
+    ar: 'تسجيل الدخول / التسجيل'
   },
   'search_orders': {
     en: 'Search orders...',
@@ -879,8 +883,8 @@ const translations = {
     ar: 'لا توجد طلبات تطابق بحثك'
   },
   'try_different_search': {
-    en: 'Try searching with a different order number',
-    ar: 'جرب البحث برقم طلب مختلف'
+    en: 'Try a different search term',
+    ar: 'جرب مصطلح بحث مختلف'
   },
   'orders_clear_search': {
     en: 'Clear Search',
@@ -1113,7 +1117,7 @@ const translations = {
     ar: 'اتصل بنا'
   },
   'terms_and_conditions': {
-    en: 'Terms & Conditions',
+    en: 'Terms and Conditions',
     ar: 'الشروط والأحكام'
   },
   'privacy_return_policy': {
@@ -1131,20 +1135,16 @@ const translations = {
     ar: 'تم حفظ عنوان الشحن بنجاح!'
   },
   'failed_to_save_address': {
-    en: 'Failed to save address. Please check console for details.',
-    ar: 'فشل في حفظ العنوان. يرجى التحقق من وحدة التحكم للحصول على التفاصيل.'
+    en: 'Failed to save address',
+    ar: 'فشل في حفظ العنوان'
   },
   'user_not_found_login_again': {
     en: 'User not found. Please log in again.',
-    ar: 'لم يتم العثور على المستخدم. يرجى تسجيل الدخول مرة أخرى.'
+    ar: 'المستخدم غير موجود. يرجى تسجيل الدخول مرة أخرى.'
   },
   'unknown_error_occurred': {
-    en: 'Unknown error occurred',
+    en: 'An unknown error occurred',
     ar: 'حدث خطأ غير معروف'
-  },
-  'layout_will_change_immediately': {
-    en: 'The app layout will change immediately to match the selected language direction.',
-    ar: 'سيتغير تخطيط التطبيق فوراً ليتناسب مع اتجاه اللغة المحددة.'
   },
   'language_changed': {
     en: 'Language Changed',
@@ -1219,10 +1219,17 @@ const translations = {
   'try_again': {
     en: 'Try again',
     ar: 'حاول مرة أخرى'
-  }
+  },
+  'please_wait': {
+    en: 'Please Wait',
+    ar: 'يرجى الانتظار'
+  },
+  'app_reloading_message': {
+    en: 'The app is reloading to apply the new language settings.',
+    ar: 'يتم إعادة تحميل التطبيق لتطبيق إعدادات اللغة الجديدة.'
+  },
 } as const;
 
-// Type for translation keys
 export type TranslationKey = keyof typeof translations;
 
 // Hook to get translated text

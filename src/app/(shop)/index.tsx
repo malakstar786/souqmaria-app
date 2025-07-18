@@ -13,6 +13,7 @@ import {
   Dimensions,
   Keyboard,
   Image,
+  Platform,
   // Linking, // Uncomment if using Linking for banner press
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
@@ -37,7 +38,7 @@ const BANNER_HEIGHT = 350; // Match screenshot
 const ADVERTISEMENT_HEIGHT = screenHeight * 0.25; // Advertisement height
 const SEARCH_RESULT_ITEM_HEIGHT = 50;
 const HEADER_HEIGHT = 70;
-const SEARCH_BAR_HEIGHT = 80;
+const SEARCH_BAR_HEIGHT = 115; // 48px search bar + 16px padding + 16px gap to ensure search bar visibility
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -283,7 +284,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar backgroundColor={colors.white} barStyle="dark-content" />
+      <StatusBar backgroundColor={colors.lightBlue} barStyle="dark-content" />
       
       {/* Header */}
       <View style={styles.headerContainer}>
@@ -325,10 +326,48 @@ export default function HomeScreen() {
             accessibilityRole="search"
           />
         </View>
+        
+        {/* Search Results Overlay */}
+        {isSearchFocused && (isLoadingSearch || errorSearch || searchResults.length > 0 || searchQuery.trim().length >= 2) && (
+          <View style={styles.searchResultsContainer}>
+            {isLoadingSearch && (
+              <View style={styles.searchLoadingContainer}>
+                <ActivityIndicator color={colors.blue} size="small" />
+                <Text style={styles.searchLoadingText}>{t('searching')}</Text>
+              </View>
+            )}
+            
+            {!isLoadingSearch && errorSearch && (
+              <View style={styles.searchErrorContainer}>
+                <Text style={styles.searchErrorText}>{errorSearch}</Text>
+              </View>
+            )}
+            
+            {!isLoadingSearch && !errorSearch && searchResults.length === 0 && searchQuery.trim().length >= 2 && (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>{t('no_products_found_for')} "{searchQuery}"</Text>
+              </View>
+            )}
+            
+            {!isLoadingSearch && searchResults.length > 0 && (
+              <FlatList
+                data={searchResults}
+                renderItem={renderSearchResultItem}
+                keyExtractor={(item) => item.XCode + item.XName}
+                style={styles.searchResultsList}
+                keyboardShouldPersistTaps="handled"
+                getItemLayout={(data, index) => (
+                  { length: SEARCH_RESULT_ITEM_HEIGHT, offset: SEARCH_RESULT_ITEM_HEIGHT * index, index }
+                )}
+              />
+            )}
+          </View>
+        )}
       </View>
 
       {/* Main Content */}
-      <ScrollView 
+      <View style={styles.contentWrapper}>
+        <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -456,44 +495,8 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {/* Search Results Overlay */}
-      {isSearchFocused && (isLoadingSearch || errorSearch || searchResults.length > 0 || searchQuery.trim().length >= 2) && (
-        <View style={styles.searchResultsContainer}>
-          {isLoadingSearch && (
-            <View style={styles.searchLoadingContainer}>
-              <ActivityIndicator color={colors.blue} size="small" />
-              <Text style={styles.searchLoadingText}>{t('searching')}</Text>
-            </View>
-          )}
-          
-          {!isLoadingSearch && errorSearch && (
-            <View style={styles.searchErrorContainer}>
-              <Text style={styles.searchErrorText}>{errorSearch}</Text>
-            </View>
-          )}
-          
-          {!isLoadingSearch && !errorSearch && searchResults.length === 0 && searchQuery.trim().length >= 2 && (
-            <View style={styles.noResultsContainer}>
-              <Text style={styles.noResultsText}>{t('no_products_found_for')} "{searchQuery}"</Text>
-            </View>
-          )}
-          
-          {!isLoadingSearch && searchResults.length > 0 && (
-            <FlatList
-              data={searchResults}
-              renderItem={renderSearchResultItem}
-              keyExtractor={(item) => item.XCode + item.XName}
-              style={styles.searchResultsList}
-              keyboardShouldPersistTaps="handled"
-              getItemLayout={(data, index) => (
-                { length: SEARCH_RESULT_ITEM_HEIGHT, offset: SEARCH_RESULT_ITEM_HEIGHT * index, index }
-              )}
-            />
-          )}
-        </View>
-      )}
-
       <BrowseDrawer isVisible={isBrowseDrawerVisible} onClose={handleDrawerClose} />
+      </View>
     </SafeAreaView>
   );
 }
@@ -501,7 +504,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.white, 
+    backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -550,6 +554,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
   searchContainer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -558,6 +566,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     backgroundColor: colors.lightBlue,
     zIndex: 5,
+    position: 'relative', // Add this
   },
   searchBar: {
     flexDirection: 'row',
@@ -713,9 +722,9 @@ const styles = StyleSheet.create({
   },
   searchResultsContainer: {
     position: 'absolute',
-    top: HEADER_HEIGHT + SEARCH_BAR_HEIGHT,
     left: spacing.lg,
     right: spacing.lg,
+    top: '100%', // Change this from dynamic top
     backgroundColor: colors.white,
     borderRadius: radii.lg,
     borderWidth: 1,

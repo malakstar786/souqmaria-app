@@ -13,6 +13,7 @@ import {
   StatusBar,
   ScrollView,
   Image,
+  Platform,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -26,7 +27,7 @@ import { useRTL } from '../../utils/rtl';
 
 const { width } = Dimensions.get('window');
 const SEARCH_RESULT_ITEM_HEIGHT = 50;
-const HEADER_HEIGHT = 110; // Height of header + search bar
+const HEADER_HEIGHT = 160; // Height of header + search bar + gap to ensure search bar visibility
 
 export default function CategoriesScreen() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function CategoriesScreen() {
   } = useSearchStore();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchBarBottom, setSearchBarBottom] = useState<number>(0);
 
   // Memoize categories to prevent unnecessary re-renders
   const memoizedCategories = useMemo(() => categories, [categories]);
@@ -148,25 +150,27 @@ export default function CategoriesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchBarContainer}>
-        <View style={styles.searchInputContainer}>
-          <FontAwesome name="search" size={18} color={colors.blue} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('search_placeholder')}
-            placeholderTextColor={colors.textGray}
-            value={searchQuery}
-            onChangeText={handleSearchTextChange}
-            onSubmitEditing={handleSearchSubmit}
-            returnKeyType="search"
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-          />
+      {/* Content Wrapper */}
+      <View style={styles.contentWrapper}>
+        {/* Search Bar */}
+        <View style={styles.searchBarContainer} onLayout={({nativeEvent}) => setSearchBarBottom(nativeEvent.layout.y + nativeEvent.layout.height)}>
+          <View style={styles.searchInputContainer}>
+            <FontAwesome name="search" size={18} color={colors.blue} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('search_placeholder')}
+              placeholderTextColor={colors.textGray}
+              value={searchQuery}
+              onChangeText={handleSearchTextChange}
+              onSubmitEditing={handleSearchSubmit}
+              returnKeyType="search"
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+          </View>
         </View>
-      </View>
 
-      {/* Main Content - Categories Grid */}
+        {/* Main Content - Categories Grid */}
       {isLoadingCategories ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
@@ -205,7 +209,7 @@ export default function CategoriesScreen() {
       
       {/* Search Results Dropdown */}
       {isSearchFocused && (isLoadingSearch || errorSearch || searchResults.length > 0 || searchQuery.trim().length >= 2) && (
-        <View style={[styles.searchResultsContainer, { top: HEADER_HEIGHT }]}>
+        <View style={[styles.searchResultsContainer, { top: searchBarBottom }]}>
           {isLoadingSearch ? (
             <View style={styles.searchLoadingContainer}>
               <ActivityIndicator color={colors.blue} size="small" />
@@ -240,12 +244,18 @@ export default function CategoriesScreen() {
           )}
         </View>
       )}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+  },
+  contentWrapper: {
     flex: 1,
     backgroundColor: colors.white,
   },

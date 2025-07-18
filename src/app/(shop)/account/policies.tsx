@@ -11,8 +11,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, radii, typography } from '@theme';
-import { useTranslation } from '../../../utils/translations';
-import { useRTL } from '../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../hooks';
 
 // Policy links
 const POLICIES = [
@@ -105,7 +104,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingTop: Platform.OS === 'ios' ? 66 : 66,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
@@ -118,6 +117,7 @@ const styles = StyleSheet.create({
     color: colors.blue,
     textAlign: 'center',
     flex: 1,
+    paddingLeft: 10,
   },
   placeholder: {
     width: 40, // Same width as backButton for balance

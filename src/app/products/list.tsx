@@ -578,7 +578,9 @@ export default function ProductListScreen() {
       <SafeAreaView style={styles.container}>
         <StatusBar backgroundColor={colors.lightBlue} barStyle="dark-content" />
         
-        <View style={styles.header}>
+        {/* Content Wrapper */}
+        <View style={styles.contentWrapper}>
+          <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => router.back()}
@@ -666,6 +668,7 @@ export default function ProductListScreen() {
             />
           )}
         </View>
+        </View>
       </SafeAreaView>
     </>
   );
@@ -673,6 +676,11 @@ export default function ProductListScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: colors.lightBlue,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+  },
+  contentWrapper: {
     flex: 1,
     backgroundColor: colors.white,
   },

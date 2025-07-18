@@ -13,7 +13,8 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import useLanguageStore, { LANGUAGES, Language } from '../store/language-store';
 import { colors, spacing, radii } from '@theme';
-import { useRTL } from '../utils/rtl';
+import { useRTL } from '../hooks';
+import { useTranslation } from '../hooks';
 
 interface LanguageSelectorProps {
   style?: any;
@@ -28,64 +29,62 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
     clearError 
   } = useLanguageStore();
   
+  const { t } = useTranslation();
   const { isRTL, flexDirection, textAlign } = useRTL();
   const [showModal, setShowModal] = useState(false);
 
   const handleLanguageSelect = async (languageCode: 'en' | 'ar') => {
     try {
+      // If it's the same language, just close the modal
+      if (languageCode === currentLanguage.code) {
+        setShowModal(false);
+        return;
+      }
+
+      // Get language details for alert
       const selectedLanguage = LANGUAGES[languageCode];
+      const currentIsRTL = currentLanguage.isRTL;
+      const newIsRTL = selectedLanguage.isRTL;
+      const isRTLChanging = currentIsRTL !== newIsRTL;
       
-      // For Android: Check if we're switching between Arabic and non-Arabic
-      // For iOS: Check if RTL property is changing
-      let isRTLChanging = false;
-      if (Platform.OS === 'android') {
-        const currentIsArabic = currentLanguage.code === 'ar';
-        const newIsArabic = languageCode === 'ar';
-        isRTLChanging = currentIsArabic !== newIsArabic;
-      } else {
-        // iOS - use natural RTL property
-        isRTLChanging = currentLanguage.isRTL !== selectedLanguage.isRTL;
-      }
-      
-      // Close modal immediately
-      setShowModal(false);
-      
-      // Handle Android RTL changes differently
-      if (Platform.OS === 'android' && isRTLChanging) {
-        Alert.alert(
-          'Language Change',
-          `You are switching to ${selectedLanguage.name}. This will change the app layout direction and requires the app to restart to apply properly.`,
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel'
-            },
-            {
-              text: 'Continue',
-              onPress: async () => {
-                await setLanguage(languageCode);
-                // The language store will handle the restart prompt
+      // Show confirmation dialog
+      Alert.alert(
+        t('change_language'),
+        isRTLChanging 
+          ? `${t('change_language_confirmation')} ${selectedLanguage.name}? ${t('layout_will_change_immediately')}`
+          : `${t('change_language_confirmation')} ${selectedLanguage.name}?`,
+        [
+          { text: t('cancel'), style: 'cancel' },
+          {
+            text: t('change'),
+            onPress: async () => {
+              // Close modal first
+              setShowModal(false);
+              
+              if (isRTLChanging) {
+                // Show loading alert for RTL changes
+                Alert.alert(
+                  t('please_wait'),
+                  t('app_reloading_message'),
+                  [],
+                  { cancelable: false }
+                );
               }
+              
+              // Change language (will trigger reload if RTL changes)
+              await setLanguage(languageCode);
             }
-          ]
-        );
-      } else {
-        // For iOS or when no RTL change needed
-        await setLanguage(languageCode);
-        
-        Alert.alert(
-          'Language Changed',
-          `Language changed to ${selectedLanguage.name}. The app content will now display in the selected language.`,
-          [{ text: 'OK' }]
-        );
-      }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Error changing language:', error);
       Alert.alert(
-        'Error',
-        'Failed to change language. Please try again.',
-        [{ text: 'OK', onPress: clearError }]
+        t('error'),
+        t('failed_to_change_language'),
+        [{ text: t('ok'), onPress: clearError }]
       );
+      setShowModal(false);
     }
   };
 
@@ -146,7 +145,7 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
             style={[styles.icon, isRTL ? { marginLeft: spacing.md } : { marginRight: spacing.md }]} 
           />
           <View style={[styles.textContainer, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
-            <Text style={[styles.title, { textAlign }]}>Language</Text>
+            <Text style={[styles.title, { textAlign }]}>{t('language')}</Text>
             <Text style={[styles.subtitle, { textAlign }]}>{currentLanguage.name}</Text>
           </View>
         </View>
@@ -168,7 +167,7 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
           
           <View style={styles.modalContent}>
             <View style={[styles.modalHeader, { flexDirection }]}>
-              <Text style={[styles.modalTitle, { textAlign }]}>Select Language</Text>
+              <Text style={[styles.modalTitle, { textAlign }]}>{t('select_language')}</Text>
               <TouchableOpacity
                 onPress={() => setShowModal(false)}
                 style={styles.closeButton}
@@ -182,8 +181,7 @@ export default function LanguageSelector({ style }: LanguageSelectorProps) {
             </View>
             
             <Text style={[styles.note, { textAlign }]}>
-              Changing the language will update all content in the app to the selected language.
-              {Platform.OS === 'android' && ' On Android, changing language direction may require an app restart.'}
+              {t('language_change_note')}
             </Text>
           </View>
         </SafeAreaView>
@@ -268,14 +266,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
+    marginVertical: spacing.xs,
+    backgroundColor: colors.backgroundLight,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginBottom: spacing.sm,
-    backgroundColor: colors.white,
   },
   selectedLanguageOption: {
-    borderColor: colors.blue,
     backgroundColor: colors.lightBlue,
   },
   languageInfo: {
@@ -283,18 +278,17 @@ const styles = StyleSheet.create({
   },
   languageName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   selectedLanguageName: {
     color: colors.blue,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   languageCode: {
     fontSize: 12,
     color: colors.textGray,
-    textTransform: 'uppercase',
   },
   selectedLanguageCode: {
     color: colors.blue,
@@ -303,6 +297,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textGray,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
   },
 }); 

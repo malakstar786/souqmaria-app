@@ -335,8 +335,10 @@ export default function ProductDetailScreen() {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
         
-        {/* Header */}
-        <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        {/* Content Wrapper */}
+        <View style={styles.contentWrapper}>
+          {/* Header */}
+          <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => router.back()}
@@ -583,6 +585,7 @@ export default function ProductDetailScreen() {
             </View>
           </View>
         </Modal>
+        </View>
       </SafeAreaView>
     </>
   );
@@ -590,6 +593,11 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: colors.white,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+  },
+  contentWrapper: {
     flex: 1,
     backgroundColor: colors.white,
   },
@@ -624,7 +632,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   cartButton: {
     padding: spacing.sm,
@@ -843,9 +851,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 3,
     padding: spacing.lg,
-    width: '80%',
+    width: '85%',
     alignItems: 'center',
   },
   successIcon: {
@@ -878,6 +886,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: colors.blue,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   modalDivider: {
     width: 1,

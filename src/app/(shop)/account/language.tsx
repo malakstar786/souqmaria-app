@@ -18,14 +18,13 @@ import useBannerStore from '../../../store/banner-store';
 import useAdvertisementStore from '../../../store/advertisement-store';
 import useMenuStore from '../../../store/menu-store';
 import { apiCache } from '../../../utils/api-cache';
-import { useTranslation } from '../../../utils/translations';
-import { useRTL } from '../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../hooks';
 
 export default function LanguageScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isRTL, textAlign, flexDirection } = useRTL();
-  const { currentLanguage, setLanguage, getCultureId } = useLanguageStore();
+  const { currentLanguage, setLanguage } = useLanguageStore();
   
   // Get store actions to refresh data when language changes
   const { fetchCategories } = useCategoryStore();
@@ -46,42 +45,52 @@ export default function LanguageScreen() {
       return;
     }
 
+    // Get language details for alert
+    const selectedLanguage = languages.find(l => l.code === languageCode);
+    const currentIsRTL = currentLanguage.code === 'ar';
+    const newIsRTL = languageCode === 'ar';
+    const isRTLChanging = currentIsRTL !== newIsRTL;
+      
     Alert.alert(
       t('change_language'),
-      `${t('change_language_confirmation')} ${languageCode === 'en' ? t('english') : t('arabic')}?\n\n${t('layout_will_change_immediately')}`,
+      isRTLChanging 
+        ? `${t('change_language_confirmation')} ${selectedLanguage?.name}?`
+        : `${t('change_language_confirmation')} ${selectedLanguage?.name}?`,
       [
         { text: t('cancel'), style: 'cancel' },
         {
           text: t('change'),
           onPress: async () => {
             try {
-              // Update language in store (this will trigger immediate layout changes)
-              await setLanguage(languageCode);
-              
-              // Clear API cache to force fresh data in new language
+              // Before changing language, clear API cache
               apiCache.clearAll();
               
-              // Refresh all data with new language
-              console.log('🌐 Language changed to:', languageCode, 'CultureId:', getCultureId());
+              if (isRTLChanging) {
+                // Show loading alert for RTL changes
+                Alert.alert(
+                  t('please_wait'),
+                  t('app_reloading_message'),
+                  [],
+                  { cancelable: false }
+                );
+              }
               
-              // Refresh all stores with new language
-              await Promise.all([
-                fetchCategories(),
-                fetchAllCategories(),
-                fetchBanners(),
-                fetchAdvertisements(),
-                fetchMenuStructure(),
-              ]);
+              // Set the language (this will reload the app if RTL changes)
+              await setLanguage(languageCode);
               
-              console.log('🌐 All data refreshed with new language');
-              
-              // Show success message
-              Alert.alert(
-                t('language_changed'),
-                `${t('language_changed_to')} ${languageCode === 'en' ? t('english') : t('arabic')}. ${t('layout_updated_immediately')}`,
-                [{ text: t('ok'), onPress: () => router.back() }]
-              );
-              
+              // If no reload happened (no RTL change), refresh data and navigate back
+              if (!isRTLChanging) {
+                // Refresh all data with new language
+                await Promise.all([
+                  fetchCategories(),
+                  fetchAllCategories(),
+                  fetchBanners(),
+                  fetchAdvertisements(),
+                  fetchMenuStructure(),
+                ]);
+                
+                router.back();
+              }
             } catch (error) {
               console.error('🌐 Error changing language:', error);
               Alert.alert(t('error'), t('failed_to_change_language'));
@@ -145,7 +154,7 @@ export default function LanguageScreen() {
         ))}
         
         <Text style={[styles.note, { textAlign }]}>
-          {t('language_change_note_immediate')}
+          {t('language_change_note')}
         </Text>
       </View>
     </SafeAreaView>
@@ -162,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 56,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },

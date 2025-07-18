@@ -11,7 +11,8 @@ import {
   Dimensions,
   Modal,
   Platform,
-  Image
+  Image,
+  StatusBar
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing } from '@theme';
@@ -125,7 +126,7 @@ export default function CartScreen() {
         <TouchableOpacity style={styles.addItemsButton} onPress={() => router.push('/(shop)')}>
           <View style={[styles.addButtonContent, { flexDirection }]}>
             <View style={[styles.addIcon, isRTL && { marginLeft: 8, marginRight: 0 }]}>
-              <FontAwesome name="plus-circle" size={16} color={colors.white} />
+              <FontAwesome name="plus-circle" size={16} color={colors.green} />
             </View>
             <Text style={[styles.addButtonText, { textAlign: 'center' }]}>{t('add_items')}</Text>
           </View>
@@ -275,12 +276,14 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { flexDirection }]}>
-        <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
-      </View>
-      
-      {cartItems.length === 0 ? (
+      {/* Content Wrapper */}
+      <View style={styles.contentWrapper}>
+        {/* Header */}
+        <View style={[styles.header, { flexDirection }]}>
+          <Text style={[styles.headerTitle, { textAlign }]}>{t('my_cart_title')}</Text>
+        </View>
+        
+        {cartItems.length === 0 ? (
         renderEmptyCart()
       ) : (
         <>
@@ -339,6 +342,7 @@ export default function CartScreen() {
           setShowAuthModal(false);
         }}
       />
+      </View>
     </SafeAreaView>
   );
 }
@@ -347,14 +351,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.veryLightGray,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+  },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: colors.veryLightGray,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.veryLightGray,
   },
   header: {
-    backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingTop: Platform.OS === 'ios' ? 25 : 25,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
@@ -375,7 +383,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.veryLightGray,
     marginTop: Platform.OS === 'ios' ? 0 : 0,
   },
   emptyCartContent: {

@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  ActivityIndicator,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radii } from '@theme';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/auth-store';
@@ -214,27 +213,26 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.white,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
   },
   headerContainer: {
-    paddingTop: 36,
+    paddingTop: Platform.OS === 'ios' ? 72 : 72,
     paddingBottom: 8,
     paddingHorizontal: 20,
     backgroundColor: colors.white,
+    borderBottomWidth: 0.5,
+    borderColor: colors.lightGray,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: colors.blue,
-    textAlign: 'left',
   },
   languageRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 30,
     backgroundColor: colors.white,
   },
   languageLeft: {
@@ -245,7 +243,6 @@ const styles = StyleSheet.create({
   languageLabel: {
     fontSize: 16,
     color: colors.black,
-    marginLeft: 8,
     fontWeight: 'bold',
   },
   languageRight: {
@@ -256,12 +253,10 @@ const styles = StyleSheet.create({
     color: colors.blue,
     fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 4,
   },
   tapToChange: {
     color: colors.blue,
     fontSize: 13,
-    marginLeft: 4,
     marginTop: 6.5,
     marginBottom: 8,
   },
@@ -269,17 +264,17 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.lightGray,
     marginVertical: 18,
+    marginHorizontal: 22,
   },
   illustrationContainer: {
     alignItems: 'center',
-    marginTop: 100,
+    marginTop: 80,
     marginBottom: 16,
   },
   illustrationImage: {
     width: 200,
     height: 200,
     marginBottom: 12,
-    borderRadius: 0,
   },
   illustrationText: {
     color: colors.blue,
@@ -290,7 +285,7 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: colors.black,
     borderRadius: 8,
-    paddingVertical: 14,
+    paddingVertical: 18,
     paddingHorizontal: 32,
     alignSelf: 'center',
     marginBottom: 32,
@@ -304,19 +299,13 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     backgroundColor: colors.white,
-    marginHorizontal: 0,
     marginBottom: 24,
-    paddingVertical: 0,
-    borderRadius: 0,
-    shadowColor: 'transparent',
-    elevation: 0,
   },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 18,
-    paddingHorizontal: 0,
     borderBottomWidth: 1,
     borderColor: colors.lightGray,
     marginHorizontal: 20,
@@ -324,9 +313,6 @@ const styles = StyleSheet.create({
   optionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  optionIcon: {
-    marginRight: 16,
   },
   optionLabel: {
     fontSize: 16,
@@ -378,12 +364,10 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     resizeMode: 'contain',
-    marginRight: 8,
   },
   optionIconImage: {
     width: 24,
     height: 24,
-    marginRight: 16,
     resizeMode: 'contain',
   },
-}); 
+});

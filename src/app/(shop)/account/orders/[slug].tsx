@@ -6,8 +6,7 @@ import { colors, spacing, radii } from '@theme';
 import useAuthStore from '../../../../store/auth-store';
 import useOrderStore from '../../../../store/order-store';
 import useLanguageStore from '../../../../store/language-store';
-import { useTranslation } from '../../../../utils/translations';
-import { useRTL } from '../../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../../hooks';
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
@@ -168,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.lightBlue,
-    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 56,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },

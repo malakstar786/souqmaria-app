@@ -8,8 +8,7 @@ import { useAuthStore } from '../../../../store/auth-store';
 import useAddressStore from '../../../../store/address-store';
 import useLocationStore, { LocationItem } from '../../../../store/location-store';
 import useCheckoutStore from '../../../../store/checkout-store';
-import { useTranslation } from '../../../../utils/translations';
-import { useRTL } from '../../../../utils/rtl';
+import { useTranslation, useRTL } from '../../../../hooks';
 
 export default function AddShippingAddressScreen() {
   const router = useRouter();
